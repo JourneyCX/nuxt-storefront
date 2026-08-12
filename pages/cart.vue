@@ -75,8 +75,16 @@ watch(() => quoteAddress.country, () => { quoteAddress.state = '' })
 
 function rateKey(rate: ShippingCheckoutRate) { return `${rate.provider}:${rate.service_code}` }
 
+// address_1 wasn't required here before, but Courier_guy_provider.php hard-
+// requires delivery_address.street and returns a zero-rates error without
+// it -- confirmed live: "No delivery options are available" for a real,
+// otherwise-complete address, because this page never even collected a
+// street value to send (quoteAddress.address_1 existed in state and was
+// already sent in fetchShippingRates()'s payload below, just never bound to
+// an input). Bob Go/WC-native don't hard-require it, but requiring it
+// uniformly here is more correct for an accurate quote either way.
 function quoteAddressComplete() {
-  return !!(quoteAddress.city && quoteAddress.postcode && quoteAddress.country)
+  return !!(quoteAddress.address_1 && quoteAddress.city && quoteAddress.postcode && quoteAddress.country)
 }
 
 let shippingDebounce: ReturnType<typeof setTimeout> | null = null
@@ -292,6 +300,11 @@ useHead({ title: 'Your Cart' })
       <div v-if="cartNeedsShipping" style="border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:24px">
         <h2 style="font-size:15px;font-weight:700;color:#1a202c;margin:0 0 16px">🚚 Delivery Options</h2>
 
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">Street Address *</label>
+          <input v-model="quoteAddress.address_1" type="text" placeholder="29 Poplar Rd"
+            style="width:100%;padding:9px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;box-sizing:border-box" />
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">City *</label>
@@ -322,7 +335,7 @@ useHead({ title: 'Your Cart' })
         </div>
 
         <div v-if="!quoteAddressComplete()" style="font-size:13px;color:#a0aec0">
-          Enter your city, postal code, and country above to see delivery options.
+          Enter your street address, city, postal code, and country above to see delivery options.
         </div>
         <div v-else-if="shippingLoading" style="font-size:13px;color:#718096">Calculating delivery options…</div>
         <div v-else-if="shippingChecked && shippingRates.length === 0"
