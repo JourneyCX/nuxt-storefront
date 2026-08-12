@@ -135,8 +135,18 @@ watch(availablePaymentMethods, (methods) => {
 // provinceResolved there), so this is a safety net, not the primary gate.
 const canSubmit = computed(() =>
   form.first_name && form.last_name && form.email &&
-  form.address_1  && form.city       && (!provinceOptions.value || form.state) && form.postcode &&
-  form.country    && (cart.value?.items_count ?? 0) > 0 &&
+  form.address_1  &&
+  // city/state/postcode/country only ever get populated (from quoteAddress,
+  // via /cart's delivery step) when cartNeedsShipping is true -- /cart's own
+  // Delivery Options section is gated on that same flag, so a cart WC
+  // reports as not needing shipping (e.g. no shipping zones configured at
+  // all for the store, confirmed live for tenant 80 -- WC_Cart::needs_shipping()
+  // short-circuits to false when wc_get_shipping_method_count() is 0,
+  // regardless of the product itself needing shipping) never gets asked for
+  // them, so requiring them unconditionally here permanently disabled Place
+  // Order for any such cart.
+  (!cartNeedsShipping.value || (form.city && (!provinceOptions.value || form.state) && form.postcode && form.country)) &&
+  (cart.value?.items_count ?? 0) > 0 &&
   shippingResolved.value
 )
 
