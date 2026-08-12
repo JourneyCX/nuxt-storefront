@@ -76,8 +76,8 @@ const showCarousel = computed(() =>
 )
 
 function price(product: WcProduct) {
-  if (product.sale_price) return `R ${parseFloat(product.sale_price).toFixed(2)}`
-  return `R ${parseFloat(product.price || '0').toFixed(2)}`
+  if (product.sale_price) return `${product.currency_symbol} ${parseFloat(product.sale_price).toFixed(2)}`
+  return `${product.currency_symbol} ${parseFloat(product.price || '0').toFixed(2)}`
 }
 </script>
 

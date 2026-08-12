@@ -32,13 +32,13 @@ const mainImage = computed(() => product.value?.images?.[selectedImage.value]?.s
 const price     = computed(() => {
   const p = product.value!
   return p.sale_price
-    ? `R ${parseFloat(p.sale_price).toFixed(2)}`
-    : `R ${parseFloat(p.price || '0').toFixed(2)}`
+    ? `${p.currency_symbol} ${parseFloat(p.sale_price).toFixed(2)}`
+    : `${p.currency_symbol} ${parseFloat(p.price || '0').toFixed(2)}`
 })
 const wasPrice = computed(() => {
   const p = product.value!
   return p.on_sale && p.regular_price
-    ? `R ${parseFloat(p.regular_price).toFixed(2)}`
+    ? `${p.currency_symbol} ${parseFloat(p.regular_price).toFixed(2)}`
     : null
 })
 

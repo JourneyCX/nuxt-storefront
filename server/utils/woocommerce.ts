@@ -18,6 +18,14 @@ export interface WcProduct {
   description: string
   variations:  number[]
   type:        string
+  // The store's actual configured currency symbol (e.g. "$", "R") -- NOT part
+  // of WC REST v3's own /products response, fetched separately from
+  // /data/currencies/current and merged in by getProduct()/getProducts()
+  // below. Every price-displaying component must read this instead of
+  // hardcoding a symbol -- confirmed live that the storefront's admin-key
+  // product pages and the Store-API-backed cart/checkout can disagree
+  // (product pages hardcoded "R" while the real store currency was USD).
+  currency_symbol: string
 }
 
 export interface WcCategory {
@@ -134,6 +142,12 @@ function makeImageRewriter(root: string) {
   }
 }
 
+// The store's currency essentially never changes between requests -- cache it
+// in-process per WC root so every product list/detail fetch doesn't need its
+// own extra round trip just to learn the symbol.
+const currencySymbolCache = new Map<string, { symbol: string; expires: number }>()
+const CURRENCY_SYMBOL_CACHE_TTL_MS = 5 * 60 * 1000
+
 export function createWcClient(baseUrl: string, key: string, secret: string) {
   const auth = 'Basic ' + Buffer.from(`${key}:${secret}`).toString('base64')
   const root = baseUrl.replace(/\/$/, '')
@@ -146,6 +160,19 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
     const qs  = params.toString()
     const url = `${root}/wp-json/wc/v3${path}${qs ? '?' + qs : ''}`
     return $fetch<T>(url, { headers: { Authorization: auth } })
+  }
+
+  async function getCurrencySymbol(): Promise<string> {
+    const cached = currencySymbolCache.get(root)
+    if (cached && cached.expires > Date.now()) return cached.symbol
+    try {
+      const currency = await get<{ code: string; symbol: string }>('/data/currencies/current')
+      currencySymbolCache.set(root, { symbol: currency.symbol, expires: Date.now() + CURRENCY_SYMBOL_CACHE_TTL_MS })
+      return currency.symbol
+    } catch {
+      // Stale cache beats a wrong hardcoded guess if WC is briefly unreachable.
+      return cached?.symbol ?? '$'
+    }
   }
 
   const rewriteImageSrc = makeImageRewriter(root)
@@ -191,17 +218,21 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
       if (opts.slug)       q.slug        = opts.slug
       if (opts.min_price != null) q.min_price = opts.min_price
       if (opts.max_price != null) q.max_price = opts.max_price
-      const products = await get<WcProduct[]>('/products', q)
-      return products.map(rewriteProductImages)
+      const [products, currency_symbol] = await Promise.all([
+        get<WcProduct[]>('/products', q),
+        getCurrencySymbol(),
+      ])
+      return products.map(p => rewriteProductImages({ ...p, currency_symbol }))
     },
 
     async getProduct(idOrSlug: number | string): Promise<WcProduct | null> {
+      const currency_symbol = await getCurrencySymbol()
       if (typeof idOrSlug === 'number') {
         const p = await get<WcProduct>(`/products/${idOrSlug}`).catch(() => null)
-        return p ? rewriteProductImages(p) : null
+        return p ? rewriteProductImages({ ...p, currency_symbol }) : null
       }
       const list = await get<WcProduct[]>('/products', { slug: idOrSlug }).catch(() => [] as WcProduct[])
-      return list[0] ? rewriteProductImages(list[0]) : null
+      return list[0] ? rewriteProductImages({ ...list[0], currency_symbol }) : null
     },
 
     // ── Categories ──────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ const name  = computed(() => wcProduct.value?.name  ?? props.productName  ?? 'Pr
 const price = computed(() => {
   if (wcProduct.value) {
     const p = wcProduct.value.sale_price || wcProduct.value.price
-    return `R ${parseFloat(p || '0').toFixed(2)}`
+    return `${wcProduct.value.currency_symbol} ${parseFloat(p || '0').toFixed(2)}`
   }
   return props.productPrice ?? 'R 299.00'
 })

@@ -72,7 +72,7 @@ function hue(index: number) {
 }
 
 function price(product: WcProduct) {
-  const sym = 'R'
+  const sym = product.currency_symbol
   if (product.sale_price) return `${sym} ${parseFloat(product.sale_price).toFixed(2)}`
   return `${sym} ${parseFloat(product.price || '0').toFixed(2)}`
 }
