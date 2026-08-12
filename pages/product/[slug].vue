@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WcProduct } from '~/server/utils/woocommerce'
+import type { WcProduct, WcVariation } from '~/server/utils/woocommerce'
 
 const route = useRoute()
 const slug  = route.params.slug as string
@@ -28,22 +28,92 @@ const { addToCart, cartLoading } = useCart()
 const selectedImage = ref(0)
 const quantity      = ref(1)
 
-const mainImage = computed(() => product.value?.images?.[selectedImage.value]?.src ?? '')
-const price     = computed(() => {
-  const p = product.value!
-  return p.sale_price
-    ? `${p.currency_symbol} ${parseFloat(p.sale_price).toFixed(2)}`
-    : `${p.currency_symbol} ${parseFloat(p.price || '0').toFixed(2)}`
+// ── Variants ────────────────────────────────────────────────────────────────
+// A "variable" product (product.attributes with variation:true) has no
+// price/stock/SKU of its own to sell -- WooCommerce needs the specific
+// variation's own id in the cart's add-item call. Confirmed live
+// (2026-08-12): without this, the page rendered the parent's own price and
+// an Add to Cart button with no way to pick an option at all.
+const isVariable = computed(() => product.value?.type === 'variable')
+
+const { data: variations } = await useAsyncData<WcVariation[]>(
+  `product-variations-${slug}`,
+  () => isVariable.value ? requestFetch(`/api/products/${product.value!.id}/variations`) : Promise.resolve([]),
+  { server: true }
+)
+
+const variationAttributes = computed(() => (product.value?.attributes ?? []).filter(a => a.variation))
+
+// One selected option value per variation attribute (e.g. { Color: null }),
+// re-seeded whenever the product itself changes.
+const selectedOptions = reactive<Record<string, string | null>>({})
+watch(variationAttributes, (attrs) => {
+  for (const key of Object.keys(selectedOptions)) delete selectedOptions[key]
+  for (const attr of attrs) selectedOptions[attr.name] = null
+}, { immediate: true })
+
+const allOptionsSelected = computed(() =>
+  variationAttributes.value.length > 0 && variationAttributes.value.every(a => !!selectedOptions[a.name])
+)
+
+const matchedVariation = computed<WcVariation | null>(() => {
+  if (!allOptionsSelected.value || !variations.value) return null
+  return variations.value.find(v =>
+    variationAttributes.value.every(attr =>
+      v.attributes.some(va => va.name === attr.name && va.option === selectedOptions[attr.name])
+    )
+  ) ?? null
+})
+
+function selectOption(attrName: string, option: string) {
+  selectedOptions[attrName] = selectedOptions[attrName] === option ? null : option
+}
+
+// ── Price / stock / image, variant-aware ──────────────────────────────────
+const activeSource = computed(() => matchedVariation.value ?? product.value!)
+
+const mainImage = computed(() => {
+  if (matchedVariation.value?.image) return matchedVariation.value.image.src
+  return product.value?.images?.[selectedImage.value]?.src ?? ''
+})
+
+const price = computed(() => {
+  const s = activeSource.value
+  const symbol = product.value!.currency_symbol
+  const amount = s.sale_price ? s.sale_price : (s.price || '0')
+  const prefix = isVariable.value && !matchedVariation.value ? 'From ' : ''
+  return `${prefix}${symbol} ${parseFloat(amount).toFixed(2)}`
 })
 const wasPrice = computed(() => {
-  const p = product.value!
-  return p.on_sale && p.regular_price
-    ? `${p.currency_symbol} ${parseFloat(p.regular_price).toFixed(2)}`
+  const s = activeSource.value
+  return s.on_sale && s.regular_price
+    ? `${product.value!.currency_symbol} ${parseFloat(s.regular_price).toFixed(2)}`
     : null
 })
 
+// No stock claim is shown until a variable product's selection resolves to
+// one real variation -- the parent itself carries no sellable stock.
+const effectiveStock = computed<'instock' | 'outofstock' | 'onbackorder' | null>(() => {
+  if (!isVariable.value) return product.value!.stock_status
+  return matchedVariation.value?.stock_status ?? null
+})
+
+const canAddToCart = computed(() => {
+  if (isVariable.value) return !!matchedVariation.value && effectiveStock.value === 'instock'
+  return effectiveStock.value === 'instock'
+})
+
+const addToCartLabel = computed(() => {
+  if (cartLoading.value) return 'Adding...'
+  if (isVariable.value && !matchedVariation.value) return 'Select options'
+  if (effectiveStock.value !== 'instock') return 'Out of Stock'
+  return 'Add to Cart'
+})
+
 async function handleAdd() {
-  await addToCart(product.value!.id, quantity.value)
+  if (!canAddToCart.value) return
+  const id = matchedVariation.value?.id ?? product.value!.id
+  await addToCart(id, quantity.value)
 }
 </script>
 
@@ -89,7 +159,7 @@ async function handleAdd() {
         </h1>
 
         <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:20px">
-          <span style="font-size:28px;font-weight:700;color:#c53030" v-if="product!.on_sale">{{ price }}</span>
+          <span style="font-size:28px;font-weight:700;color:#c53030" v-if="activeSource.on_sale">{{ price }}</span>
           <span style="font-size:28px;font-weight:700;color:#1a202c" v-else>{{ price }}</span>
           <span v-if="wasPrice" style="font-size:18px;color:#a0aec0;text-decoration:line-through">{{ wasPrice }}</span>
         </div>
@@ -100,21 +170,43 @@ async function handleAdd() {
           v-html="product!.short_description"
         />
 
+        <!-- Variant option pickers -->
+        <div v-for="attr in variationAttributes" :key="attr.name" style="margin-bottom:20px">
+          <div style="font-size:14px;font-weight:600;color:#1a202c;margin-bottom:8px">
+            {{ attr.name }}<span v-if="selectedOptions[attr.name]">: {{ selectedOptions[attr.name] }}</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button
+              v-for="option in attr.options"
+              :key="option"
+              @click="selectOption(attr.name, option)"
+              :style="{
+                padding:'8px 16px', borderRadius:'6px', fontSize:'14px', cursor:'pointer',
+                border: `2px solid ${selectedOptions[attr.name] === option ? '#2b6cb0' : '#e2e8f0'}`,
+                background: selectedOptions[attr.name] === option ? '#ebf4ff' : '#fff',
+                color: '#1a202c', fontWeight: selectedOptions[attr.name] === option ? 700 : 400,
+              }"
+            >
+              {{ option }}
+            </button>
+          </div>
+        </div>
+
         <!-- Stock status -->
-        <div style="margin-bottom:24px">
+        <div v-if="effectiveStock" style="margin-bottom:24px">
           <span
             :style="{
               display:'inline-block', padding:'4px 12px', borderRadius:'20px', fontSize:'13px', fontWeight:600,
-              background: product!.stock_status === 'instock' ? '#f0fff4' : '#fff5f5',
-              color:      product!.stock_status === 'instock' ? '#276749' : '#c53030',
+              background: effectiveStock === 'instock' ? '#f0fff4' : '#fff5f5',
+              color:      effectiveStock === 'instock' ? '#276749' : '#c53030',
             }"
           >
-            {{ product!.stock_status === 'instock' ? 'In Stock' : 'Out of Stock' }}
+            {{ effectiveStock === 'instock' ? 'In Stock' : 'Out of Stock' }}
           </span>
         </div>
 
         <!-- Quantity + Add to Cart -->
-        <div v-if="product!.stock_status === 'instock'" style="display:flex;gap:12px;align-items:center;margin-bottom:24px">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px">
           <div style="display:flex;align-items:center;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
             <button @click="quantity = Math.max(1, quantity - 1)"
                     style="width:40px;height:44px;background:none;border:none;cursor:pointer;font-size:18px;color:#4a5568">−</button>
@@ -124,10 +216,15 @@ async function handleAdd() {
           </div>
           <button
             @click="handleAdd"
-            :disabled="cartLoading"
-            style="flex:1;background:#2b6cb0;color:#fff;border:none;height:44px;border-radius:6px;font-size:16px;font-weight:700;cursor:pointer;transition:background 0.2s"
+            :disabled="cartLoading || !canAddToCart"
+            :style="{
+              flex:1, color:'#fff', border:'none', height:'44px', borderRadius:'6px', fontSize:'16px', fontWeight:700,
+              cursor: (cartLoading || !canAddToCart) ? 'not-allowed' : 'pointer',
+              background: (cartLoading || !canAddToCart) ? '#a0aec0' : '#2b6cb0',
+              transition:'background 0.2s'
+            }"
           >
-            {{ cartLoading ? 'Adding...' : 'Add to Cart' }}
+            {{ addToCartLabel }}
           </button>
         </div>
 

@@ -26,6 +26,16 @@ function decodeHtmlEntities(input: string): string {
   })
 }
 
+// A parent variable product's option definition, e.g. { name: 'Color',
+// options: ['Black', 'Cream'] } -- WC REST v3's own shape for /products'
+// `attributes[]` when `variation: true`.
+export interface WcProductAttribute {
+  id:        number
+  name:      string
+  options:   string[]
+  variation: boolean
+}
+
 export interface WcProduct {
   id:          number
   name:        string
@@ -42,6 +52,7 @@ export interface WcProduct {
   description: string
   variations:  number[]
   type:        string
+  attributes:  WcProductAttribute[]
   // The store's actual configured currency symbol (e.g. "$", "R") -- NOT part
   // of WC REST v3's own /products response, fetched separately from
   // /data/currencies/current and merged in by getProduct()/getProducts()
@@ -50,6 +61,22 @@ export interface WcProduct {
   // product pages and the Store-API-backed cart/checkout can disagree
   // (product pages hardcoded "R" while the real store currency was USD).
   currency_symbol: string
+}
+
+// One concrete variation of a variable product -- WC REST v3's
+// /products/{id}/variations shape, trimmed to what the storefront needs to
+// build a picker and resolve which variation to add to the cart.
+export interface WcVariation {
+  id:            number
+  price:         string
+  regular_price: string
+  sale_price:    string
+  on_sale:       boolean
+  stock_status:  'instock' | 'outofstock' | 'onbackorder'
+  // e.g. [{ name: 'Color', option: 'Cream' }] -- one concrete value per
+  // variation attribute, unlike the parent's `options: string[]` list.
+  attributes:    { name: string; option: string }[]
+  image:         { src: string; alt: string } | null
 }
 
 export interface WcCategory {
@@ -258,6 +285,21 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
       }
       const list = await get<WcProduct[]>('/products', { slug: idOrSlug }).catch(() => [] as WcProduct[])
       return list[0] ? rewriteProductImages({ ...list[0], currency_symbol }) : null
+    },
+
+    // A variable product's own /products response only lists variation IDs
+    // (WcProduct.variations: number[]) -- fetch the concrete per-variation
+    // attribute values, price and stock separately so the storefront can
+    // build a picker and resolve a selection to the exact variation to add
+    // to the cart. per_page 100 matches the cap _sb_sync_variations() and
+    // the omni_sales reconciler both already assume elsewhere in this app.
+    async getVariations(productId: number): Promise<WcVariation[]> {
+      const variations = await get<WcVariation[]>(`/products/${productId}/variations`, { per_page: 100 })
+        .catch(() => [] as WcVariation[])
+      return variations.map(v => ({
+        ...v,
+        image: v.image ? { ...v.image, src: rewriteImageSrc(v.image.src) } : null,
+      }))
     },
 
     // ── Categories ──────────────────────────────────────────────────────────
