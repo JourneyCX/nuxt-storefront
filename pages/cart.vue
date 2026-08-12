@@ -50,7 +50,21 @@ async function onApplyCoupon() {
 // contact/payment step. Only city + postcode + country are required by
 // server/api/cart/shipping-rates.post.ts; street address and province are
 // optional refinements.
-const cartNeedsShipping = computed(() => cart.value?.needs_shipping ?? false)
+//
+// NOT cart.value?.needs_shipping -- that's WooCommerce's own native-zones
+// flag, which server/api/cart/shipping-rates.post.ts doesn't even use (it
+// calls Stratum's provider-agnostic shipping_checkout/rates endpoint
+// instead, resolving whichever of Courier Guy/Bob Go/WC-native is actually
+// active for the tenant). WC's flag is false whenever the store has zero
+// *native* shipping zones/methods, regardless of the item itself needing
+// shipping or an external provider being fully configured and working --
+// confirmed live for tenant 80 (Courier Guy active with real credentials,
+// WC zones empty): needs_shipping was false and this Delivery Options
+// section never appeared, even though a real courier rate was one request
+// away. Every product in this app is physical warehouse-tracked stock (no
+// digital/virtual product story anywhere in this codebase), so "cart has
+// items" is the correct proxy for "a delivery decision is needed."
+const cartNeedsShipping = computed(() => itemCount.value > 0)
 
 const shippingLoading = ref(false)
 const shippingChecked = ref(false)

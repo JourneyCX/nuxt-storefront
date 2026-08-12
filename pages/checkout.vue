@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import type { WcCheckoutPayload, WcOrder } from '~/server/utils/woocommerce'
 
-const { cart, cartLoading, fetchCart } = useCart()
+const { cart, cartLoading, itemCount, fetchCart } = useCart()
 // The courier/rate choice is now made on /cart (before any contact/billing
 // details exist -- see docs on that page), not here. quoteAddress carries
 // the city/postcode/country/state already given there so this page doesn't
 // ask twice.
 const { quoteAddress, selectedRate } = useShippingQuote()
 
-const cartNeedsShipping = computed(() => cart.value?.needs_shipping ?? false)
+// Matches the fix in cart.vue -- NOT cart.value?.needs_shipping (WooCommerce's
+// own native-zones flag, false whenever the store has zero WC zones
+// regardless of an external provider like Courier Guy being active). See
+// cart.vue's cartNeedsShipping for the full explanation; both pages must
+// agree on this or a cart /cart correctly treats as needing shipping could
+// reach this page and have its city/postcode/country requirement silently
+// skipped by canSubmit below.
+const cartNeedsShipping = computed(() => itemCount.value > 0)
 
 onMounted(async () => {
   await fetchCart()
