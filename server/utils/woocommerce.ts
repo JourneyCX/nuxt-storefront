@@ -2,6 +2,30 @@
 // All calls use WC REST API v3 with Basic auth (consumer key + secret).
 // Credentials come from Stratum and NEVER reach the browser.
 
+// WooCommerce's /data/currencies/current "symbol" field is HTML-entity-encoded
+// (e.g. "&#36;" for $, "&#82;" for R) -- confirmed live against a real store:
+// WC core's get_woocommerce_currency_symbol() was written for direct `echo` in
+// PHP templates, not JSON APIs. Vue's text interpolation sets textContent, not
+// innerHTML, so passing the raw entity through renders literally as "&#36;"
+// (double-escaped to "&amp;#36;" once Vue's own escaping runs on top) instead
+// of "$". Decode before this ever reaches a component.
+const HTML_NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  euro: '€', pound: '£', yen: '¥', cent: '¢', curren: '¤',
+}
+
+function decodeHtmlEntities(input: string): string {
+  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+    if (entity[0] === '#') {
+      const code = entity[1] === 'x' || entity[1] === 'X'
+        ? parseInt(entity.slice(2), 16)
+        : parseInt(entity.slice(1), 10)
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match
+    }
+    return HTML_NAMED_ENTITIES[entity] ?? match
+  })
+}
+
 export interface WcProduct {
   id:          number
   name:        string
@@ -167,8 +191,9 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
     if (cached && cached.expires > Date.now()) return cached.symbol
     try {
       const currency = await get<{ code: string; symbol: string }>('/data/currencies/current')
-      currencySymbolCache.set(root, { symbol: currency.symbol, expires: Date.now() + CURRENCY_SYMBOL_CACHE_TTL_MS })
-      return currency.symbol
+      const symbol   = decodeHtmlEntities(currency.symbol)
+      currencySymbolCache.set(root, { symbol, expires: Date.now() + CURRENCY_SYMBOL_CACHE_TTL_MS })
+      return symbol
     } catch {
       // Stale cache beats a wrong hardcoded guess if WC is briefly unreachable.
       return cached?.symbol ?? '$'
