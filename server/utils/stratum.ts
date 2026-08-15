@@ -78,6 +78,64 @@ export async function fetchWooCredentials(
   ).catch(() => null)
 }
 
+// modules/store_blog — Store_builder_api::blog_post(), not store_blog's own
+// Store_blog_api. That controller resolves tenant via subdomain/CORS and
+// nothing here calls it that way; every other tenant-scoped fetch in this
+// file goes through the tenantId-param admin API instead, so the blog page
+// follows suit rather than adding a second fetch pattern.
+export interface BlogPost {
+  id: number
+  title: string
+  slug: string
+  body: string
+  excerpt: string | null
+  featured_image: string | null
+  published_at: string | null
+  updated_at: string | null
+  author: string
+  categories: { name: string; slug: string }[]
+  seo: {
+    title: string
+    meta_description: string
+    og_image: string | null
+  }
+}
+
+export async function fetchBlogPost(
+  stratumUrl: string,
+  tenantId: number,
+  slug: string
+): Promise<BlogPost | null> {
+  return $fetch<{ data: BlogPost }>(
+    `${stratumUrl}/admin/store_builder_api/blog_post`,
+    { query: { tenantId, slug } }
+  ).then(r => r.data).catch(() => null)
+}
+
+// List counterpart to fetchBlogPost -- powers BlogPostList.vue's "Auto" mode.
+export interface BlogPostSummary {
+  id: number
+  title: string
+  slug: string
+  url: string
+  excerpt: string | null
+  featured_image: string | null
+  published_at: string | null
+  author: string
+  categories: { name: string; slug: string }[]
+}
+
+export async function fetchBlogPosts(
+  stratumUrl: string,
+  tenantId: number,
+  limit?: number
+): Promise<BlogPostSummary[]> {
+  return $fetch<{ data: BlogPostSummary[] }>(
+    `${stratumUrl}/admin/store_builder_api/blog_posts`,
+    { query: { tenantId, limit } }
+  ).then(r => r.data).catch(() => [])
+}
+
 // ── Shipping checkout (modules/logistic/controllers/Shipping_checkout.php) ──
 // Provider-agnostic rate quoting -- normalized shape regardless of whether
 // the store's active provider (Shipping_provider_factory) is The Courier
@@ -110,20 +168,22 @@ export async function selectShippingCheckoutRate(
   stratumUrl:   string,
   storeId:      number,
   sessionToken: string,
-  rate:         ShippingCheckoutRate
+  rate:         ShippingCheckoutRate,
+  tenantId:     number
 ): Promise<{ success: boolean; rate: ShippingCheckoutRate; session_token: string }> {
   return $fetch(`${stratumUrl}/shipping_checkout/select_rate`, {
     method: 'POST',
-    body: { store_id: storeId, session_token: sessionToken, rate },
+    body: { store_id: storeId, tenant_id: tenantId, session_token: sessionToken, rate },
   })
 }
 
 export async function fetchSelectedShippingCheckoutRate(
   stratumUrl:   string,
   storeId:      number,
-  sessionToken: string
+  sessionToken: string,
+  tenantId:     number
 ): Promise<{ rate: ShippingCheckoutRate | null; session_token: string }> {
   return $fetch(`${stratumUrl}/shipping_checkout/selected_rate`, {
-    query: { store_id: storeId, session_token: sessionToken },
+    query: { store_id: storeId, tenant_id: tenantId, session_token: sessionToken },
   })
 }
