@@ -43,6 +43,15 @@ const s = computed<SiteSettings>(() => ({
   whatsappMessageTitle: null, whatsappMessageBody: null, whatsappButtonColor: null,
   ...(settings.value ?? {}),
 }))
+
+// faviconUrl is fetched into `s` above but was never wired to the actual <head>
+// tag anywhere in the app — nuxt.config.ts's static <link> list has no icon
+// entry either, so every tenant's uploaded favicon silently had no effect on
+// the browser tab. useHead here is reactive on s.value.faviconUrl, so SSR HTML
+// carries the right tenant's icon straight away.
+useHead(() => ({
+  link: s.value.faviconUrl ? [{ rel: 'icon', href: s.value.faviconUrl }] : [],
+}))
 </script>
 
 <template>
