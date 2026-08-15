@@ -22,6 +22,10 @@ const props = withDefaults(defineProps<{
   ctaText?: string
   ctaUrl?: string
   postCount?: number
+  // Additive — a page saved before this existed has no postsSource key at all
+  // and must keep rendering its hand-typed `posts` prop exactly as before
+  // (see the `?? 'manual'` fallback below), matching studio-app's own note.
+  postsSource?: 'manual' | 'auto'
   backgroundColor?: string
   textColor?: string
   accentColor?: string
@@ -45,7 +49,41 @@ const FALLBACK_POSTS: Post[] = Array.from({ length: 3 }, (_, i) => ({
   url: '#',
 }))
 
+// e.g. "2026-08-10 14:32:42" -> "10 Aug 2026", matching the manual field's
+// own example format so Auto and Manual cards read the same.
+function formatPostDate(published_at: string | null): string {
+  if (!published_at) return ''
+  const d = new Date(published_at.replace(' ', 'T'))
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const isAuto = computed(() => (props.postsSource ?? 'manual') === 'auto')
+
+// Server-side relative $fetch does not carry the original request's Host
+// header, so the tenant-resolution middleware can't identify the store on
+// this internal call — same fix already applied to pages/blog/[slug].vue
+// and pages/product/[slug].vue.
+const requestFetch = useRequestFetch()
+const { data: liveData, pending: liveLoading, error: liveError } = await useAsyncData<import('~/server/utils/stratum').BlogPostSummary[]>(
+  `blog-posts-auto-${useId()}`,
+  () => requestFetch(`/api/blog?limit=${props.postCount ?? 3}`),
+  { server: true, immediate: isAuto.value }
+)
+
+const livePosts = computed<Post[]>(() => (liveData.value ?? []).map(p => ({
+  title: p.title,
+  excerpt: p.excerpt ?? '',
+  imageUrl: p.featured_image ?? '',
+  date: formatPostDate(p.published_at),
+  category: p.categories[0]?.name ?? '',
+  author: p.author,
+  url: p.url,
+})))
+
 const displayPosts = computed(() => {
+  if (isAuto.value) {
+    return typeof props.postCount === 'number' ? livePosts.value.slice(0, props.postCount) : livePosts.value
+  }
   const base = props.posts?.length ? props.posts : FALLBACK_POSTS
   return typeof props.postCount === 'number' ? base.slice(0, props.postCount) : base
 })
@@ -65,8 +103,18 @@ const isFeatured = computed(() => props.layout === 'featured')
         <a v-if="ctaText" :href="ctaUrl || '#'" :style="{ color: accentColor || '#2563eb', fontSize: '14px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }">{{ ctaText }} →</a>
       </div>
 
+      <div v-if="isAuto && liveLoading" :style="{ color: textColor || '#1e293b', opacity: 0.5, fontSize: '14px', padding: '32px', textAlign: 'center' }">
+        Loading posts…
+      </div>
+      <div v-else-if="isAuto && liveError" style="color:#dd6b20;font-size:13px;padding:32px;text-align:center;">
+        ⚠ Couldn't load live posts.
+      </div>
+      <div v-else-if="isAuto && displayPosts.length === 0" :style="{ color: textColor || '#1e293b', opacity: 0.5, fontSize: '14px', padding: '32px', textAlign: 'center' }">
+        No published posts yet.
+      </div>
+
       <div
-        v-if="isFeatured && displayPosts.length > 0"
+        v-else-if="isFeatured && displayPosts.length > 0"
         :style="{ display: 'grid', gridTemplateColumns: displayPosts.length > 1 ? '1.6fr 1fr' : '1fr', gap: '24px' }"
       >
         <article :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #f1f5f9' }">
