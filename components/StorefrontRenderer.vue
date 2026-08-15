@@ -62,6 +62,10 @@ import AIToolSF             from './storefront/AITool.vue'
 import BobgoShippingOptionsSF  from './storefront/BobgoShippingOptions.vue'
 import BobgoPickupSelectorSF   from './storefront/BobgoPickupSelector.vue'
 import BobgoShippingSummarySF  from './storefront/BobgoShippingSummary.vue'
+import ShippingOptionsSF       from './storefront/ShippingOptions.vue'
+import PickupSelectorSF        from './storefront/PickupSelector.vue'
+import ShippingSummarySF       from './storefront/ShippingSummary.vue'
+import DeliveryAddressFormSF   from './storefront/DeliveryAddressForm.vue'
 
 // Types that used to be page components and may still linger in older stored
 // puck_json (pre this architecture change) — silently skipped, not rendered, not
@@ -112,6 +116,10 @@ const componentMap: Record<string, unknown> = {
   BobgoShippingOptions: BobgoShippingOptionsSF,
   BobgoPickupSelector:  BobgoPickupSelectorSF,
   BobgoShippingSummary: BobgoShippingSummarySF,
+  ShippingOptions:      ShippingOptionsSF,
+  PickupSelector:       PickupSelectorSF,
+  ShippingSummary:      ShippingSummarySF,
+  DeliveryAddressForm:  DeliveryAddressFormSF,
 }
 
 interface PuckItem {

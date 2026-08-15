@@ -25,5 +25,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'No shipping session -- request rates first.' })
   }
 
-  return selectShippingCheckoutRate(config.stratumInternalUrl, wooStoreId, sessionToken, body.rate)
+  return selectShippingCheckoutRate(config.stratumInternalUrl, wooStoreId, sessionToken, body.rate, tenantId)
 })

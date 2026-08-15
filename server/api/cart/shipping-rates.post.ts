@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const payload = {
     store_id:      wooStoreId,
+    tenant_id:     tenantId,
     session_token: sessionToken,
     delivery_address: {
       first_name: body.shipping_address.first_name ?? '',

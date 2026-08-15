@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const { rate } = await fetchSelectedShippingCheckoutRate(
-    config.stratumInternalUrl, wooStoreId, sessionToken
+    config.stratumInternalUrl, wooStoreId, sessionToken, tenantId
   ).catch(() => ({ rate: null }))
 
   if (!rate) {

@@ -75,6 +75,19 @@ watch(() => quoteAddress.country, () => { quoteAddress.state = '' })
 
 function rateKey(rate: ShippingCheckoutRate) { return `${rate.provider}:${rate.service_code}` }
 
+function rateIcon(rate: ShippingCheckoutRate) {
+  if (rate.price === 0) return '🎁'
+  if (rate.is_pickup_point) return '📦'
+  if (rate.eta_days === 1) return '⚡'
+  return '🚚'
+}
+function rateMeta(rate: ShippingCheckoutRate) {
+  const parts: string[] = []
+  if (rate.courier_name) parts.push(rate.courier_name)
+  if (rate.eta_days) parts.push(`${rate.eta_days} day${rate.eta_days === 1 ? '' : 's'}`)
+  return parts.join(' · ')
+}
+
 // address_1 wasn't required here before, but Courier_guy_provider.php hard-
 // requires delivery_address.street and returns a zero-rates error without
 // it -- confirmed live: "No delivery options are available" for a real,
@@ -337,25 +350,40 @@ useHead({ title: 'Your Cart' })
         <div v-if="!quoteAddressComplete()" style="font-size:13px;color:#a0aec0">
           Enter your street address, city, postal code, and country above to see delivery options.
         </div>
-        <div v-else-if="shippingLoading" style="font-size:13px;color:#718096">Calculating delivery options…</div>
+        <div v-else-if="shippingLoading && !shippingRates.length" class="rate-skeleton-list">
+          <div v-for="w in [60, 45, 50]" :key="w" class="rate-skeleton-card">
+            <div style="flex:1">
+              <div class="rate-skeleton-bar" :style="{ width: `${w}%`, marginBottom: '6px' }" />
+              <div class="rate-skeleton-bar" style="width:35%;height:10px" />
+            </div>
+            <div class="rate-skeleton-bar" style="width:60px" />
+          </div>
+        </div>
         <div v-else-if="shippingChecked && shippingRates.length === 0"
           style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:14px 16px;color:#c53030;font-size:13px">
-          No delivery options are available for this address. Please contact us or try a different address.
+          We don't currently ship to this address. Please contact us or try a different address.
         </div>
         <div v-else-if="shippingRates.length">
-          <label v-for="rate in shippingRates" :key="rateKey(rate)"
-            style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:8px;cursor:pointer"
-            :style="{ borderColor: selectedRate && rateKey(selectedRate) === rateKey(rate) ? '#3182ce' : '#e2e8f0', background: selectedRate && rateKey(selectedRate) === rateKey(rate) ? '#ebf4ff' : '#fff' }">
-            <span style="display:flex;align-items:center;gap:10px;font-size:14px">
-              <input type="radio" name="delivery_rate" :checked="!!selectedRate && rateKey(selectedRate) === rateKey(rate)"
-                @change="onSelectRate(rate)" style="width:16px;height:16px" />
-              {{ rate.courier_name ? `${rate.courier_name} — ` : '' }}{{ rate.service_name }}
-              <span v-if="rate.eta_days" style="color:#a0aec0">({{ rate.eta_days }} day{{ rate.eta_days === 1 ? '' : 's' }})</span>
+          <div v-for="rate in shippingRates" :key="rateKey(rate)"
+            role="radio" tabindex="0" :aria-checked="!!selectedRate && rateKey(selectedRate) === rateKey(rate)"
+            class="rate-card"
+            :class="{ 'rate-card--selected': selectedRate && rateKey(selectedRate) === rateKey(rate) }"
+            @click="onSelectRate(rate)"
+            @keydown.enter="onSelectRate(rate)" @keydown.space.prevent="onSelectRate(rate)">
+            <span style="display:flex;align-items:center;gap:12px;min-width:0">
+              <span class="rate-card__dot" :class="{ 'rate-card__dot--selected': selectedRate && rateKey(selectedRate) === rateKey(rate) }" />
+              <span style="display:flex;flex-direction:column;min-width:0">
+                <span style="font-weight:600;font-size:14px;color:#1a202c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  {{ rateIcon(rate) }} {{ rate.service_name }}
+                </span>
+                <span v-if="rateMeta(rate)" style="font-size:12px;color:#718096;margin-top:2px">{{ rateMeta(rate) }}</span>
+              </span>
             </span>
-            <strong style="font-size:14px;color:#2d3748">
-              {{ rate.price === 0 ? 'FREE' : `${cart.totals.currency_symbol}${rate.price.toFixed(2)}` }}
-            </strong>
-          </label>
+            <span style="margin-left:12px;white-space:nowrap">
+              <span v-if="rate.price === 0" style="font-weight:700;font-size:13px;color:#16a34a;background:#dcfce7;padding:2px 8px;border-radius:20px">FREE</span>
+              <strong v-else style="font-size:15px;color:#1a202c">{{ cart.totals.currency_symbol }}{{ rate.price.toFixed(2) }}</strong>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -399,3 +427,60 @@ useHead({ title: 'Your Cart' })
     </template>
   </div>
 </template>
+
+<style scoped>
+.rate-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.rate-card--selected {
+  border-color: #2b6cb0;
+  background: #ebf4ff;
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.14);
+}
+.rate-card__dot {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e0;
+  background: #fff;
+  transition: all 0.15s;
+}
+.rate-card__dot--selected {
+  border-color: #2b6cb0;
+  background: #2b6cb0;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+.rate-skeleton-list { padding-top: 2px; }
+.rate-skeleton-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.rate-skeleton-bar {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e2e8f0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: rate-shimmer 1.4s infinite;
+}
+@keyframes rate-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+</style>
