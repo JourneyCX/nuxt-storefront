@@ -2,10 +2,12 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 
 const props = defineProps<{
-  platform?: 'instagram' | 'twitter' | 'tiktok'
+  platform?: 'instagram' | 'twitter' | 'tiktok' | 'facebook'
   username?: string
   twitterTimelineHeight?: number
   tiktokVideoUrl?: string
+  facebookPageUrl?: string
+  facebookHeight?: number
   instagramColumns?: 2 | 3 | 4
   instagramCount?: number
   headline?: string
@@ -18,15 +20,21 @@ const props = defineProps<{
 
 const IG_COLORS = ['#fde68a', '#bfdbfe', '#bbf7d0', '#fecdd3', '#ddd6fe', '#fed7aa', '#a5f3fc', '#fbcfe8', '#d9f99d']
 const platformLinks: Record<string, string> = { instagram: 'https://instagram.com/', twitter: 'https://twitter.com/', tiktok: 'https://tiktok.com/@' }
-const platformColors: Record<string, string> = { instagram: '#e1306c', twitter: '#000', tiktok: '#ff0050' }
+const platformColors: Record<string, string> = { instagram: '#e1306c', twitter: '#000', tiktok: '#ff0050', facebook: '#1877f2' }
 
 const platform  = computed(() => props.platform || 'instagram')
 const columns   = computed(() => props.instagramColumns || 3)
 const count     = computed(() => props.instagramCount ?? 9)
 const radius    = computed(() => props.borderRadius ?? 12)
-const twitterHeight = computed(() => props.twitterTimelineHeight || 480)
-const brandColor    = computed(() => platformColors[platform.value] || props.accentColor || '#e1306c')
-const followUrl     = computed(() => `${platformLinks[platform.value]}${props.username}`)
+const twitterHeight  = computed(() => props.twitterTimelineHeight || 480)
+const facebookHeight = computed(() => props.facebookHeight || 500)
+const brandColor     = computed(() => platformColors[platform.value] || props.accentColor || '#e1306c')
+// Facebook has no bare "username" of its own — the follow button links
+// straight to the configured Page URL instead of platformLinks+username.
+const followUrl = computed(() =>
+  platform.value === 'facebook' ? (props.facebookPageUrl || '') : `${platformLinks[platform.value]}${props.username}`
+)
+const followLabel = computed(() => platform.value === 'facebook' ? 'Follow on Facebook' : `Follow @${props.username}`)
 
 function igColor(i: number) {
   return IG_COLORS[i % IG_COLORS.length]
@@ -72,7 +80,7 @@ const tiktokId = computed(() => {
       <div v-if="headline || showFollowButton" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:12px;">
         <h2 v-if="headline" :style="{ color: textColor || '#1e293b', fontSize: '28px', fontWeight: 800, margin: 0 }">{{ headline }}</h2>
         <a
-          v-if="showFollowButton && username"
+          v-if="showFollowButton && followUrl"
           :href="followUrl"
           target="_blank"
           rel="noopener noreferrer"
@@ -80,8 +88,9 @@ const tiktokId = computed(() => {
         >
           <svg v-if="platform === 'instagram'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
           <svg v-else-if="platform === 'twitter'" width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.733-8.835L1.254 2.25H8.08l4.259 5.63L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" /></svg>
+          <svg v-else-if="platform === 'facebook'" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z" /></svg>
           <span v-else style="font-size:16px;">🎵</span>
-          Follow @{{ username }}
+          {{ followLabel }}
         </a>
       </div>
 
@@ -127,6 +136,27 @@ const tiktokId = computed(() => {
         </div>
         <div v-else style="display:flex;justify-content:center;">
           <iframe :src="`https://www.tiktok.com/embed/v2/${tiktokId}`" allow="autoplay; fullscreen; picture-in-picture" :style="{ width: '325px', height: '580px', border: 'none', borderRadius: `${radius}px` }" />
+        </div>
+      </div>
+
+      <div v-else-if="platform === 'facebook'">
+        <div
+          v-if="!facebookPageUrl"
+          :style="{ height: '480px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px dashed #e2e8f0', borderRadius: `${radius}px`, color: '#64748b' }"
+        >
+          <div style="color:#1877f2;margin-bottom:12px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z" /></svg>
+          </div>
+          <p style="margin:0;font-size:14px;">Paste your Facebook Page URL in the panel</p>
+          <p style="margin:6px 0 0;font-size:12px;opacity:0.6;">e.g. https://www.facebook.com/yourpage</p>
+        </div>
+        <div v-else style="display:flex;justify-content:center;">
+          <iframe
+            :src="`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(facebookPageUrl)}&tabs=timeline&width=500&height=${facebookHeight}&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`"
+            scrolling="no"
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            :style="{ border: 'none', overflow: 'hidden', width: '100%', maxWidth: '500px', height: `${facebookHeight}px`, borderRadius: `${radius}px` }"
+          />
         </div>
       </div>
     </div>
