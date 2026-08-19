@@ -1,5 +1,12 @@
 <script setup lang="ts">
-type LineItem = { label: string; description: string; unitPrice: number; unitLabel: string; min: number; max: number; defaultQty: number; step: number }
+type DiscountTier = { minQty: number; discountPercent: number }
+type LineItem = { label: string; description: string; unitPrice: number; unitLabel: string; min: number; max: number; defaultQty: number; step: number; tiers?: DiscountTier[] }
+
+function tierDiscountFor(tiers: DiscountTier[] | undefined, qty: number): number {
+  if (!tiers || tiers.length === 0) return 0
+  const applicable = tiers.filter((t) => qty >= t.minQty).sort((a, b) => b.minQty - a.minQty)
+  return applicable[0]?.discountPercent ?? 0
+}
 
 const props = defineProps<{
   headline?: string
@@ -45,11 +52,27 @@ const cardColor = computed(() => props.cardColor || '#ffffff')
 const textColor = computed(() => props.textColor || '#1e293b')
 const borderRadius = computed(() => props.borderRadius ?? 16)
 
+function tierPctFor(i: number) {
+  const item = items.value[i]
+  return tierDiscountFor(item?.tiers, qtyFor(i))
+}
+
+function lineTotalFor(i: number) {
+  const item = items.value[i]
+  if (!item) return 0
+  const base = item.unitPrice * qtyFor(i)
+  return base - base * (tierPctFor(i) / 100)
+}
+
 const subtotal = computed(() =>
   items.value.reduce((sum, item, i) => sum + item.unitPrice * qtyFor(i), 0)
 )
-const discountAmt = computed(() => subtotal.value * (discountPercent.value / 100))
-const taxableAmount = computed(() => subtotal.value - discountAmt.value)
+const volumeDiscountAmt = computed(() =>
+  items.value.reduce((sum, item, i) => sum + item.unitPrice * qtyFor(i) * (tierPctFor(i) / 100), 0)
+)
+const afterVolume = computed(() => subtotal.value - volumeDiscountAmt.value)
+const discountAmt = computed(() => afterVolume.value * (discountPercent.value / 100))
+const taxableAmount = computed(() => afterVolume.value - discountAmt.value)
 const taxAmt = computed(() => taxableAmount.value * (taxRate.value / 100))
 const total = computed(() => taxableAmount.value + taxAmt.value)
 
@@ -73,6 +96,10 @@ function fmt(n: number) {
               <p :style="{ color: textColor, fontWeight: 600, fontSize: '15px', margin: '0 0 3px' }">{{ item.label }}</p>
               <p v-if="item.description" :style="{ color: textColor, opacity: 0.55, fontSize: '13px', margin: 0 }">{{ item.description }}</p>
               <p :style="{ color: accentColor, fontSize: '13px', margin: '4px 0 0', fontWeight: 600 }">{{ fmt(item.unitPrice) }} / {{ item.unitLabel }}</p>
+              <p v-if="item.tiers && item.tiers.length > 0" :style="{ fontSize: '12px', margin: '4px 0 0', color: tierPctFor(i) > 0 ? '#10b981' : textColor, opacity: tierPctFor(i) > 0 ? 1 : 0.5, fontWeight: tierPctFor(i) > 0 ? 700 : 400 }">
+                <template v-if="tierPctFor(i) > 0">✓ {{ tierPctFor(i) }}% volume discount applied</template>
+                <template v-else>Volume pricing: {{ item.tiers.map(t => `${t.minQty}+ → ${t.discountPercent}% off`).join(', ') }}</template>
+              </p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <button
@@ -97,7 +124,7 @@ function fmt(n: number) {
                 @click="setQty(i, qtyFor(i) + item.step)"
                 :style="{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#fff', cursor: qtyFor(i) >= item.max ? 'not-allowed' : 'pointer', fontSize: '18px', color: textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: qtyFor(i) >= item.max ? 0.4 : 1 }"
               >+</button>
-              <span :style="{ minWidth: '80px', textAlign: 'right', color: textColor, fontWeight: 700, fontSize: '15px' }">{{ fmt(item.unitPrice * qtyFor(i)) }}</span>
+              <span :style="{ minWidth: '80px', textAlign: 'right', color: textColor, fontWeight: 700, fontSize: '15px' }">{{ fmt(lineTotalFor(i)) }}</span>
             </div>
           </div>
         </div>
@@ -107,6 +134,10 @@ function fmt(n: number) {
             <div style="display:flex;justify-content:space-between;">
               <span :style="{ color: textColor, opacity: 0.65, fontSize: '14px' }">Subtotal</span>
               <span :style="{ color: textColor, fontSize: '14px' }">{{ fmt(subtotal) }}</span>
+            </div>
+            <div v-if="volumeDiscountAmt > 0" style="display:flex;justify-content:space-between;">
+              <span style="color:#10b981;font-size:14px;font-weight:600;">Volume Discount</span>
+              <span style="color:#10b981;font-size:14px;font-weight:600;">−{{ fmt(volumeDiscountAmt) }}</span>
             </div>
             <div v-if="showDiscount && discountPercent > 0" style="display:flex;justify-content:space-between;">
               <span style="color:#10b981;font-size:14px;font-weight:600;">Discount ({{ discountPercent }}%)</span>
