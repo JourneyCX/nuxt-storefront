@@ -23,10 +23,12 @@ const status = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 
 async function submit(e: Event) {
   e.preventDefault()
-  if (!props.submitEndpoint) { status.value = 'success'; return }
   status.value = 'loading'
   try {
-    const res = await fetch(props.submitEndpoint, {
+    // No endpoint configured -> deliver via Stratum's own contact-form route
+    // (emails the tenant's Site Settings > Store Info contact address) rather
+    // than a merchant's own third-party form handler.
+    const res = await fetch(props.submitEndpoint || '/api/contact-form', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
