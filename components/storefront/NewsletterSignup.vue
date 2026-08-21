@@ -29,12 +29,11 @@ const inputRadius = computed(() => Math.round(radius.value / 1.5))
 async function submit() {
   if (!email.value) return
   status.value = 'loading'
-  if (!props.webhookUrl) {
-    setTimeout(() => { status.value = 'success' }, 800)
-    return
-  }
   try {
-    const res = await fetch(props.webhookUrl, {
+    // No endpoint configured -> deliver via Stratum's own newsletter route
+    // (adds the email to the tenant's Acelle list) rather than a merchant's
+    // own webhook.
+    const res = await fetch(props.webhookUrl || '/api/newsletter-signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.value, firstName: firstName.value }),
