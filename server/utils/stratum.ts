@@ -39,6 +39,7 @@ export interface SiteSettings {
   footerAccentColor: string | null
   footerCopyrightText: string | null
   footerColumns: { heading: string; links: { label: string; url: string }[] }[]
+  footerShowBrandColumn: boolean
   whatsappEnabled: boolean
   whatsappPopupEnabled: boolean
   whatsappPhone: string | null

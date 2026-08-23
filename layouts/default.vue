@@ -38,7 +38,7 @@ const s = computed<SiteSettings>(() => ({
   headerBackgroundColor: '#ffffff', headerTextColor: '#1a202c', headerAccentColor: '#1a202c',
   headerSticky: true, headerCtaText: null, headerCtaUrl: null,
   footerBackgroundColor: '#1a202c', footerTextColor: '#a0aec0', footerAccentColor: '#ffffff',
-  footerCopyrightText: null, footerColumns: [],
+  footerCopyrightText: null, footerColumns: [], footerShowBrandColumn: true,
   whatsappEnabled: false, whatsappPopupEnabled: true, whatsappPhone: null,
   whatsappMessageTitle: null, whatsappMessageBody: null, whatsappButtonColor: null,
   ...(settings.value ?? {}),

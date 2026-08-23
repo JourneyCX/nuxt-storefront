@@ -42,7 +42,10 @@ function socialIconPath(platform: string): string | undefined {
 
 const hasColumns    = computed(() => (props.settings.footerColumns ?? []).length > 0)
 const hasSocial     = computed(() => (props.settings.socialLinks ?? []).length > 0)
-const hasBrandBlock = computed(() => Boolean(props.settings.businessName || props.settings.tagline))
+const hasBrandBlock = computed(() =>
+  props.settings.footerShowBrandColumn !== false
+  && Boolean(props.settings.businessName || props.settings.tagline || props.settings.logoUrl)
+)
 const showRichRow   = computed(() => hasBrandBlock.value || hasColumns.value || hasSocial.value)
 // New field, not part of the original per-page Header/Footer schema — conditionally
 // rendered so a tenant with none of these set (every migrated tenant, today) sees no
@@ -60,8 +63,15 @@ const hasContact = computed(() => Boolean(
         style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:32px;text-align:left;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.15)"
       >
         <div v-if="hasBrandBlock">
+          <img
+            v-if="settings.logoUrl"
+            :src="settings.logoUrl"
+            :alt="settings.logoAlt || settings.businessName || ''"
+            style="max-height:32px;max-width:160px;display:block;margin-bottom:10px;object-fit:contain"
+          >
           <div v-if="settings.businessName" :style="{ fontSize:'18px', fontWeight:700, color: settings.footerTextColor||'#a0aec0' }">{{ settings.businessName }}</div>
           <div v-if="settings.tagline" style="font-size:13px;opacity:0.85;margin-top:6px">{{ settings.tagline }}</div>
+          <div v-if="settings.description" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6;max-width:280px">{{ settings.description }}</div>
           <div v-if="hasContact" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6">
             <div v-if="settings.contactAddress">{{ settings.contactAddress }}</div>
             <div v-if="settings.contactPhone">{{ settings.contactPhone }}</div>
