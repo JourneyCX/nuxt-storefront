@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   eyebrow?: string
   headline?: string
   subheadline?: string
@@ -13,7 +13,10 @@ defineProps<{
   overlayOpacity?: number
   textAlign?: 'left' | 'center'
   minHeight?: number
+  textColor?: string
 }>()
+
+const resolvedTextColor = computed(() => props.textColor || '#ffffff')
 </script>
 
 <template>
@@ -44,13 +47,13 @@ defineProps<{
         borderRadius: '20px',
         marginBottom: '20px',
       }">{{ eyebrow }}</span>
-      <h1 v-if="headline" style="color:#fff;font-size:clamp(32px,5vw,52px);font-weight:800;margin:0 0 20px;line-height:1.12;">{{ headline }}</h1>
-      <p v-if="subheadline" style="color:rgba(255,255,255,0.8);font-size:19px;margin:0 0 36px;line-height:1.65;">{{ subheadline }}</p>
+      <h1 v-if="headline" :style="{ color: resolvedTextColor, fontSize: 'clamp(32px,5vw,52px)', fontWeight: 800, margin: '0 0 20px', lineHeight: 1.12 }">{{ headline }}</h1>
+      <p v-if="subheadline" :style="{ color: resolvedTextColor, opacity: 0.8, fontSize: '19px', margin: '0 0 36px', lineHeight: 1.65 }">{{ subheadline }}</p>
       <div :style="{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: textAlign === 'left' ? 'flex-start' : 'center' }">
         <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#2563eb', color: '#fff', padding: '14px 32px', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '16px' }">
           {{ primaryButtonText }}
         </a>
-        <a v-if="secondaryButtonText" :href="secondaryButtonUrl || '#'" style="display:inline-block;background:transparent;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;border:2px solid rgba(255,255,255,0.5);">
+        <a v-if="secondaryButtonText" :href="secondaryButtonUrl || '#'" :style="{ display: 'inline-block', background: 'transparent', color: resolvedTextColor, padding: '14px 32px', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '16px', border: `2px solid ${resolvedTextColor}` }">
           {{ secondaryButtonText }}
         </a>
       </div>
