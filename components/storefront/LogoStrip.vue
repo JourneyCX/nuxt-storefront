@@ -9,6 +9,7 @@ const props = defineProps<{
   headline?: string
   logos?: LogoItem[]
   logoHeight?: number
+  logoSpacing?: number
   backgroundColor?: string
   borderTop?: boolean
   borderBottom?: boolean
@@ -45,7 +46,7 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
       <div :style="{
         display:'flex', flexWrap:'wrap', alignItems:'center',
         justifyContent: justifyContent,
-        gap:'32px',
+        gap:`${logoSpacing || 32}px`,
       }">
         <template v-for="(logo, i) in logos" :key="i">
           <!-- Placeholder when no image -->
