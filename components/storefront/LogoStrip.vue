@@ -52,7 +52,7 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
           <div
             v-if="!logo.imageUrl"
             :style="{
-              height:`${logoHeight || 72}px`, width:`${(logoHeight || 72) * 2}px`,
+              height:`${logoHeight || 120}px`, width:`${(logoHeight || 120) * 2}px`,
               backgroundColor:'#e2e8f0', borderRadius:'4px',
               display:'flex', alignItems:'center', justifyContent:'center',
             }"
@@ -70,7 +70,7 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
               :src="logo.imageUrl"
               :alt="logo.altText || ''"
               :style="{
-                height:`${logoHeight || 72}px`, width:'auto',
+                height:`${logoHeight || 120}px`, width:'auto',
                 objectFit:'contain', display:'block',
                 filter: grayscale !== false ? 'grayscale(100%) opacity(0.6)' : 'none',
                 transition:'filter 0.2s ease',
@@ -86,7 +86,7 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
             :src="logo.imageUrl"
             :alt="logo.altText || ''"
             :style="{
-              height:`${logoHeight || 48}px`, width:'auto',
+              height:`${logoHeight || 120}px`, width:'auto',
               objectFit:'contain', display:'block',
               filter: grayscale !== false ? 'grayscale(100%) opacity(0.6)' : 'none',
               transition:'filter 0.2s ease',
