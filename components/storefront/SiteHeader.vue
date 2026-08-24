@@ -33,10 +33,18 @@ onMounted(() => { fetchCart() })
         <span v-else :style="{ fontSize:'20px',fontWeight:700,color:settings.headerTextColor||'#1a202c' }">{{ settings.logoText || settings.businessName || 'Your Store' }}</span>
       </a>
       <nav style="display:flex;gap:28px">
-        <a v-for="link in (settings.navLinks || [])" :key="link.url" :href="link.url"
-           :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:'15px',fontWeight:'500',fontFamily:'\'Montserrat\',sans-serif' }">
-          {{ link.label }}
-        </a>
+        <div v-for="link in (settings.navLinks || [])" :key="link.url" class="sb-nav-item" style="position:relative">
+          <a :href="link.url"
+             :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:'15px',fontWeight:'500',fontFamily:'\'Montserrat\',sans-serif',display:'flex',alignItems:'center',gap:'4px' }">
+            {{ link.label }}
+            <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
+          </a>
+          <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;margin-top:8px;background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0;z-index:200">
+            <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
+              {{ child.label }}
+            </a>
+          </div>
+        </div>
       </nav>
       <div style="display:flex;align-items:center;gap:16px">
         <a
@@ -61,3 +69,8 @@ onMounted(() => { fetchCart() })
 
   <CartDrawer />
 </template>
+
+<style scoped>
+.sb-nav-dropdown { display: none; }
+.sb-nav-item:hover .sb-nav-dropdown { display: block; }
+</style>
