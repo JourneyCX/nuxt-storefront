@@ -59,7 +59,7 @@ async function handleAddToCart() {
 <template>
   <div :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff', maxWidth:'320px', display:'flex', flexDirection:'column' }">
     <a :href="slug ? `/product/${slug}` : '#'" :style="{ display:'block' }">
-      <div :style="{ height:'220px', overflow:'hidden', background:'#f7f8fa', display:'flex', alignItems:'center', justifyContent:'center' }">
+      <div :style="{ aspectRatio:'1/1', overflow:'hidden', background:'#f7f8fa', display:'flex', alignItems:'center', justifyContent:'center' }">
         <img v-if="image" :src="image" :alt="name" :style="{ width:'100%', height:'100%', objectFit:'contain' }" />
         <span v-else :style="{ color:'#a0aec0', fontSize:'13px' }">Product Image</span>
       </div>
