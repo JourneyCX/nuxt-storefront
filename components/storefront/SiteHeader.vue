@@ -39,10 +39,12 @@ onMounted(() => { fetchCart() })
             {{ link.label }}
             <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
           </a>
-          <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;margin-top:8px;background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0;z-index:200">
-            <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
-              {{ child.label }}
-            </a>
+          <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;padding-top:8px;z-index:200">
+            <div style="background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0">
+              <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
+                {{ child.label }}
+              </a>
+            </div>
           </div>
         </div>
       </nav>
