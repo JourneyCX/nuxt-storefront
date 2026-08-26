@@ -109,7 +109,7 @@ function price(product: WcProduct) {
                 v-if="product.images?.[0]"
                 :src="product.images[0].src"
                 :alt="product.images[0].alt || product.name"
-                :style="{ width:'100%', height:'100%', objectFit:'cover', display:'block', transition:'transform 0.3s' }"
+                :style="{ width:'100%', height:'100%', objectFit:'contain', display:'block', transition:'transform 0.3s' }"
               />
               <div v-else :style="{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'#a0aec0', fontSize:'13px' }">
                 No Image

@@ -128,7 +128,7 @@ function price(product: WcProduct) {
                   v-if="product.images?.[0]"
                   :src="product.images[0].src"
                   :alt="product.images[0].alt || product.name"
-                  style="width:100%;height:100%;object-fit:cover;"
+                  style="width:100%;height:100%;object-fit:contain;"
                 />
                 <span v-else style="font-size:36px;opacity:0.45;">📷</span>
                 <span v-if="showBadge && badge" :style="{ position: 'absolute', top: '10px', left: '10px', backgroundColor: badgeColor || '#ef4444', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', letterSpacing: '0.05em', textTransform: 'uppercase' }">

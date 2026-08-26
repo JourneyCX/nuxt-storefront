@@ -100,7 +100,7 @@ function wcPrice(p: WcProduct) {
         >
           <!-- image -->
           <div :style="{ position:'relative', aspectRatio:imageAspectRatio||'1/1', backgroundColor:'#f1f5f9', overflow:'hidden', borderRadius:cs==='minimal'?`${radius}px 0 0 0`:undefined }">
-            <img v-if="product.images?.[0]" :src="product.images[0].src" :alt="product.name" :style="{ width:'100%', height:'100%', objectFit:'cover', display:'block' }" />
+            <img v-if="product.images?.[0]" :src="product.images[0].src" :alt="product.name" :style="{ width:'100%', height:'100%', objectFit:'contain', display:'block' }" />
             <div v-else :style="{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'40px', opacity:0.4 }">🛍</div>
             <span v-if="showBadge" :style="{ position:'absolute', top:'10px', left:'10px', backgroundColor:badgeColor||accent, color:'#fff', fontSize:'10px', fontWeight:700, padding:'3px 8px', borderRadius:'4px', textTransform:'uppercase' }">{{ badgeText || 'NEW' }}</span>
             <div v-if="cs==='overlay'" :style="{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 55%)' }" />
