@@ -30,11 +30,17 @@ const props = withDefaults(defineProps<{
 const perPage = computed(() => props.productCount ?? ((props.columns || 3) * (props.rows || 2)))
 
 // A Product Filter block elsewhere on the page drives this grid via the
-// `category`/`max_price` URL query params (see ProductFilter.vue) -- but only
-// when this grid's own design-time categorySlug is blank. A grid pinned to a
-// specific category at design time (e.g. a "Featured" section) is a curated,
-// fixed section and must not be silently re-filtered by an unrelated filter
-// widget elsewhere on the same page.
+// `category`/`max_price` URL query params (see ProductFilter.vue). The filter's
+// selection always takes precedence over this grid's own design-time
+// categorySlug when present, falling back to the pinned categorySlug unchanged
+// once nothing is selected -- matching studio-app's canvas-preview semantics
+// (ProductGrid.tsx's useProductFilterOverride comment: "Any category/price
+// selection there takes precedence over this grid's own design-time
+// categorySlug"). This also matches how auto-provisioned category pages work
+// (_sb_provision_category_page() pins categorySlug to the page's own top-level
+// category, e.g. "bracelets", and the filter widget's whole job on that page is
+// to refine *within* it via subcategory checkboxes -- the old "pinned wins,
+// unconditionally" guard made that refinement impossible).
 const route = useRoute()
 const queryCategory = computed(() => {
   const q = route.query.category
@@ -45,8 +51,8 @@ const queryMaxPrice = computed(() => {
   const v = Array.isArray(q) ? q[0] : q
   return v ? Number(v) : undefined
 })
-const effectiveCategory = computed(() => (props.categorySlug ? props.categorySlug : (queryCategory.value || undefined)))
-const effectiveMaxPrice = computed(() => (props.categorySlug ? undefined : queryMaxPrice.value))
+const effectiveCategory = computed(() => (queryCategory.value || props.categorySlug || undefined))
+const effectiveMaxPrice = computed(() => queryMaxPrice.value)
 
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.

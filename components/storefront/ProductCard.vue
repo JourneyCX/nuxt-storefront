@@ -6,19 +6,32 @@ const props = defineProps<{
   productPrice?: string
   productImage?: string
   productSlug?:  string
+  categorySlug?: string
   buttonText?:   string
   buttonColor?:  string
   showPrice?:    boolean
 }>()
 
-// When a productSlug is provided, fetch the live product from WooCommerce.
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
+
+// Slug (explicit single product) wins outright. Otherwise, if a Category is
+// set, fetch that category's first product (by the store's default ordering)
+// -- falling back to null (and so to the manual fields below) if the category
+// is empty or the request fails, mirroring ProductGrid's placeholder fallback.
 const { data: wcProduct } = props.productSlug
   ? await useAsyncData<WcProduct | null>(
       `card-${props.productSlug}`,
       () => requestFetch(`/api/products/${props.productSlug}`).catch(() => null),
+      { default: () => null }
+    )
+  : props.categorySlug
+  ? await useAsyncData<WcProduct | null>(
+      `card-cat-${props.categorySlug}`,
+      () => requestFetch('/api/products', { query: { category: props.categorySlug, per_page: 1 } })
+        .then((list: WcProduct[]) => list?.[0] ?? null)
+        .catch(() => null),
       { default: () => null }
     )
   : { data: ref<WcProduct | null>(null) }
