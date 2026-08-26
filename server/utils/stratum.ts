@@ -19,6 +19,12 @@ export interface SiteSettings {
   logoUrl: string | null
   logoAlt: string | null
   logoText: string | null
+  // Rendered logo height in px, sized independently for header vs. footer.
+  headerLogoHeight: number
+  footerLogoHeight: number
+  // On/off for the logo image specifically inside the footer's brand block —
+  // distinct from footerShowBrandColumn below, which gates the whole block.
+  footerShowLogo: boolean
   faviconUrl: string | null
   businessName: string | null
   tagline: string | null

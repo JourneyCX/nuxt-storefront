@@ -64,10 +64,10 @@ const hasContact = computed(() => Boolean(
       >
         <div v-if="hasBrandBlock">
           <img
-            v-if="settings.logoUrl"
+            v-if="settings.logoUrl && settings.footerShowLogo !== false"
             :src="settings.logoUrl"
             :alt="settings.logoAlt || settings.businessName || ''"
-            style="max-height:32px;max-width:160px;display:block;margin-bottom:10px;object-fit:contain"
+            :style="{ maxHeight: (settings.footerLogoHeight || 32) + 'px', maxWidth: '160px', display: 'block', marginBottom: '10px', objectFit: 'contain' }"
           >
           <div v-if="settings.businessName" :style="{ fontSize:'18px', fontWeight:700, color: settings.footerTextColor||'#a0aec0' }">{{ settings.businessName }}</div>
           <div v-if="settings.tagline" style="font-size:13px;opacity:0.85;margin-top:6px">{{ settings.tagline }}</div>

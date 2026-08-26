@@ -29,7 +29,7 @@ onMounted(() => { fetchCart() })
   <header :style="{ backgroundColor: settings.headerBackgroundColor || '#fff', color: settings.headerTextColor || '#1a202c', position: settings.headerSticky ? 'sticky' : 'relative', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }">
     <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between">
       <a href="/" style="text-decoration:none">
-        <img v-if="settings.logoUrl" :src="settings.logoUrl" :alt="settings.logoAlt || 'Store logo'" style="height:40px;object-fit:contain" />
+        <img v-if="settings.logoUrl" :src="settings.logoUrl" :alt="settings.logoAlt || 'Store logo'" :style="{ height: (settings.headerLogoHeight || 40) + 'px', objectFit: 'contain' }" />
         <span v-else :style="{ fontSize:'20px',fontWeight:700,color:settings.headerTextColor||'#1a202c' }">{{ settings.logoText || settings.businessName || 'Your Store' }}</span>
       </a>
       <nav style="display:flex;gap:28px">
