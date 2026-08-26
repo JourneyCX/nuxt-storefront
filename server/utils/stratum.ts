@@ -56,6 +56,13 @@ export interface SiteSettings {
   whatsappMessageTitle: string | null
   whatsappMessageBody: string | null
   whatsappButtonColor: string | null
+  announcementEnabled: boolean
+  announcementMessage: string | null
+  announcementMode: 'static' | 'scroll'
+  announcementBgColor: string | null
+  announcementTextColor: string | null
+  announcementLinkUrl: string | null
+  announcementSpeed: number
 }
 
 export async function fetchSiteSettings(

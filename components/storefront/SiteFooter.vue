@@ -71,7 +71,7 @@ const hasContact = computed(() => Boolean(
           >
           <div v-if="settings.businessName" :style="{ fontSize:'18px', fontWeight:700, color: settings.footerTextColor||'#a0aec0' }">{{ settings.businessName }}</div>
           <div v-if="settings.tagline" style="font-size:13px;opacity:0.85;margin-top:6px">{{ settings.tagline }}</div>
-          <div v-if="settings.description" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6;max-width:280px">{{ settings.description }}</div>
+          <div v-if="settings.description" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6;max-width:280px;text-align:justify">{{ settings.description }}</div>
           <div v-if="hasContact" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6">
             <div v-if="settings.contactAddress">{{ settings.contactAddress }}</div>
             <div v-if="settings.contactPhone">{{ settings.contactPhone }}</div>
