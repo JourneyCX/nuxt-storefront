@@ -94,7 +94,7 @@ function price(product: WcProduct) {
       <!-- Loading skeleton -->
       <div v-if="pending" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
         <div v-for="i in perPage" :key="i" :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff' }">
-          <div :style="{ height:'200px', background:hue(i-1), animation:'pulse 1.5s ease-in-out infinite' }" />
+          <div :style="{ aspectRatio:'1/1', background:hue(i-1), animation:'pulse 1.5s ease-in-out infinite' }" />
           <div :style="{ padding:'16px' }">
             <div :style="{ height:'14px', background:'#e2e8f0', borderRadius:'4px', marginBottom:'8px', width:'70%' }" />
             <div :style="{ height:'12px', background:'#e2e8f0', borderRadius:'4px', width:'50%' }" />
@@ -110,7 +110,7 @@ function price(product: WcProduct) {
           :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff', display:'flex', flexDirection:'column' }"
         >
           <a :href="`/product/${product.slug}`" :style="{ display:'block' }">
-            <div :style="{ height:'200px', overflow:'hidden', background:'#f7f8fa' }">
+            <div :style="{ aspectRatio:'1/1', overflow:'hidden', background:'#f7f8fa' }">
               <img
                 v-if="product.images?.[0]"
                 :src="product.images[0].src"
@@ -157,7 +157,7 @@ function price(product: WcProduct) {
       <template v-else-if="showPlaceholder !== false">
         <div :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
           <div v-for="i in perPage" :key="i" :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff' }">
-            <div :style="{ height:'200px', background:hue(i-1), display:'flex', alignItems:'center', justifyContent:'center', color:'#a0aec0', fontSize:'13px' }">
+            <div :style="{ aspectRatio:'1/1', background:hue(i-1), display:'flex', alignItems:'center', justifyContent:'center', color:'#a0aec0', fontSize:'13px' }">
               Product Image
             </div>
             <div :style="{ padding:'16px' }">
