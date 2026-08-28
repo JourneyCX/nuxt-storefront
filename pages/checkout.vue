@@ -298,13 +298,17 @@ useHead({ title: 'Checkout' })
 
     <h1 style="font-size:28px;font-weight:700;color:#1a202c;margin:0 0 32px">Checkout</h1>
 
-    <div style="display:grid;grid-template-columns:1fr 380px;gap:48px;align-items:start">
+    <!-- sb-grid (assets/css/responsive.css) stacks the order-summary sidebar
+         below the billing form on mobile instead of squeezing a 380px
+         sidebar onto a 375px screen. -->
+    <div class="sb-grid" style="display:grid;grid-template-columns:1fr 380px;gap:48px;align-items:start">
 
       <!-- Billing form -->
       <div>
         <h2 style="font-size:18px;font-weight:600;color:#2d3748;margin:0 0 20px">Billing &amp; Shipping Details</h2>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <!-- sb-grid stacks First/Last Name to 1 column on mobile -->
+        <div class="sb-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
           <div>
             <label style="display:block;font-size:13px;font-weight:600;color:#4a5568;margin-bottom:6px">
               First Name <span style="color:#e53e3e">*</span>
@@ -321,7 +325,8 @@ useHead({ title: 'Checkout' })
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <!-- sb-grid stacks Email/Phone to 1 column on mobile -->
+        <div class="sb-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
           <div>
             <label style="display:block;font-size:13px;font-weight:600;color:#4a5568;margin-bottom:6px">
               Email <span style="color:#e53e3e">*</span>

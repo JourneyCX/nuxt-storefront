@@ -318,7 +318,9 @@ useHead({ title: 'Your Cart' })
           <input v-model="quoteAddress.address_1" type="text" placeholder="29 Poplar Rd"
             style="width:100%;padding:9px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;box-sizing:border-box" />
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <!-- sb-grid (assets/css/responsive.css) stacks City/Postal Code/Country
+             to 1 column on mobile instead of squeezing three fields onto one row. -->
+        <div class="sb-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:6px">City *</label>
             <input v-model="quoteAddress.city" type="text" placeholder="Cape Town"

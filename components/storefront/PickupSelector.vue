@@ -187,7 +187,9 @@ function pointBadge(p: PickupPoint) {
 
 <template>
   <div v-if="visible" style="border:1.5px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-top:12px">
-    <div :style="{ display: 'grid', gridTemplateColumns: layout === 'split' ? '300px 1fr' : undefined }">
+    <!-- sb-grid (assets/css/responsive.css) stacks list above map on mobile
+         instead of squeezing a 300px list pane onto a 375px screen. -->
+    <div class="sb-grid" :style="{ display: 'grid', gridTemplateColumns: layout === 'split' ? '300px 1fr' : undefined }">
       <div v-if="layout !== 'map'" :style="{ background: '#fff', borderRight: layout === 'split' ? '1px solid #e5e7eb' : 'none', display: 'flex', flexDirection: 'column', maxHeight: `${mapHeight}px`, overflowY: 'auto' }">
         <div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e5e7eb;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px">
           {{ loading ? 'Loading nearby locations…' : `${points.length} nearby location${points.length !== 1 ? 's' : ''}` }}
