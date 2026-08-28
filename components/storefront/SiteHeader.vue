@@ -18,11 +18,30 @@ import type { SiteSettings } from '~/server/utils/stratum'
 // instantiated in the first place.
 import CartDrawer from '~/components/storefront/CartDrawer.vue'
 
-defineProps<{ settings: SiteSettings }>()
+const props = defineProps<{ settings: SiteSettings }>()
 
 const { itemCount, openCart, fetchCart } = useCart()
 
 onMounted(() => { fetchCart() })
+
+// Mobile nav panel open/closed, and which top-level links (by index) have
+// their children expanded — a tap-to-expand accordion, since the desktop
+// dropdown below is :hover-driven and doesn't work on touch at all.
+const mobileOpen = ref(false)
+const expanded = ref<Set<number>>(new Set())
+
+function toggleExpanded(i: number) {
+  const next = new Set(expanded.value)
+  if (next.has(i)) next.delete(i)
+  else next.add(i)
+  expanded.value = next
+}
+
+function closeMobileMenu() {
+  mobileOpen.value = false
+}
+
+const navLinks = computed(() => props.settings.navLinks || [])
 </script>
 
 <template>
@@ -32,25 +51,34 @@ onMounted(() => { fetchCart() })
         <img v-if="settings.logoUrl" :src="settings.logoUrl" :alt="settings.logoAlt || 'Store logo'" :style="{ height: (settings.headerLogoHeight || 40) + 'px', objectFit: 'contain' }" />
         <span v-else :style="{ fontSize:'20px',fontWeight:700,color:settings.headerTextColor||'#1a202c' }">{{ settings.logoText || settings.businessName || 'Your Store' }}</span>
       </a>
-      <nav style="display:flex;gap:28px">
-        <div v-for="link in (settings.navLinks || [])" :key="link.url" class="sb-nav-item" style="position:relative">
-          <a :href="link.url"
-             :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:'15px',fontWeight:'500',fontFamily:'\'Montserrat\',sans-serif',display:'flex',alignItems:'center',gap:'4px' }">
-            {{ link.label }}
-            <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
-          </a>
-          <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;padding-top:8px;z-index:200">
-            <div style="background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0">
-              <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
-                {{ child.label }}
-              </a>
+
+      <!-- Desktop nav — unchanged hover-dropdown behavior, hidden below the
+           mobile breakpoint (assets/css/responsive.css). Wrapped in a plain
+           div with no inline style of its own so .sb-desktop-only's
+           block/none toggle isn't fighting the nav's own display:flex. -->
+      <div class="sb-desktop-only">
+        <nav style="display:flex;gap:28px">
+          <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
+            <a :href="link.url"
+               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:'15px',fontWeight:'500',fontFamily:'\'Montserrat\',sans-serif',display:'flex',alignItems:'center',gap:'4px' }">
+              {{ link.label }}
+              <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
+            </a>
+            <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;padding-top:8px;z-index:200">
+              <div style="background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0">
+                <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
+                  {{ child.label }}
+                </a>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
+
       <div style="display:flex;align-items:center;gap:16px">
         <a
           v-if="settings.headerCtaText"
+          class="sb-desktop-only"
           :href="settings.headerCtaUrl || '#'"
           :style="{ backgroundColor: settings.headerAccentColor || settings.headerTextColor || '#1a202c', color:'#ffffff', padding:'8px 16px', borderRadius:'4px', fontSize:'14px', fontWeight:600, textDecoration:'none' }"
         >{{ settings.headerCtaText }}</a>
@@ -65,8 +93,49 @@ onMounted(() => { fetchCart() })
             :style="{ position:'absolute', top:'-2px', right:'-4px', background:'#e53e3e', color:'#fff', borderRadius:'50%', fontSize:'11px', fontWeight:700, minWidth:'18px', height:'18px', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }"
           >{{ itemCount }}</span>
         </button>
+        <button
+          v-if="navLinks.length > 0"
+          type="button"
+          class="sb-mobile-only"
+          @click="mobileOpen = !mobileOpen"
+          :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
+          :aria-expanded="mobileOpen"
+          :style="{ background:'none', border:'none', cursor:'pointer', fontSize:'24px', color: settings.headerTextColor || '#1a202c', padding:'4px', lineHeight:1 }"
+        >{{ mobileOpen ? '✕' : '☰' }}</button>
       </div>
     </div>
+
+    <!-- Mobile nav panel — a stacked list, not a hover dropdown, so
+         multi-level links use tap-to-expand instead of a :hover pattern
+         that has no equivalent on touch. -->
+    <nav v-if="mobileOpen" class="sb-mobile-only" style="border-top:1px solid rgba(0,0,0,0.08)">
+      <div v-for="(link, i) in navLinks" :key="link.url" style="border-bottom:1px solid rgba(0,0,0,0.06)">
+        <div style="display:flex;align-items:center">
+          <a
+            :href="link.url"
+            @click="closeMobileMenu"
+            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', textDecoration:'none', fontSize:'16px', fontWeight:'500', fontFamily:'\'Montserrat\',sans-serif' }"
+          >{{ link.label }}</a>
+          <button
+            v-if="(link.children?.length ?? 0) > 0"
+            type="button"
+            @click="toggleExpanded(i)"
+            :aria-label="expanded.has(i) ? `Collapse ${link.label}` : `Expand ${link.label}`"
+            :aria-expanded="expanded.has(i)"
+            :style="{ background:'none', border:'none', padding:'14px 24px', cursor:'pointer', fontSize:'14px', color:settings.headerTextColor||'#1a202c' }"
+          >{{ expanded.has(i) ? '▴' : '▾' }}</button>
+        </div>
+        <div v-if="(link.children?.length ?? 0) > 0 && expanded.has(i)" style="padding-bottom:8px">
+          <a
+            v-for="child in link.children"
+            :key="child.url"
+            :href="child.url"
+            @click="closeMobileMenu"
+            :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:'15px' }"
+          >{{ child.label }}</a>
+        </div>
+      </div>
+    </nav>
   </header>
 
   <CartDrawer />
