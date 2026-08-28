@@ -73,7 +73,13 @@ useHead(() => ({
    meta tag (nuxt.config.ts) in some browsers — confirmed live 2026-08-03,
    Studio's editor preview (a separate SPA/iframe with no such viewport meta)
    visibly scaled correctly while the real site with the same html-level rule
-   did not. <body> zoom doesn't have this interaction. */
+   did not. <body> zoom doesn't have this interaction.
+
+   Interacts with the responsive breakpoints in assets/css/responsive.css —
+   this scales rendered content 25% larger than those media query widths
+   assume, so a layout that just fits un-zoomed can overflow once zoomed.
+   Flagged for deliberate handling during the Phase 4 widget sweep rather
+   than left to fight the new rules silently. */
 body {
   zoom: 1.25;
 }

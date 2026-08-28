@@ -1,6 +1,8 @@
 export default defineNuxtConfig({
   devtools: { enabled: false },
 
+  css: ['~/assets/css/responsive.css'],
+
   runtimeConfig: {
     // Server-only — never exposed to the browser
     stratumInternalUrl: process.env.STRATUM_INTERNAL_URL || 'http://localhost:8080',
