@@ -54,9 +54,9 @@ const navLinks = computed(() => props.settings.navLinks || [])
 
       <!-- Desktop nav — unchanged hover-dropdown behavior, hidden below the
            mobile breakpoint (assets/css/responsive.css). Wrapped in a plain
-           div with no inline style of its own so .sb-desktop-only's
+           div with no inline style of its own so .sb-nav-desktop-only's
            block/none toggle isn't fighting the nav's own display:flex. -->
-      <div class="sb-desktop-only">
+      <div class="sb-nav-desktop-only">
         <nav style="display:flex;gap:28px">
           <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
             <a :href="link.url"
@@ -78,7 +78,7 @@ const navLinks = computed(() => props.settings.navLinks || [])
       <div style="display:flex;align-items:center;gap:16px">
         <a
           v-if="settings.headerCtaText"
-          class="sb-desktop-only"
+          class="sb-nav-desktop-only"
           :href="settings.headerCtaUrl || '#'"
           :style="{ backgroundColor: settings.headerAccentColor || settings.headerTextColor || '#1a202c', color:'#ffffff', padding:'8px 16px', borderRadius:'4px', fontSize:'14px', fontWeight:600, textDecoration:'none' }"
         >{{ settings.headerCtaText }}</a>
@@ -96,7 +96,7 @@ const navLinks = computed(() => props.settings.navLinks || [])
         <button
           v-if="navLinks.length > 0"
           type="button"
-          class="sb-mobile-only"
+          class="sb-nav-mobile-only"
           @click="mobileOpen = !mobileOpen"
           :aria-label="mobileOpen ? 'Close menu' : 'Open menu'"
           :aria-expanded="mobileOpen"
@@ -108,7 +108,7 @@ const navLinks = computed(() => props.settings.navLinks || [])
     <!-- Mobile nav panel — a stacked list, not a hover dropdown, so
          multi-level links use tap-to-expand instead of a :hover pattern
          that has no equivalent on touch. -->
-    <nav v-if="mobileOpen" class="sb-mobile-only" style="border-top:1px solid rgba(0,0,0,0.08)">
+    <nav v-if="mobileOpen" class="sb-nav-mobile-only" style="border-top:1px solid rgba(0,0,0,0.08)">
       <div v-for="(link, i) in navLinks" :key="link.url" style="border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="display:flex;align-items:center">
           <a
