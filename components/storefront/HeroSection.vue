@@ -49,7 +49,8 @@ const resolvedSubheadlineColor = computed(() => props.subheadlineColor || '#ffff
         borderRadius: '20px',
         marginBottom: '20px',
       }">{{ eyebrow }}</span>
-      <h1 v-if="headline" :style="{ color: resolvedHeadlineColor, fontSize: 'clamp(32px,5vw,52px)', fontWeight: 800, margin: '0 0 20px', lineHeight: 1.12 }">{{ headline }}</h1>
+      <!-- sb-text-fluid-lg replaces the old one-off clamp() here with the shared toolkit's hero-H1 scale (~28px-52px), matching studio-app -->
+      <h1 v-if="headline" class="sb-text-fluid-lg" :style="{ color: resolvedHeadlineColor, fontWeight: 800, margin: '0 0 20px', lineHeight: 1.12 }">{{ headline }}</h1>
       <p v-if="subheadline" :style="{ color: resolvedSubheadlineColor, opacity: 0.8, fontSize: '19px', margin: '0 0 36px', lineHeight: 1.65 }">{{ subheadline }}</p>
       <div :style="{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: textAlign === 'left' ? 'flex-start' : 'center' }">
         <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#2563eb', color: '#fff', padding: '14px 32px', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '16px' }">

@@ -76,7 +76,9 @@ const inputStyleLight = computed(() => ({
           <polyline points="22,6 12,13 2,6" />
         </svg>
       </div>
-      <h2 :style="{ color:'#fff', fontSize:'32px', fontWeight:800, margin:'12px 0 12px' }">{{ headline || 'Stay in the Loop' }}</h2>
+      <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
+           mobile and desktop instead of staying fixed at 32px -->
+      <h2 class="sb-text-fluid-md" :style="{ color:'#fff', fontWeight:800, margin:'12px 0 12px' }">{{ headline || 'Stay in the Loop' }}</h2>
       <p v-if="subheadline" :style="{ color:'rgba(255,255,255,0.8)', fontSize:'17px', margin:'0 0 32px', lineHeight:1.6 }">{{ subheadline }}</p>
       <form @submit.prevent="submit" :style="{ display:'flex', gap:'10px', flexWrap:'wrap', justifyContent:'center' }">
         <input v-if="showFirstName" type="text" placeholder="First name" v-model="firstName" :style="{ ...inputStyleDark, flex:'0 1 160px' }" />

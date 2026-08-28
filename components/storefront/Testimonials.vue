@@ -19,10 +19,11 @@ function stars(rating: number, accent: string) {
   <section :style="{ backgroundColor: backgroundColor||'#f8fafc', padding: '72px 24px' }">
     <div :style="{ maxWidth:'1200px', margin:'0 auto' }">
       <div v-if="headline || subheadline" :style="{ textAlign:'center', marginBottom:'56px' }">
-        <h2 v-if="headline" :style="{ color:textColor||'#1e293b', fontSize:'36px', fontWeight:800, margin:'0 0 16px' }">{{ headline }}</h2>
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:textColor||'#1e293b', fontWeight:800, margin:'0 0 16px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color:textColor||'#1e293b', opacity:0.7, fontSize:'18px', margin:0, lineHeight:1.65 }">{{ subheadline }}</p>
       </div>
-      <div :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:'24px' }">
+      <!-- sb-grid collapses this to 1 column on mobile / 2 on tablet regardless of the merchant's chosen column count -->
+      <div class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:'24px' }">
         <div
           v-for="(item, i) in (items||[])" :key="i"
           :style="{ backgroundColor:cardColor||'#ffffff', borderRadius:'16px', padding:'32px', boxShadow:'0 2px 12px rgba(0,0,0,0.07)', display:'flex', flexDirection:'column' }"

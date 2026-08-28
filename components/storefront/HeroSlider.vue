@@ -116,9 +116,12 @@ function stopProp(e: Event) { e.stopPropagation() }
       textAlign: align as any,
     }">
       <div style="max-width:700px">
+        <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
+             narrow screens instead of staying fixed at 52px. -->
         <h1
           v-if="slide.headline"
-          style="color:#fff;font-size:52px;font-weight:800;margin:0 0 18px;line-height:1.12;text-shadow:0 2px 8px rgba(0,0,0,0.4)"
+          class="sb-text-fluid-lg"
+          style="color:#fff;font-weight:800;margin:0 0 18px;line-height:1.12;text-shadow:0 2px 8px rgba(0,0,0,0.4)"
         >{{ slide.headline }}</h1>
         <p
           v-if="slide.subheadline"

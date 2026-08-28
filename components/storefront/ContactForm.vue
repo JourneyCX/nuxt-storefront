@@ -56,7 +56,9 @@ const br       = computed(() => `${(props.borderRadius ?? 12) / 2}px`)
   <section :style="{ backgroundColor: backgroundColor || '#fff', padding: '64px 24px' }">
     <div :style="{ maxWidth: isCard ? '680px' : '900px', margin: '0 auto' }">
       <div v-if="headline || subheadline" :style="{ marginBottom: '40px', textAlign: isCard ? 'center' : 'left' }">
-        <h2 v-if="headline" :style="{ color: text, fontSize: '32px', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
+        <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
+             mobile and desktop instead of staying fixed at 32px -->
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: text, fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color: text, opacity: 0.65, fontSize: '17px', margin: 0, lineHeight: 1.65 }">{{ subheadline }}</p>
       </div>
 

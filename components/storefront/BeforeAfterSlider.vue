@@ -53,7 +53,9 @@ const minH = computed(() => props.minHeight ?? 440)
   <section :style="{ backgroundColor: bg, padding: '64px 24px' }">
     <div :style="{ maxWidth: '900px', margin: '0 auto' }">
       <div v-if="headline || subheadline" :style="{ textAlign:'center', marginBottom:'40px' }">
-        <h2 v-if="headline" :style="{ color:text, fontSize:'32px', fontWeight:800, margin:'0 0 12px' }">{{ headline }}</h2>
+        <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
+             narrow screens instead of staying fixed at 32px. -->
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:text, fontWeight:800, margin:'0 0 12px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color:text, opacity:0.65, fontSize:'17px', margin:0, lineHeight:1.6 }">{{ subheadline }}</p>
       </div>
 

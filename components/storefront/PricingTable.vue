@@ -17,10 +17,11 @@ defineProps<{
   <section :style="{ backgroundColor: backgroundColor || '#f8fafc', padding: '72px 24px' }">
     <div style="max-width:1100px;margin:0 auto;">
       <div v-if="headline || subheadline" style="text-align:center;margin-bottom:56px;">
-        <h2 v-if="headline" :style="{ color: textColor || '#1e293b', fontSize: '36px', fontWeight: 800, margin: '0 0 16px' }">{{ headline }}</h2>
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#1e293b', fontWeight: 800, margin: '0 0 16px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color: textColor || '#1e293b', opacity: 0.7, fontSize: '18px', margin: 0, lineHeight: 1.65 }">{{ subheadline }}</p>
       </div>
-      <div v-if="plans?.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${plans.length}, 1fr)`, gap: '24px', alignItems: 'start' }">
+      <!-- sb-grid collapses this to 1 column on mobile / 2 on tablet regardless of plan count -->
+      <div v-if="plans?.length" class="sb-grid" :style="{ display: 'grid', gridTemplateColumns: `repeat(${plans.length}, 1fr)`, gap: '24px', alignItems: 'start' }">
         <div v-for="(plan, i) in plans" :key="i" :style="{
           borderRadius: '16px',
           padding: plan.highlighted ? '40px 32px' : '32px',

@@ -35,7 +35,7 @@ const primaryBtnTextColor = computed(() => {
   <section :style="sectionStyle">
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${(overlayOpacity||55)/100})` }" />
     <div :style="{ position:'relative', zIndex:1, maxWidth:'680px', margin:'0 auto' }">
-      <h2 :style="{ color: textColor||'#ffffff', fontSize:'40px', fontWeight:800, margin:'0 0 20px', lineHeight:1.15 }">{{ headline }}</h2>
+      <h2 class="sb-text-fluid-md" :style="{ color: textColor||'#ffffff', fontWeight:800, margin:'0 0 20px', lineHeight:1.15 }">{{ headline }}</h2>
       <p v-if="subheadline" :style="{ color: textColor||'#ffffff', opacity:0.85, fontSize:'18px', margin:'0 0 40px', lineHeight:1.65 }">{{ subheadline }}</p>
       <div :style="{ display:'flex', gap:'12px', flexWrap:'wrap', justifyContent:'center' }">
         <a v-if="primaryButtonText" :href="primaryButtonUrl||'#'" :style="{ display:'inline-block', backgroundColor:primaryBtnColor, color:primaryBtnTextColor, padding:'15px 36px', borderRadius:'8px', textDecoration:'none', fontWeight:700, fontSize:'16px' }">

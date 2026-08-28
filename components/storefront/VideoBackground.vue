@@ -68,7 +68,10 @@ const hasYt  = computed(() => props.videoType === 'youtube' && !!ytId.value)
 
     <!-- Content -->
     <div :style="{ position: 'relative', zIndex: 2, maxWidth: textAlign === 'left' ? '580px' : '700px', padding: '64px 40px', textAlign: textAlign || 'center' }">
-      <h1 v-if="headline" style="color:#fff;font-size:clamp(32px,5vw,52px);font-weight:800;margin:0 0 20px;line-height:1.1;">{{ headline }}</h1>
+      <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
+           narrow screens instead of staying fixed at 52px — replaces the
+           previous one-off inline clamp() with the shared token. -->
+      <h1 v-if="headline" class="sb-text-fluid-lg" style="color:#fff;font-weight:800;margin:0 0 20px;line-height:1.1;">{{ headline }}</h1>
       <p v-if="subheadline" style="color:rgba(255,255,255,0.82);font-size:19px;margin:0 0 40px;line-height:1.65;">{{ subheadline }}</p>
       <div :style="{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: textAlign === 'left' ? 'flex-start' : 'center' }">
         <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#fff', color: (primaryButtonColor === '#ffffff' || primaryButtonColor === '#fff') ? '#1e293b' : '#fff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '16px' }">

@@ -139,7 +139,9 @@ function itemStyle(i: number) {
   <section :style="{ backgroundColor: backgroundColor, padding: '72px 24px' }">
     <div :style="{ maxWidth: isAlternating ? '1100px' : '760px', margin: '0 auto' }">
       <div v-if="headline || subheadline" style="text-align:center;margin-bottom:64px;">
-        <h2 v-if="headline" :style="{ color: textColor, fontSize: '36px', fontWeight: 800, margin: '0 0 14px' }">{{ headline }}</h2>
+        <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
+             narrow screens instead of staying fixed at 36px. -->
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor, fontWeight: 800, margin: '0 0 14px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color: textColor, opacity: 0.65, fontSize: '18px', margin: 0, lineHeight: 1.65 }">{{ subheadline }}</p>
       </div>
 

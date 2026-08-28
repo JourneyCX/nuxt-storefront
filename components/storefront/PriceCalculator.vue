@@ -85,7 +85,9 @@ function fmt(n: number) {
   <section :style="{ backgroundColor: backgroundColor, padding: '64px 24px' }">
     <div style="max-width:760px;margin:0 auto;">
       <div v-if="headline || subheadline" style="margin-bottom:36px;text-align:center;">
-        <h2 v-if="headline" :style="{ color: textColor, fontSize: '32px', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
+        <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
+             mobile and desktop instead of staying fixed at 32px -->
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor, fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color: textColor, opacity: 0.65, fontSize: '17px', margin: 0, lineHeight: 1.65 }">{{ subheadline }}</p>
       </div>
 

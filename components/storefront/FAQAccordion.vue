@@ -21,7 +21,7 @@ function toggle(i: number) {
   <section :style="{ backgroundColor: backgroundColor||'#ffffff', padding: '72px 24px' }">
     <div :style="{ maxWidth:`${maxWidth||720}px`, margin:'0 auto' }">
       <div v-if="headline || subheadline" :style="{ textAlign:'center', marginBottom:'48px' }">
-        <h2 v-if="headline" :style="{ color:textColor||'#1e293b', fontSize:'36px', fontWeight:800, margin:'0 0 16px' }">{{ headline }}</h2>
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:textColor||'#1e293b', fontWeight:800, margin:'0 0 16px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color:textColor||'#1e293b', opacity:0.7, fontSize:'18px', margin:0, lineHeight:1.65 }">{{ subheadline }}</p>
       </div>
       <div>

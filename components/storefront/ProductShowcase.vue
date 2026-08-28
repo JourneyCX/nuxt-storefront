@@ -74,14 +74,19 @@ function wcPrice(p: WcProduct) {
     <div :style="{ maxWidth:'1280px', margin:'0 auto' }">
       <div v-if="headline || subheadline || ctaText" :style="{ marginBottom:'40px', display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:'16px', flexWrap:'wrap' }">
         <div>
-          <h2 v-if="headline" :style="{ color:text, fontSize:'32px', fontWeight:800, margin:'0 0 10px' }">{{ headline }}</h2>
+          <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
+               narrow screens instead of staying fixed at 32px. -->
+          <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:text, fontWeight:800, margin:'0 0 10px' }">{{ headline }}</h2>
           <p v-if="subheadline" :style="{ color:text, opacity:0.65, fontSize:'17px', margin:0 }">{{ subheadline }}</p>
         </div>
         <a v-if="ctaText" :href="ctaUrl || '#'" :style="{ color: accent, fontSize:'14px', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }">{{ ctaText }} →</a>
       </div>
 
       <!-- Loading skeleton -->
-      <div v-if="pending" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||4},1fr)`, gap:`${gap||20}px` }">
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. -->
+      <div v-if="pending" class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||4},1fr)`, gap:`${gap||20}px` }">
         <div v-for="i in perPage" :key="i" :style="{ borderRadius:`${radius}px`, overflow:'hidden', backgroundColor:'#fff', border:'1px solid #f1f5f9' }">
           <div :style="{ aspectRatio:imageAspectRatio||'1/1', backgroundColor:PALETTE[(i-1)%8], animation:'pulse 1.5s ease-in-out infinite' }" />
           <div :style="{ padding:'14px 16px 18px' }">
@@ -92,7 +97,10 @@ function wcPrice(p: WcProduct) {
       </div>
 
       <!-- Real WooCommerce products -->
-      <div v-else-if="hasProducts" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||4},1fr)`, gap:`${gap||20}px` }">
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. -->
+      <div v-else-if="hasProducts" class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||4},1fr)`, gap:`${gap||20}px` }">
         <article v-for="product in products" :key="product.id" class="psc-card"
           :style="cs==='overlay' ? { borderRadius:`${radius}px`, overflow:'hidden', position:'relative', cursor:'pointer' }
                 : cs==='minimal' ? { cursor:'pointer' }
@@ -146,7 +154,10 @@ function wcPrice(p: WcProduct) {
       </div>
 
       <!-- Placeholder cards (no products found) -->
-      <div v-else :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||4},1fr)`, gap:`${gap||20}px` }">
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. -->
+      <div v-else class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||4},1fr)`, gap:`${gap||20}px` }">
         <div v-for="i in perPage" :key="i" class="psc-card"
           :style="cs==='overlay' ? { borderRadius:`${radius}px`, overflow:'hidden', position:'relative', cursor:'pointer' }
                 : cs==='minimal' ? { cursor:'pointer' }

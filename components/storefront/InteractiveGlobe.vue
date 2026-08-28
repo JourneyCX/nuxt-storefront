@@ -305,7 +305,9 @@ function closePopup() {
 <template>
   <section :style="{ backgroundColor: backgroundColor || '#0f172a', padding: '72px 24px' }">
     <div v-if="headline || subheadline" style="text-align:center;margin-bottom:48px;">
-      <h2 v-if="headline" :style="{ color: textColor || '#fff', fontSize: '36px', fontWeight: 800, margin: '0 0 14px' }">{{ headline }}</h2>
+      <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
+           narrow screens instead of staying fixed at 36px. -->
+      <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#fff', fontWeight: 800, margin: '0 0 14px' }">{{ headline }}</h2>
       <p v-if="subheadline" :style="{ color: textColor || '#fff', opacity: 0.65, fontSize: '17px', margin: 0, lineHeight: 1.65 }">{{ subheadline }}</p>
     </div>
     <div ref="wrapEl" :style="{ position: 'relative', width: `${globeSize}px`, height: `${globeSize}px`, margin: '0 auto', maxWidth: '100%' }">

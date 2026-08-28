@@ -97,7 +97,9 @@ const isFeatured = computed(() => props.layout === 'featured')
     <div style="max-width:1200px;margin:0 auto;">
       <div v-if="headline || subheadline || ctaText" style="margin-bottom:40px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
-          <h2 v-if="headline" :style="{ color: textColor || '#1e293b', fontSize: '32px', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
+          <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
+               mobile and desktop instead of staying fixed at 32px -->
+          <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#1e293b', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
           <p v-if="subheadline" :style="{ color: textColor || '#1e293b', opacity: 0.65, fontSize: '17px', margin: 0 }">{{ subheadline }}</p>
         </div>
         <a v-if="ctaText" :href="ctaUrl || '#'" :style="{ color: accentColor || '#2563eb', fontSize: '14px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }">{{ ctaText }} →</a>
@@ -139,7 +141,9 @@ const isFeatured = computed(() => props.layout === 'featured')
         </article>
         <div v-if="displayPosts.length > 1" style="display:flex;flex-direction:column;gap:16px;">
           <article v-for="(post, i) in displayPosts.slice(1, 4)" :key="i" :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', border: '1px solid #f1f5f9' }">
-            <div style="width:200px;flex-shrink:0;">
+            <!-- min(200px, 30vw) keeps this thumbnail from forcing horizontal
+                 overflow in the flex row on a narrow phone -->
+            <div style="width:min(200px, 30vw);flex-shrink:0;">
               <img v-if="post.imageUrl" :src="post.imageUrl" :alt="post.title" style="width:100%;height:100%;object-fit:cover;display:block;" />
               <div v-else style="width:100%;height:100%;background:#fde68a;display:flex;align-items:center;justify-content:center;font-size:28px;opacity:0.6;">📝</div>
             </div>
@@ -153,15 +157,21 @@ const isFeatured = computed(() => props.layout === 'featured')
         </div>
       </div>
 
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           harmless in list mode too since display:flex ignores grid-template-columns. -->
       <div
         v-else
+        class="sb-grid"
         :style="isList
           ? { display: 'flex', flexDirection: 'column', gap: '20px' }
           : { display: 'grid', gridTemplateColumns: `repeat(${columns || 3}, 1fr)`, gap: '20px' }"
       >
         <article v-for="(post, i) in displayPosts" :key="i"
           :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: isList ? 'flex' : 'block', border: '1px solid #f1f5f9' }">
-          <div :style="isList ? { width: '200px', flexShrink: 0 } : { aspectRatio: '16/9', position: 'relative' }">
+          <!-- min(200px, 30vw) keeps this thumbnail from forcing horizontal
+               overflow in the flex row on a narrow phone -->
+          <div :style="isList ? { width: 'min(200px, 30vw)', flexShrink: 0 } : { aspectRatio: '16/9', position: 'relative' }">
             <img v-if="post.imageUrl" :src="post.imageUrl" :alt="post.title" style="width:100%;height:100%;object-fit:cover;display:block;" />
             <div v-else style="width:100%;height:100%;background:#bbf7d0;display:flex;align-items:center;justify-content:center;font-size:28px;opacity:0.6;">📝</div>
           </div>

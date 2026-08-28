@@ -19,8 +19,11 @@ defineProps<{
 <template>
   <section :style="{ backgroundColor: backgroundColor || '#fff', padding: '64px 24px' }">
     <div style="max-width:1280px;margin:0 auto;">
-      <h2 v-if="headline" :style="{ color: textColor || '#1e293b', fontSize: '32px', fontWeight: 800, margin: '0 0 36px' }">{{ headline }}</h2>
-      <div :style="{ display: 'grid', gridTemplateColumns: `repeat(${columns || 3}, 1fr)`, gap: `${gap ?? 12}px` }">
+      <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
+           narrow screens instead of staying fixed at 32px. -->
+      <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#1e293b', fontWeight: 800, margin: '0 0 36px' }">{{ headline }}</h2>
+      <!-- sb-grid collapses this to 1 column on mobile / 2 on tablet regardless of the merchant's chosen column count -->
+      <div class="sb-grid" :style="{ display: 'grid', gridTemplateColumns: `repeat(${columns || 3}, 1fr)`, gap: `${gap ?? 12}px` }">
         <div v-for="(img, i) in (images?.length ? images : Array.from({length:6}, (_,i) => ({src:'',alt:`Photo ${i+1}`,caption:''})))" :key="i">
           <div :style="{ borderRadius: `${borderRadius ?? 10}px`, overflow: 'hidden', aspectRatio: imageAspectRatio || '1/1', backgroundColor: '#e2e8f0' }">
             <img v-if="img.src" :src="img.src" :alt="img.alt" :style="{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }" />

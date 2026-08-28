@@ -14,7 +14,9 @@ defineProps<{
   <section :style="{ backgroundColor: backgroundColor || '#fff', padding: '64px 24px' }">
     <div style="max-width:800px;margin:0 auto;">
       <div v-if="headline || subheadline" style="margin-bottom:40px;">
-        <h2 v-if="headline" :style="{ color: textColor || '#1e293b', fontSize: '32px', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
+        <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
+             mobile and desktop instead of staying fixed at 32px -->
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#1e293b', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color: textColor || '#1e293b', opacity: 0.65, fontSize: '17px', margin: 0 }">{{ subheadline }}</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:24px;">

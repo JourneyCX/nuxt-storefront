@@ -51,7 +51,10 @@ function containerStyle(b: PromoBanner, _i: number) {
 <template>
   <section :style="{ backgroundColor: backgroundColor || '#f7f7f7', padding:`${paddingVertical || 24}px 24px` }">
     <div :style="{ maxWidth:'1200px', margin:'0 auto' }">
-      <div :style="{
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. -->
+      <div class="sb-grid" :style="{
         display:'grid',
         gridTemplateColumns:`repeat(${columns || 2}, 1fr)`,
         gap:`${gap || 12}px`,

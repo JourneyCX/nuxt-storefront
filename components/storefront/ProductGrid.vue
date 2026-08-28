@@ -92,7 +92,10 @@ function price(product: WcProduct) {
       </h2>
 
       <!-- Loading skeleton -->
-      <div v-if="pending" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. -->
+      <div v-if="pending" class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
         <div v-for="i in perPage" :key="i" :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff' }">
           <div :style="{ aspectRatio:'1/1', background:hue(i-1), animation:'pulse 1.5s ease-in-out infinite' }" />
           <div :style="{ padding:'16px' }">
@@ -103,7 +106,10 @@ function price(product: WcProduct) {
       </div>
 
       <!-- Real products from WooCommerce -->
-      <div v-else-if="showGrid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
+      <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+           and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. -->
+      <div v-else-if="showGrid" class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
         <article
           v-for="product in products"
           :key="product.id"
@@ -155,7 +161,10 @@ function price(product: WcProduct) {
 
       <!-- Placeholder fallback (Phase 1 mode or no products) -->
       <template v-else-if="showPlaceholder !== false">
-        <div :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
+        <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+             and 2 on tablet regardless of the merchant's chosen column count —
+             desktop keeps whatever `columns` picks. -->
+        <div class="sb-grid" :style="{ display:'grid', gridTemplateColumns:`repeat(${columns||3},1fr)`, gap:`${gap||24}px` }">
           <div v-for="i in perPage" :key="i" :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff' }">
             <div :style="{ aspectRatio:'1/1', background:hue(i-1), display:'flex', alignItems:'center', justifyContent:'center', color:'#a0aec0', fontSize:'13px' }">
               Product Image

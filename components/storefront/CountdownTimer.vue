@@ -65,7 +65,11 @@ const units = computed(() => [
 <template>
   <section :style="{ backgroundColor:bg, padding:'72px 24px', textAlign:'center' }">
     <div :style="{ maxWidth:'800px', margin:'0 auto' }">
-      <h2 v-if="headline" :style="{ color:text, fontSize:'36px', fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
+      <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
+           narrow screens instead of staying fixed at 36px — the countdown
+           digits/separator below stay fixed, they're short and narrow
+           regardless of viewport width. -->
+      <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:text, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
       <p v-if="subheadline" :style="{ color:text, opacity:0.65, fontSize:'18px', margin:'0 0 48px', lineHeight:1.65 }">{{ subheadline }}</p>
 
       <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">

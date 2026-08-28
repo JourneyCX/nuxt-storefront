@@ -95,7 +95,9 @@ const tiktokId = computed(() => {
       </div>
 
       <div v-if="platform === 'instagram'">
-        <div :style="{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '4px' }">
+        <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on mobile
+             and 2 on tablet regardless of the merchant's chosen column count -->
+        <div class="sb-grid" :style="{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '4px' }">
           <div
             v-for="i in count"
             :key="i"
@@ -135,7 +137,9 @@ const tiktokId = computed(() => {
           <p style="margin:6px 0 0;font-size:12px;opacity:0.6;">e.g. https://www.tiktok.com/@user/video/1234567890</p>
         </div>
         <div v-else style="display:flex;justify-content:center;">
-          <iframe :src="`https://www.tiktok.com/embed/v2/${tiktokId}`" allow="autoplay; fullscreen; picture-in-picture" :style="{ width: '325px', height: '580px', border: 'none', borderRadius: `${radius}px` }" />
+          <!-- min(325px, 100%) so the embed can't force horizontal page overflow
+               on a phone narrower than 325px -->
+          <iframe :src="`https://www.tiktok.com/embed/v2/${tiktokId}`" allow="autoplay; fullscreen; picture-in-picture" :style="{ width: 'min(325px, 100%)', height: '580px', border: 'none', borderRadius: `${radius}px` }" />
         </div>
       </div>
 

@@ -17,7 +17,9 @@ defineProps<{
   }">
     <div v-if="backgroundImage" :style="{ position:'absolute',inset:0,backgroundColor:`rgba(0,0,0,${(overlayOpacity||40)/100})` }" />
     <div style="position:relative;z-index:1;max-width:640px">
-      <h1 style="color:#fff;font-size:48px;font-weight:800;margin:0 0 16px;line-height:1.15">{{ headline }}</h1>
+      <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
+           narrow screens instead of staying fixed at 48px. -->
+      <h1 class="sb-text-fluid-lg" style="color:#fff;font-weight:800;margin:0 0 16px;line-height:1.15">{{ headline }}</h1>
       <p style="color:rgba(255,255,255,0.85);font-size:18px;margin:0 0 32px;line-height:1.6">{{ subheadline }}</p>
       <a v-if="buttonText" :href="buttonUrl||'#'"
          :style="{ display:'inline-block',backgroundColor:buttonColor||'#3182ce',color:'#fff',padding:'14px 32px',borderRadius:'6px',textDecoration:'none',fontWeight:600,fontSize:'16px' }">

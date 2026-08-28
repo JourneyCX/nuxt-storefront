@@ -20,7 +20,13 @@ function hue(index: number) {
       <h2 v-if="headline" :style="{ margin: '0 0 32px', fontSize: '28px', fontWeight: 700, color: '#1a202c' }">
         {{ headline }}
       </h2>
-      <div :style="layout === 'strip'
+      <!-- sb-grid (assets/css/responsive.css) collapses the grid variant to 1 column
+           on mobile and 2 on tablet regardless of the merchant's chosen column count —
+           desktop keeps whatever `columns` picks. Only applied when not the strip
+           layout, matching studio-app's CollectionList.tsx. -->
+      <div
+        :class="layout !== 'strip' ? 'sb-grid' : undefined"
+        :style="layout === 'strip'
         ? { display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '4px' }
         : { display: 'grid', gridTemplateColumns: `repeat(${columns || 3}, 1fr)`, gap: '20px' }">
         <a

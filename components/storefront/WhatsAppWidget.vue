@@ -27,9 +27,11 @@ function handleButtonClick() {
 
 <template>
   <div v-if="visible" style="position:fixed;bottom:24px;right:24px;z-index:9998">
+    <!-- min(280px, calc(100vw - 48px)) leaves 24px breathing room on each side
+         so the popup can't overflow off-screen on a very narrow phone -->
     <div
       v-if="open && settings.whatsappPopupEnabled"
-      style="width:280px;margin-bottom:12px;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,0.24);background-color:#fff"
+      style="width:min(280px, calc(100vw - 48px));margin-bottom:12px;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,0.24);background-color:#fff"
     >
       <div :style="{ backgroundColor: color, color: '#fff', padding: '14px 16px', fontSize: '14px', fontWeight: 700 }">
         {{ title }}
