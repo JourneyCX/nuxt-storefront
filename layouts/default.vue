@@ -6,6 +6,7 @@ import { fetchSiteSettings, type SiteSettings } from '~/server/utils/stratum'
 import SiteHeader from '~/components/storefront/SiteHeader.vue'
 import SiteFooter from '~/components/storefront/SiteFooter.vue'
 import WhatsAppWidget from '~/components/storefront/WhatsAppWidget.vue'
+import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
 
 // tenantId is resolved once by server/middleware/tenant.ts for every request and
 // stashed on event.context.tenantId. [...slug].vue reads the same shared useState
@@ -41,6 +42,9 @@ const s = computed<SiteSettings>(() => ({
   footerCopyrightText: null, footerColumns: [], footerShowBrandColumn: true,
   whatsappEnabled: false, whatsappPopupEnabled: true, whatsappPhone: null,
   whatsappMessageTitle: null, whatsappMessageBody: null, whatsappButtonColor: null,
+  announcementEnabled: false, announcementMessage: null, announcementMode: 'static',
+  announcementBgColor: '#dc2626', announcementTextColor: '#ffffff', announcementLinkUrl: null,
+  announcementSpeed: 20,
   ...(settings.value ?? {}),
 }))
 
@@ -55,6 +59,7 @@ useHead(() => ({
 </script>
 
 <template>
+  <AnnouncementBar :settings="s" />
   <SiteHeader :settings="s" />
   <slot />
   <SiteFooter :settings="s" />
