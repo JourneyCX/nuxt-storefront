@@ -31,12 +31,16 @@ export default defineEventHandler(async (event) => {
   const customer = await client.updateCustomerAddress(session.customerId, {
     billing:  body.billing,
     shipping: body.shipping,
-  }).catch((e) => {
-    // Previously swallowed entirely -- a real live failure (2026-08-29,
-    // tenant 82) left nothing to diagnose from. The underlying WC error is
-    // whatever createWcClient's put() throws (an ofetch FetchError, whose
-    // .data usually carries WooCommerce's real { code, message }).
-    console.error('[account/address] updateCustomerAddress failed for customer', session.customerId, 'tenant', tenantId, e)
+  }).catch((e: unknown) => {
+    // e.data is the real WooCommerce response body ({code, message, data})
+    // -- ofetch's FetchError default stack-trace print doesn't surface it,
+    // which is why the first live failure (2026-08-29, tenant 82) still
+    // wasn't diagnosable even after adding basic logging. Log it explicitly.
+    const err = e as { statusCode?: number; data?: unknown }
+    console.error(
+      '[account/address] updateCustomerAddress failed for customer', session.customerId,
+      'tenant', tenantId, 'status', err?.statusCode, 'wc response:', JSON.stringify(err?.data)
+    )
     return null
   })
 
