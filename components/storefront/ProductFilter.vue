@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { WcCategory } from '~/server/utils/woocommerce'
+
 type Category = { label: string; slug: string; count: number }
 
 // showCategoryCounts already existed in studio-app's ProductFilter.tsx but was never
@@ -32,6 +34,28 @@ const border = computed(() => props.borderColor || '#e2e8f0')
 const cur    = computed(() => props.currency || 'R ')
 const minP   = computed(() => props.minPrice ?? 0)
 const maxP   = computed(() => props.maxPrice ?? 2000)
+
+// Real per-category product counts come from WooCommerce (see /api/categories ->
+// wc.getCategories(), hide_empty:1), merged over the merchant-configured
+// label/slug list. The `count` stored in puck_json is a display-only editor field
+// (CategoryFilterListField.tsx) that always defaults to 0 and is never computed
+// from real data there -- Studio's canvas can't reach live WC counts -- so it must
+// never be trusted here. useRequestFetch(), not $fetch(), so this internal SSR
+// call carries the original request's Host header (see ProductGrid.vue).
+const requestFetch = useRequestFetch()
+const { data: liveCategories } = await useAsyncData<WcCategory[]>(
+  'product-filter-live-categories',
+  () => requestFetch('/api/categories'),
+  { default: () => [] as WcCategory[] }
+)
+const countBySlug = computed(() => {
+  const map = new Map<string, number>()
+  for (const c of liveCategories.value ?? []) map.set(c.slug, c.count)
+  return map
+})
+const displayCategories = computed(() =>
+  (props.categories ?? []).map(cat => ({ ...cat, count: countBySlug.value.get(cat.slug) ?? 0 }))
+)
 
 const catOpen   = ref(true)
 const priceOpen = ref(true)
@@ -115,7 +139,7 @@ const inputBase = computed(() => ({
         v-for="i in checkedCats" :key="i"
         :style="{ display:'inline-flex', alignItems:'center', gap:'4px', backgroundColor:accent+'18', color:accent, fontSize:'12px', fontWeight:600, padding:'4px 10px', borderRadius:'20px' }"
       >
-        {{ categories?.[i]?.label }}
+        {{ displayCategories?.[i]?.label }}
         <button @click="toggleCat(i)" :style="{ background:'none', border:'none', cursor:'pointer', color:accent, fontSize:'14px', lineHeight:1, padding:0 }">×</button>
       </span>
     </div>
@@ -140,7 +164,7 @@ const inputBase = computed(() => ({
     </div>
 
     <!-- Categories -->
-    <div v-if="showCategories !== false && categories?.length">
+    <div v-if="showCategories !== false && displayCategories?.length">
       <hr :style="{ border:'none', borderTop:`1px solid ${border}`, margin:'4px 0' }" />
       <button @click="catOpen = !catOpen"
         :style="{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', background:'none', border:'none', cursor:'pointer', padding:'12px 0', color:text }">
@@ -149,7 +173,7 @@ const inputBase = computed(() => ({
       </button>
       <div v-if="catOpen" :style="{ paddingBottom:'8px' }">
         <label
-          v-for="(cat, i) in categories" :key="i"
+          v-for="(cat, i) in displayCategories" :key="i"
           :style="{ display:'flex', alignItems:'center', gap:'9px', padding:'5px 0', cursor:'pointer' }"
         >
           <input
