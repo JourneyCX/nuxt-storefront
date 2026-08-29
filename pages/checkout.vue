@@ -17,6 +17,8 @@ const { quoteAddress, selectedRate } = useShippingQuote()
 // skipped by canSubmit below.
 const cartNeedsShipping = computed(() => itemCount.value > 0)
 
+const { account, fetchAccount } = useAccount()
+
 onMounted(async () => {
   await fetchCart()
   // Landed here directly (no /cart visit this session, or a hard refresh
@@ -25,6 +27,24 @@ onMounted(async () => {
   // submit with no shipping resolved.
   if (cartNeedsShipping.value && !selectedRate.value) {
     navigateTo('/cart')
+  }
+
+  // Prefill from a logged-in shopper's saved address -- only the fields this
+  // page's own form owns (first_name/last_name/email/phone/address_1).
+  // city/state/postcode/country are deliberately NOT touched here: they come
+  // from quoteAddress (the /cart page's shipping-rate quote) and editing them
+  // post-quote would desync the displayed total from what the courier
+  // actually charges, same reason they're read-only for a returning /cart
+  // visit generally (see the comment on `form` below). Shopper can still
+  // edit any of the prefilled fields before submitting.
+  await fetchAccount()
+  if (account.value?.billing) {
+    const b = account.value.billing
+    form.first_name = b.first_name || form.first_name
+    form.last_name  = b.last_name  || form.last_name
+    form.email      = account.value.email || form.email
+    form.phone      = b.phone      || form.phone
+    form.address_1  = b.address_1  || form.address_1
   }
 })
 

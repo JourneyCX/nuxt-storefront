@@ -87,10 +87,17 @@ export function clearAccountSession(event: H3Event, tenantId: number): void {
 // Throws a 401 rather than returning null so route handlers don't each need
 // their own error branch.
 export function requireAccountSession(event: H3Event, tenantId: number): AccountSessionPayload {
-  const raw     = getRawCookie(event, cookieName(tenantId))
-  const session = verifySession(raw, tenantId)
+  const session = getAccountSession(event, tenantId)
   if (!session) {
     throw createError({ statusCode: 401, statusMessage: 'Not logged in.' })
   }
   return session
+}
+
+// Non-throwing variant for routes where being logged in is optional (e.g.
+// checkout.post.ts attaching customer_id to an order only when a session
+// exists -- guest checkout must still succeed with no session at all).
+export function getAccountSession(event: H3Event, tenantId: number): AccountSessionPayload | null {
+  const raw = getRawCookie(event, cookieName(tenantId))
+  return verifySession(raw, tenantId)
 }

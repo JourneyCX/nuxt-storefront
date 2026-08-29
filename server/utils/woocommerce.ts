@@ -669,3 +669,30 @@ export async function attachOrderShippingLine(
     }
   )
 }
+
+// Attaches customer_id to an already-placed order -- called from
+// checkout.post.ts right after a successful Store API checkout, when the
+// shopper has an active account session. Needed because the Store API
+// checkout call itself has no idea about this app's own account-session
+// cookie: it only knows its own anonymous cart-token session, so every
+// order comes back customer_id: 0 regardless of whether the shopper is
+// logged in via /api/account -- confirmed live (2026-08-29), an order
+// placed with a valid, verified session cookie still landed customer_id: 0.
+// Same "patch the order via v3 admin API right after Store API checkout
+// returns" pattern as attachOrderShippingLine above, just a different field.
+export async function attachOrderCustomer(
+  baseUrl:    string,
+  key:        string,
+  secret:     string,
+  orderId:    number,
+  customerId: number
+): Promise<void> {
+  const auth = 'Basic ' + Buffer.from(`${key}:${secret}`).toString('base64')
+  const root = baseUrl.replace(/\/$/, '')
+
+  await $fetch(`${root}/wp-json/wc/v3/orders/${orderId}`, {
+    method:  'PUT',
+    headers: { Authorization: auth, 'Content-Type': 'application/json' },
+    body: { customer_id: customerId },
+  })
+}

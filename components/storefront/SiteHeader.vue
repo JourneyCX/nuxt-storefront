@@ -21,8 +21,12 @@ import CartDrawer from '~/components/storefront/CartDrawer.vue'
 const props = defineProps<{ settings: SiteSettings }>()
 
 const { itemCount, openCart, fetchCart } = useCart()
+const { account, fetchAccount } = useAccount()
 
-onMounted(() => { fetchCart() })
+onMounted(() => {
+  fetchCart()
+  fetchAccount()
+})
 
 // Mobile nav panel open/closed, and which top-level links (by index) have
 // their children expanded — a tap-to-expand accordion, since the desktop
@@ -82,6 +86,11 @@ const navLinks = computed(() => props.settings.navLinks || [])
           :href="settings.headerCtaUrl || '#'"
           :style="{ backgroundColor: settings.headerAccentColor || settings.headerTextColor || '#1a202c', color:'#ffffff', padding:'8px 16px', borderRadius:'4px', fontSize:'14px', fontWeight:600, textDecoration:'none' }"
         >{{ settings.headerCtaText }}</a>
+        <a
+          :href="account ? '/account' : '/login'"
+          :style="{ background:'none', border:'none', cursor:'pointer', fontSize:'22px', padding:'4px', lineHeight:1, textDecoration:'none' }"
+          :aria-label="account ? 'My Account' : 'Log In'"
+        >👤</a>
         <button
           @click="openCart"
           :style="{ position:'relative', background:'none', border:'none', cursor:'pointer', fontSize:'22px', padding:'4px' }"

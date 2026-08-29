@@ -1,7 +1,8 @@
-import { createWcStoreClient } from '~/server/utils/woocommerce'
+import { createWcStoreClient, attachOrderCustomer } from '~/server/utils/woocommerce'
 import { fetchWooCredentials }  from '~/server/utils/stratum'
 import type { WcCheckoutPayload } from '~/server/utils/woocommerce'
 import { getRawCookie, setRawCookie, deleteRawCookie, getRawBody } from '~/server/utils/http-compat'
+import { getAccountSession } from '~/server/utils/accountSession'
 
 export default defineEventHandler(async (event) => {
   const config   = useRuntimeConfig()
@@ -45,6 +46,23 @@ export default defineEventHandler(async (event) => {
   // Clear the cart session cookie on successful order
   deleteRawCookie(event, `wc-session-${tenantId}`)
   if (session) setRawCookie(event, `wc-session-${tenantId}`, session, { httpOnly: true, sameSite: 'lax', path: '/' })
+
+  // The Store API checkout call above has no idea about this app's own
+  // account-session cookie -- it only knows its own anonymous cart-token
+  // session, so every order comes back customer_id: 0 regardless of whether
+  // the shopper is logged in. Patch it in here, server-side (not left to a
+  // client-triggered follow-up call, unlike shipping-attach.post.ts, so a
+  // dropped request can't silently leave a logged-in shopper's order
+  // unattributed) whenever an account session is present. Best-effort: a
+  // failure here must never fail the order itself, which has already been
+  // placed successfully on WooCommerce's side.
+  const accountSession = getAccountSession(event, tenantId)
+  if (accountSession && data?.order_id) {
+    await attachOrderCustomer(creds.url, creds.key, creds.secret, data.order_id, accountSession.customerId)
+      .catch((e) => {
+        console.error('[checkout] attachOrderCustomer failed for order', data.order_id, e)
+      })
+  }
 
   // Off-site gateways (PayFast today) hand back a redirect_url on the
   // internal WooCommerce host -- tenant-N.wc.stratumengage.com, which has no
