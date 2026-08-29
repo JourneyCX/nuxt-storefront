@@ -79,6 +79,30 @@ export interface WcVariation {
   image:         { src: string; alt: string } | null
 }
 
+// REST v3 /customers shape, trimmed to what account routes need. Reuses the
+// Store API's WcAddress (below) for billing/shipping -- v3's own field names
+// for those match it closely enough that a separate type isn't worth it.
+export interface WcCustomer {
+  id:         number
+  email:      string
+  first_name: string
+  last_name:  string
+  billing?:   WcAddress
+  shipping?:  WcAddress
+}
+
+// REST v3 /orders list item, trimmed the same deliberately-minimal way as
+// orders/[id].get.ts's WcV3OrderMinimal -- account/orders.get.ts narrows
+// this further before it ever reaches the browser.
+export interface WcOrderSummary {
+  id:           number
+  status:       string
+  currency:     string
+  total:        string
+  date_created: string
+  line_items:   { name: string; quantity: number }[]
+}
+
 export interface WcCategory {
   id:     number
   name:   string
@@ -213,6 +237,27 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
     return $fetch<T>(url, { headers: { Authorization: auth } })
   }
 
+  // Added for customer accounts (register/update/save-address) -- every
+  // caller up to now only ever read the catalog, so only get() existed.
+  // Same auth/root closure as get(), just a different HTTP verb.
+  async function post<T>(path: string, body: unknown): Promise<T> {
+    const url = `${root}/wp-json/wc/v3${path}`
+    return $fetch<T>(url, {
+      method:  'POST',
+      headers: { Authorization: auth, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    })
+  }
+
+  async function put<T>(path: string, body: unknown): Promise<T> {
+    const url = `${root}/wp-json/wc/v3${path}`
+    return $fetch<T>(url, {
+      method:  'PUT',
+      headers: { Authorization: auth, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    })
+  }
+
   async function getCurrencySymbol(): Promise<string> {
     const cached = currencySymbolCache.get(root)
     if (cached && cached.expires > Date.now()) return cached.symbol
@@ -311,6 +356,36 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
     async getCategoryIdBySlug(slug: string): Promise<number | null> {
       const list = await get<WcCategory[]>('/products/categories', { slug }).catch(() => [] as WcCategory[])
       return list[0]?.id ?? null
+    },
+
+    // ── Customers (accounts) ───────────────────────────────────────────────
+    // Used only by server/api/account/*.ts. Password is verified separately
+    // via stratum-headless's /wp-json/stratum/v1/customer-login -- WC v3's
+    // Basic Auth here authenticates as the store's own API keys, not as an
+    // individual shopper, so it can create/update/read customers but can't
+    // check a shopper's own password.
+    async createCustomer(data: {
+      email: string; password: string; first_name: string; last_name: string
+    }): Promise<WcCustomer> {
+      return post<WcCustomer>('/customers', data)
+    },
+
+    async getCustomer(id: number): Promise<WcCustomer> {
+      return get<WcCustomer>(`/customers/${id}`)
+    },
+
+    async updateCustomerAddress(
+      id: number,
+      data: { billing?: WcAddress; shipping?: WcAddress }
+    ): Promise<WcCustomer> {
+      return put<WcCustomer>(`/customers/${id}`, data)
+    },
+
+    // Deliberately returns the raw v3 order list -- callers (orders.get.ts)
+    // shape it down to a minimal, non-PII subset before it ever reaches the
+    // browser, same precedent as orders/[id].get.ts.
+    async getOrdersByCustomer(customerId: number): Promise<WcOrderSummary[]> {
+      return get<WcOrderSummary[]>('/orders', { customer: customerId, per_page: 50, orderby: 'date', order: 'desc' })
     },
   }
 }

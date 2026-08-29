@@ -6,6 +6,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Server-only — never exposed to the browser
     stratumInternalUrl: process.env.STRATUM_INTERNAL_URL || 'http://localhost:8080',
+    // HMAC secret for signing the customer-account session cookie
+    // (server/utils/accountSession.ts). Must be set to a real random value
+    // in .env before deploy -- accountSession.ts fails closed (500) if empty,
+    // deliberately, rather than falling back to a guessable default.
+    accountSessionSecret: process.env.ACCOUNT_SESSION_SECRET || '',
   },
 
   routeRules: {
