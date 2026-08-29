@@ -8,6 +8,7 @@ interface RegisterBody {
   password:   string
   first_name: string
   last_name:  string
+  accepts_marketing?: boolean
 }
 
 // POST /api/account/register
@@ -41,7 +42,15 @@ export default defineEventHandler(async (event) => {
 
   const client = createWcClient(creds.url, creds.key, creds.secret)
 
-  const customer = await client.createCustomer({ email, password, first_name, last_name }).catch((err: unknown) => {
+  // accepts_marketing is stored as WC customer meta_data -- there's no CRM
+  // client row to put it on yet (one is only ever created from a real order,
+  // see Omni_sales_model), so the WC customer record is the durable store
+  // until then. Read back and applied to tblclients.accepts_marketing the
+  // moment that first client row gets created (Omni_sales_model.php).
+  const customer = await client.createCustomer({
+    email, password, first_name, last_name,
+    accepts_marketing: body.accepts_marketing ?? false,
+  }).catch((err: unknown) => {
     // WC v3 returns 400 woocommerce_rest_customer_exists for a duplicate
     // email -- surface a clean, generic message rather than the raw v3 error.
     const e = err as { statusCode?: number }

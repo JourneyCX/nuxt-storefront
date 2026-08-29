@@ -366,8 +366,16 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
     // check a shopper's own password.
     async createCustomer(data: {
       email: string; password: string; first_name: string; last_name: string
+      accepts_marketing?: boolean
     }): Promise<WcCustomer> {
-      return post<WcCustomer>('/customers', data)
+      const { accepts_marketing, ...rest } = data
+      // No CRM client row exists yet at registration time (one is only ever
+      // created from a real order -- see Omni_sales_model.php), so the WC
+      // customer's own meta_data is the durable store for this consent
+      // until then. Native WC v3 behavior, same mechanism as every other
+      // custom field on this endpoint -- no new WordPress plugin code.
+      const meta_data = [{ key: 'accepts_marketing', value: accepts_marketing ? '1' : '0' }]
+      return post<WcCustomer>('/customers', { ...rest, meta_data })
     },
 
     async getCustomer(id: number): Promise<WcCustomer> {

@@ -12,8 +12,10 @@ const form = reactive({
   email:      '',
   password:   '',
 })
-const confirmPassword = ref('')
-const confirmError    = ref('')
+const confirmPassword    = ref('')
+const confirmError       = ref('')
+// Unchecked by default -- opt-in, not opt-out.
+const acceptsMarketing   = ref(false)
 
 async function onSubmit() {
   confirmError.value = ''
@@ -25,7 +27,7 @@ async function onSubmit() {
     confirmError.value = 'Passwords do not match.'
     return
   }
-  const ok = await register({ ...form })
+  const ok = await register({ ...form, accepts_marketing: acceptsMarketing.value })
   if (ok) navigateTo('/account')
 }
 </script>
@@ -68,6 +70,11 @@ async function onSubmit() {
         <input v-model="confirmPassword" type="password" required autocomplete="new-password" placeholder="••••••••"
           style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;box-sizing:border-box" />
       </div>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#4a5568;margin-bottom:24px;cursor:pointer">
+        <input v-model="acceptsMarketing" type="checkbox" />
+        I'd like to receive marketing emails and offers
+      </label>
 
       <p v-if="confirmError || error" style="color:#e53e3e;font-size:13px;margin:0 0 16px">{{ confirmError || error }}</p>
 

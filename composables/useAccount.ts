@@ -31,7 +31,7 @@ export function useAccount() {
     }
   }
 
-  async function register(input: { email: string; password: string; first_name: string; last_name: string }) {
+  async function register(input: { email: string; password: string; first_name: string; last_name: string; accepts_marketing?: boolean }) {
     loading.value = true
     error.value   = ''
     try {
