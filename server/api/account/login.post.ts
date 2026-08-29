@@ -40,7 +40,18 @@ export default defineEventHandler(async (event) => {
   const result = await $fetch<CustomerLoginResponse>(
     `${creds.url.replace(/\/$/, '')}/wp-json/stratum/v1/customer-login`,
     { method: 'POST', body: { email, password } }
-  ).catch(() => null)
+  ).catch((e: unknown) => {
+    // A plain 401 (wrong password) or 429 (throttled) is normal, expected
+    // shopper behavior, not worth logging. Anything else (network failure,
+    // 500, WC connectivity issue) is unexpected and worth keeping visible --
+    // this route previously swallowed everything identically, which made a
+    // real connectivity problem indistinguishable from "wrong password".
+    const err = e as { statusCode?: number }
+    if (err?.statusCode !== 401 && err?.statusCode !== 429) {
+      console.error('[account/login] customer-login call failed for tenant', tenantId, e)
+    }
+    return null
+  })
 
   if (!result) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid email or password.' })

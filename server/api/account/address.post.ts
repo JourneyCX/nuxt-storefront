@@ -31,7 +31,14 @@ export default defineEventHandler(async (event) => {
   const customer = await client.updateCustomerAddress(session.customerId, {
     billing:  body.billing,
     shipping: body.shipping,
-  }).catch(() => null)
+  }).catch((e) => {
+    // Previously swallowed entirely -- a real live failure (2026-08-29,
+    // tenant 82) left nothing to diagnose from. The underlying WC error is
+    // whatever createWcClient's put() throws (an ofetch FetchError, whose
+    // .data usually carries WooCommerce's real { code, message }).
+    console.error('[account/address] updateCustomerAddress failed for customer', session.customerId, 'tenant', tenantId, e)
+    return null
+  })
 
   if (!customer) {
     throw createError({ statusCode: 502, statusMessage: 'Could not save address.' })

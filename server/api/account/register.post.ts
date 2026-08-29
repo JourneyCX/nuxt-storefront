@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
     if (e?.statusCode === 400) {
       throw createError({ statusCode: 409, statusMessage: 'An account with this email already exists.' })
     }
+    console.error('[account/register] createCustomer failed for tenant', tenantId, err)
     throw createError({ statusCode: 502, statusMessage: 'Could not create account.' })
   })
 
