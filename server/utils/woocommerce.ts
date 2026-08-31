@@ -61,6 +61,25 @@ export interface WcProduct {
   // product pages and the Store-API-backed cart/checkout can disagree
   // (product pages hardcoded "R" while the real store currency was USD).
   currency_symbol: string
+  // WC REST v3 includes this by default for authenticated (Basic Auth)
+  // requests -- always present on the raw response, just never previously
+  // declared here since nothing read it. Supplier Network's checkout
+  // integration reads `_sn_merchant_network_product_id`/`_sn_network_product_id`
+  // off this to tell a Supplier Network shadow product apart from an ordinary
+  // one (set by modules/store_builder/helpers/store_builder_sync_helper.php's
+  // _sb_build_wc_product_data() only when the source tblitems row actually is
+  // one). Optional: absent entirely for a store predating this field, not just
+  // empty.
+  meta_data?: { id: number; key: string; value: string }[]
+}
+
+// The specific meta key checked to identify a Supplier Network shadow
+// product — kept as one named export so the storefront-side check and any
+// future reference to this key stay in sync with the CI3-side field name.
+export const SUPPLIER_NETWORK_PRODUCT_META_KEY = '_sn_merchant_network_product_id'
+
+export function getSupplierNetworkMerchantProductId(product: Pick<WcProduct, 'meta_data'>): string | null {
+  return product.meta_data?.find(m => m.key === SUPPLIER_NETWORK_PRODUCT_META_KEY)?.value || null
 }
 
 // One concrete variation of a variable product -- WC REST v3's
@@ -292,6 +311,11 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
       slug?:      string
       min_price?: number
       max_price?: number
+      // Batch-by-id fetch — added for the Supplier Network checkout
+      // integration (one round trip to check meta_data on every cart line's
+      // product, instead of one request per line). WC REST v3's own
+      // `include` param, comma-joined.
+      include?:   number[]
     } = {}): Promise<WcProduct[]> {
       const q: Record<string, string | number> = {}
       // WooCommerce's REST API `category` filter takes numeric term ID(s), not
@@ -315,6 +339,13 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
       if (opts.slug)       q.slug        = opts.slug
       if (opts.min_price != null) q.min_price = opts.min_price
       if (opts.max_price != null) q.max_price = opts.max_price
+      if (opts.include?.length) {
+        q.include = opts.include.join(',')
+        // WC's default per_page (10) would silently truncate a larger cart's
+        // worth of ids -- only override when the caller didn't already ask
+        // for a specific page size.
+        if (!opts.per_page) q.per_page = opts.include.length
+      }
       const [products, currency_symbol] = await Promise.all([
         get<WcProduct[]>('/products', q),
         getCurrencySymbol(),
@@ -702,5 +733,62 @@ export async function attachOrderCustomer(
     method:  'PUT',
     headers: { Authorization: auth, 'Content-Type': 'application/json' },
     body: { customer_id: customerId },
+  })
+}
+
+// Stamps a Supplier Network reservation id onto the matching order line item
+// as meta_data, right after a successful Store API checkout — the shared
+// identifier a later CI3 PAYMENT_CONFIRMED event uses to find the exact
+// InventoryReservation it corresponds to (see Ci3PaymentEventHandler on the
+// Laravel side, and modules/supplier_network_bridge's payment_added_action,
+// which reads this back off tblcart_detailt.external_fulfilment_ref once
+// omni_sales syncs this order into CI3).
+//
+// Same "PATCH the already-created order via v3 admin API" shape as
+// attachOrderShippingLine/attachOrderCustomer above, but WHY it can only
+// happen here and not earlier: the Store API's own checkout payload
+// (WcCheckoutPayload) has no line_items field at all -- cart contents are
+// already server-side WooCommerce state by checkout time, not something this
+// call can attach metadata to. The real, WC-assigned line_items[].id values
+// don't exist until the order itself does, so a GET-then-PUT-by-id here is
+// the only point in the flow where this is possible, matching
+// attachOrderShippingLine's own documented reasoning for its own field.
+//
+// Matches each reservation to its order line by product_id -- the same
+// identifier reserveSupplierNetworkStock() was called with. Best-effort:
+// caught and logged by the caller (checkout.post.ts), never allowed to fail
+// the order response, since the order has already been placed successfully
+// by the time this runs.
+export async function attachOrderLineItemsMeta(
+  baseUrl: string,
+  key:     string,
+  secret:  string,
+  orderId: number,
+  reservations: { productId: number; reservationId: string }[]
+): Promise<void> {
+  if (reservations.length === 0) return
+
+  const auth = 'Basic ' + Buffer.from(`${key}:${secret}`).toString('base64')
+  const root = baseUrl.replace(/\/$/, '')
+
+  const existing = await $fetch<{ line_items: { id: number; product_id: number }[] }>(
+    `${root}/wp-json/wc/v3/orders/${orderId}`,
+    { headers: { Authorization: auth } }
+  )
+
+  const lineItemsPayload = reservations
+    .map(r => {
+      const match = existing.line_items?.find(li => li.product_id === r.productId)
+      if (!match) return null // shouldn't happen (the order was just built from this same cart) -- skip rather than throw, this is already best-effort
+      return { id: match.id, meta_data: [{ key: '_sn_reservation_id', value: r.reservationId }] }
+    })
+    .filter((line): line is { id: number; meta_data: { key: string; value: string }[] } => line !== null)
+
+  if (lineItemsPayload.length === 0) return
+
+  await $fetch(`${root}/wp-json/wc/v3/orders/${orderId}`, {
+    method:  'PUT',
+    headers: { Authorization: auth, 'Content-Type': 'application/json' },
+    body: { line_items: lineItemsPayload },
   })
 }

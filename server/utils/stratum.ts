@@ -9,6 +9,15 @@ export interface WooCredentials {
   url: string
   key: string
   secret: string
+  // The Laravel Tenant primary key (== the CI3 company slug, e.g. "colby") —
+  // added for the Supplier Network checkout integration, which needs to
+  // address Laravel's per-tenant reservation API. Not the same as this app's
+  // own numeric tenantId; Laravel has no concept of that id at all. Nullable:
+  // a tenant with WC credentials but no matching companies row (shouldn't
+  // happen in practice, but the CI3 endpoint returns null rather than erroring)
+  // simply can't use Supplier Network checkout — every other field here is
+  // unaffected either way.
+  slug: string | null
 }
 
 // Single source of truth for Header/Footer chrome + site-wide branding — see
