@@ -84,7 +84,12 @@ export default defineEventHandler(async (event) => {
                 // confirmed against this file's own documented convention on
                 // WcCartItem.prices above. Direct pass-through, no scaling.
                 expectedPriceMinor:   parseInt(item.prices.price, 10),
-                customerOrderLineRef: `${checkoutAttemptId}:${item.key}`,
+                // Both are separate varchar(64) columns on the Laravel side --
+                // passed as distinct fields (see SupplierNetworkReservationLine)
+                // rather than packed into one and split back apart, which
+                // previously overflowed 64 chars and threw a raw DB error.
+                customerOrderRef:     checkoutAttemptId,
+                customerOrderLineRef: item.key,
               },
             ).then(reservation => ({ productId: item.id, reservationId: reservation.reservationId })),
           ))

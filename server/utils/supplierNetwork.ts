@@ -14,6 +14,12 @@ export interface SupplierNetworkReservationLine {
   productId:                number
   quantity:                 number
   expectedPriceMinor:       number
+  // Both are separate varchar(64) columns on the Laravel side
+  // (sn_inventory_reservations) -- kept as distinct fields here rather than
+  // packed into one string and split back apart, which previously silently
+  // overflowed the column (a UUID checkout-attempt id + ':' + a WC cart item
+  // key routinely exceeds 64 chars) and threw a raw PDO truncation error.
+  customerOrderRef:         string
   customerOrderLineRef:     string
 }
 
@@ -60,7 +66,7 @@ export async function reserveSupplierNetworkStock(
         merchant_network_product_id: line.merchantNetworkProductId,
         quantity:                    line.quantity,
         expected_price_minor:        line.expectedPriceMinor,
-        customer_order_ref:          line.customerOrderLineRef.split(':')[0] ?? line.customerOrderLineRef,
+        customer_order_ref:          line.customerOrderRef,
         customer_order_line_ref:     line.customerOrderLineRef,
       },
     })
