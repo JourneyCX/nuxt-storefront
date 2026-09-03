@@ -88,13 +88,17 @@ const navLinks = computed(() => props.settings.navLinks || [])
         >{{ settings.headerCtaText }}</a>
         <a
           :href="account ? '/account' : '/login'"
-          :style="{ display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', lineHeight:1, textDecoration:'none' }"
+          :style="{ display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', lineHeight:1, textDecoration:'none', color: settings.headerTextColor || '#1a202c' }"
           :aria-label="account ? 'My Account' : 'Log In'"
         >
           <!-- Thin-line user icon (FA Classic Thin "user" style — no FA Pro
                license in this project, so hand-built to match its weight).
-               stroke="currentColor" so it inherits headerTextColor and needs
-               no separate dark/light variant. -->
+               stroke="currentColor" reads the `color` set above, which is
+               explicit (not just inherited) because <a> and <button> get a
+               UA-stylesheet default color (link blue, ButtonText) that beats
+               plain inheritance — confirmed live on a dark header banner
+               (Burnstein/tenant 82), where the icons rendered link-blue /
+               near-black instead of following headerTextColor. -->
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
@@ -102,7 +106,7 @@ const navLinks = computed(() => props.settings.navLinks || [])
         </a>
         <button
           @click="openCart"
-          :style="{ position:'relative', display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px' }"
+          :style="{ position:'relative', display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', color: settings.headerTextColor || '#1a202c' }"
           aria-label="Open cart"
         >
           <!-- Thin-line cart icon (FA Classic Thin "cart-shopping" style, hand-built for the same reason). -->
