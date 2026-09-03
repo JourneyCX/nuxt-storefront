@@ -88,15 +88,28 @@ const navLinks = computed(() => props.settings.navLinks || [])
         >{{ settings.headerCtaText }}</a>
         <a
           :href="account ? '/account' : '/login'"
-          :style="{ background:'none', border:'none', cursor:'pointer', fontSize:'22px', padding:'4px', lineHeight:1, textDecoration:'none' }"
+          :style="{ display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', lineHeight:1, textDecoration:'none' }"
           :aria-label="account ? 'My Account' : 'Log In'"
-        >👤</a>
+        >
+          <!-- Thin-line user icon (FA Classic Thin "user" style — no FA Pro
+               license in this project, so hand-built to match its weight).
+               stroke="currentColor" so it inherits headerTextColor and needs
+               no separate dark/light variant. -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+          </svg>
+        </a>
         <button
           @click="openCart"
-          :style="{ position:'relative', background:'none', border:'none', cursor:'pointer', fontSize:'22px', padding:'4px' }"
+          :style="{ position:'relative', display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px' }"
           aria-label="Open cart"
         >
-          🛒
+          <!-- Thin-line cart icon (FA Classic Thin "cart-shopping" style, hand-built for the same reason). -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
           <span
             v-if="itemCount > 0"
             :style="{ position:'absolute', top:'-2px', right:'-4px', background:'#e53e3e', color:'#fff', borderRadius:'50%', fontSize:'11px', fontWeight:700, minWidth:'18px', height:'18px', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }"
