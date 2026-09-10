@@ -32,6 +32,7 @@ import LogoStripSF       from './storefront/LogoStrip.vue'
 import HeroSectionSF     from './storefront/HeroSection.vue'
 import ProductGridSF     from './storefront/ProductGrid.vue'
 import ProductCardSF     from './storefront/ProductCard.vue'
+import ProductDetailSF   from './storefront/ProductDetail.vue'
 import ProductCarouselSF from './storefront/ProductCarousel.vue'
 import CollectionListSF  from './storefront/CollectionList.vue'
 import FeatureGridSF     from './storefront/FeatureGrid.vue'
@@ -50,6 +51,7 @@ import ContactFormSF     from './storefront/ContactForm.vue'
 import CartWidgetSF      from './storefront/CartWidget.vue'
 import ProductFilterSF   from './storefront/ProductFilter.vue'
 import BlogPostListSF    from './storefront/BlogPostList.vue'
+import BlogPostDetailSF  from './storefront/BlogPostDetail.vue'
 import GoogleMapSF       from './storefront/GoogleMap.vue'
 import ProgressBarsSF    from './storefront/ProgressBars.vue'
 import AnimatedTimelineSF   from './storefront/AnimatedTimeline.vue'
@@ -86,6 +88,7 @@ const componentMap: Record<string, unknown> = {
   HeroSection:      HeroSectionSF,
   ProductGrid:      ProductGridSF,
   ProductCard:      ProductCardSF,
+  ProductDetail:    ProductDetailSF,
   ProductCarousel:  ProductCarouselSF,
   CollectionList:   CollectionListSF,
   FeatureGrid:      FeatureGridSF,
@@ -104,6 +107,7 @@ const componentMap: Record<string, unknown> = {
   CartWidget:       CartWidgetSF,
   ProductFilter:    ProductFilterSF,
   BlogPostList:     BlogPostListSF,
+  BlogPostDetail:   BlogPostDetailSF,
   GoogleMap:        GoogleMapSF,
   ProgressBars:     ProgressBarsSF,
   AnimatedTimeline:   AnimatedTimelineSF,
