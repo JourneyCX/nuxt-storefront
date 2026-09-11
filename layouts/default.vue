@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { fetchSiteSettings, type SiteSettings } from '~/server/utils/stratum'
+import { fetchSiteSettings, fetchThemeCss, type SiteSettings, type ThemeCss } from '~/server/utils/stratum'
 // Explicit import, not Nuxt's directory-based auto-import (which would prefix the
 // tag as <StorefrontSiteHeader> since these live under components/storefront/) —
 // same convention StorefrontRenderer.vue already uses for the same reason.
@@ -48,13 +48,32 @@ const s = computed<SiteSettings>(() => ({
   ...(settings.value ?? {}),
 }))
 
+// Store Theme Manager's style tokens (colors/fonts/border-radius/button
+// style) for this tenant's currently applied theme — same parallel-fetch
+// pattern as site settings above (only needs tenantId, no dependency on the
+// page-JSON fetch). Was never wired up before now: Store_theme_tenant::css()
+// existed but is an AdminController endpoint nuxt-storefront's unauthenticated
+// server-side fetch could never reach — Store_builder_api::theme_css() is the
+// reachable replacement. See assets/css/theme-tokens.css for the static base
+// rules (font-family/color/background) that map these CSS custom properties
+// onto actual page styling — this fetch only supplies the per-theme VALUES.
+const { data: themeCss } = await useAsyncData<ThemeCss | null>(
+  `theme-css-${tenantId.value}`,
+  () => tenantId.value ? fetchThemeCss(config.stratumInternalUrl, { tenantId: tenantId.value }) : Promise.resolve(null),
+  { server: true }
+)
+
 // faviconUrl is fetched into `s` above but was never wired to the actual <head>
 // tag anywhere in the app — nuxt.config.ts's static <link> list has no icon
 // entry either, so every tenant's uploaded favicon silently had no effect on
 // the browser tab. useHead here is reactive on s.value.faviconUrl, so SSR HTML
 // carries the right tenant's icon straight away.
 useHead(() => ({
-  link: s.value.faviconUrl ? [{ rel: 'icon', href: s.value.faviconUrl }] : [],
+  link: [
+    ...(s.value.faviconUrl ? [{ rel: 'icon', href: s.value.faviconUrl }] : []),
+    ...(themeCss.value?.google_fonts_url ? [{ rel: 'stylesheet', href: themeCss.value.google_fonts_url }] : []),
+  ],
+  style: themeCss.value?.css ? [{ innerHTML: themeCss.value.css, key: 'sb-theme-tokens' }] : [],
 }))
 </script>
 

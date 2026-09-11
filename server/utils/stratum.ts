@@ -38,6 +38,10 @@ export interface SiteSettings {
   businessName: string | null
   tagline: string | null
   description: string | null
+  // Not rendered by this phase — kept in sync with studio-app's SiteSettings type
+  // per this file's own convention. Consumed server-side by the Storefront AI
+  // Assistant chat endpoint on the Stratum backend, not by the storefront itself.
+  shippingReturnsPolicy: string | null
   contactPhone: string | null
   contactEmail: string | null
   contactAddress: string | null
@@ -92,6 +96,57 @@ export async function fetchPublishedPage(
   return $fetch<PuckPageData>(
     `${stratumUrl}/admin/store_builder_api/published_page`,
     { query: { tenantId, slug } }
+  ).catch(() => null)
+}
+
+// Store Theme Manager's style tokens (primary/secondary color, fonts, border
+// radius, button style), compiled server-side into a :root{...} custom-
+// property CSS block by the same code the admin Theme Styles editor uses.
+// Pass tenantId for "this tenant's currently applied theme" (the normal
+// storefront case) or themeId directly for a specific theme regardless of
+// any tenant (theme preview mode) — see Store_builder_api::theme_css().
+export interface ThemeCss {
+  css: string | null
+  google_fonts_url: string | null
+  fonts: string[]
+}
+
+export async function fetchThemeCss(
+  stratumUrl: string,
+  opts: { tenantId?: number; themeId?: number }
+): Promise<ThemeCss | null> {
+  return $fetch<ThemeCss>(
+    `${stratumUrl}/admin/store_builder_api/theme_css`,
+    { query: opts.themeId ? { themeId: opts.themeId } : { tenantId: opts.tenantId } }
+  ).catch(() => null)
+}
+
+// Theme preview mode's page-content source — a theme SLOT's own template
+// content by page type, independent of any real tenant page. See
+// Store_builder_api::preview_page().
+export interface PreviewSlot {
+  pageType: string
+  label: string
+  available: boolean
+}
+
+// success:true carries real puckJson to render. success:false still carries
+// themeName/slots (so the preview nav can render) but no puckJson — this
+// specific slot just has no template assigned yet. Always HTTP 200 (see the
+// PHP endpoint's own comment) specifically so this shape survives instead of
+// $fetch throwing it away on a 404.
+export type PreviewPageData =
+  | { success: true; themeName: string; pageType: string; pageName: string; puckJson: Record<string, unknown>; slots: PreviewSlot[] }
+  | { success: false; reason: string; themeName: string; pageType: string; slots: PreviewSlot[] }
+
+export async function fetchPreviewPage(
+  stratumUrl: string,
+  themeId: number,
+  pageType: string
+): Promise<PreviewPageData | null> {
+  return $fetch<PreviewPageData>(
+    `${stratumUrl}/admin/store_builder_api/preview_page`,
+    { query: { themeId, pageType } }
   ).catch(() => null)
 }
 

@@ -1,7 +1,7 @@
 export default defineNuxtConfig({
   devtools: { enabled: false },
 
-  css: ['~/assets/css/responsive.css'],
+  css: ['~/assets/css/responsive.css', '~/assets/css/theme-tokens.css'],
 
   runtimeConfig: {
     // Server-only — never exposed to the browser
@@ -35,6 +35,12 @@ export default defineNuxtConfig({
       '/product/**': { isr: 120 },
       // API routes: no cache
       '/api/**':  { cache: false },
+      // Theme "View Demo" preview pages: no cache. Content here is keyed by
+      // whichever themeId/pageType is in the query string, not by the URL
+      // path alone — ISR's cache key is path-based, so caching this route
+      // would risk serving one theme's preview content under a cache entry
+      // that a DIFFERENT theme's preview request then reuses.
+      '/preview/**': { cache: false },
     },
   },
 
