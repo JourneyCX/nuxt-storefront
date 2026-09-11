@@ -81,6 +81,7 @@ useHead(() => ({
       :current-page-type="pageType"
       :demo-product-slug="demoProductSlug"
       :demo-blog-slug="demoBlogSlug"
+      :product-blog-preview-live="true"
     />
     <StorefrontRenderer v-if="page.success" :puck-json="page.puckJson" />
     <div v-else class="sb-preview-empty">
