@@ -23,6 +23,7 @@ import ContainerSF       from './storefront/Container.vue'
 import ColumnsSF         from './storefront/Columns.vue'
 import TextBlockSF       from './storefront/TextBlock.vue'
 import ImageBlockSF      from './storefront/ImageBlock.vue'
+import IconBoxSF         from './storefront/IconBox.vue'
 import SpacerSF          from './storefront/Spacer.vue'
 import DividerSF         from './storefront/Divider.vue'
 import HeroBannerSF      from './storefront/HeroBanner.vue'
@@ -79,6 +80,7 @@ const componentMap: Record<string, unknown> = {
   Columns:          ColumnsSF,
   TextBlock:        TextBlockSF,
   ImageBlock:       ImageBlockSF,
+  IconBox:          IconBoxSF,
   Spacer:           SpacerSF,
   Divider:          DividerSF,
   HeroBanner:       HeroBannerSF,
