@@ -13,6 +13,16 @@
 import { fetchPreviewPage, fetchThemeCss, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
 import type { WcProduct } from '~/server/utils/woocommerce'
 
+// Opts out of layouts/default.vue's AnnouncementBar/SiteHeader/SiteFooter/
+// WhatsAppWidget entirely -- those render the DEMO TENANT'S OWN real site
+// chrome (its actual product categories, WhatsApp number, etc.), which has
+// nothing to do with whichever theme is being previewed and only confuses
+// the "what does this theme look like" experience ThemePreviewBar already
+// exists to provide. Safe to drop: this page already fetches and injects its
+// own theme-css (below), so nothing from the default layout's useHead() is
+// lost by skipping it.
+definePageMeta({ layout: false })
+
 const route  = useRoute()
 const config = useRuntimeConfig()
 
