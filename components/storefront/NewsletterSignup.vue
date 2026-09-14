@@ -11,7 +11,10 @@ const props = defineProps<{
   webhookUrl?: string
   accentColor?: string
   backgroundColor?: string
+  backgroundImage?: string
+  overlayOpacity?: number
   textColor?: string
+  textAlign?: 'left' | 'center' | 'right'
   borderRadius?: number
 }>()
 
@@ -22,9 +25,17 @@ const status = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 const layout = computed(() => props.layout || 'banner')
 const accent = computed(() => props.accentColor || '#2563eb')
 const bg = computed(() => props.backgroundColor || '#f8fafc')
+const hasImage = computed(() => !!props.backgroundImage)
+const overlayOpacity = computed(() => props.overlayOpacity ?? 45)
 const text = computed(() => props.textColor || '#1e293b')
+const align = computed(() => props.textAlign || 'center')
+const justify = computed(() => align.value === 'left' ? 'flex-start' : align.value === 'right' ? 'flex-end' : 'center')
 const radius = computed(() => props.borderRadius || 12)
 const inputRadius = computed(() => Math.round(radius.value / 1.5))
+
+const sectionBgStyle = computed(() => hasImage.value
+  ? { position: 'relative' as const, backgroundImage: `url(${props.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+  : { backgroundColor: bg.value })
 
 async function submit() {
   if (!email.value) return
@@ -68,9 +79,10 @@ const inputStyleLight = computed(() => ({
   </section>
 
   <!-- Banner layout -->
-  <section v-else-if="layout === 'banner'" :style="{ backgroundColor: accent, padding:'56px 24px' }">
-    <div :style="{ maxWidth:'700px', margin:'0 auto', textAlign:'center' }">
-      <div :style="{ marginBottom:'8px', display:'flex', justifyContent:'center' }">
+  <section v-else-if="layout === 'banner'" :style="{ ...(hasImage ? sectionBgStyle : { backgroundColor: accent }), padding:'56px 24px' }">
+    <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlayOpacity/100})` }" />
+    <div :style="{ position:'relative', maxWidth:'700px', margin:'0 auto', textAlign: align }">
+      <div :style="{ marginBottom:'8px', display:'flex', justifyContent: justify }">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" :stroke="'rgba(255,255,255,0.7)'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
           <polyline points="22,6 12,13 2,6" />
@@ -80,7 +92,7 @@ const inputStyleLight = computed(() => ({
            mobile and desktop instead of staying fixed at 32px -->
       <h2 class="sb-text-fluid-md" :style="{ color:'#fff', fontWeight:800, margin:'12px 0 12px' }">{{ headline || 'Stay in the Loop' }}</h2>
       <p v-if="subheadline" :style="{ color:'rgba(255,255,255,0.8)', fontSize:'17px', margin:'0 0 32px', lineHeight:1.6 }">{{ subheadline }}</p>
-      <form @submit.prevent="submit" :style="{ display:'flex', gap:'10px', flexWrap:'wrap', justifyContent:'center' }">
+      <form @submit.prevent="submit" :style="{ display:'flex', gap:'10px', flexWrap:'wrap', justifyContent: justify }">
         <input v-if="showFirstName" type="text" placeholder="First name" v-model="firstName" :style="{ ...inputStyleDark, flex:'0 1 160px' }" />
         <input type="email" required :placeholder="placeholder || 'Enter your email address'" v-model="email" :style="inputStyleDark" />
         <button type="submit" :disabled="status==='loading'" :style="{ padding:'13px 28px', borderRadius:`${inputRadius}px`, backgroundColor:'#fff', color:accent, border:'none', fontWeight:700, fontSize:'15px', cursor:'pointer', whiteSpace:'nowrap' }">
@@ -92,9 +104,10 @@ const inputStyleLight = computed(() => ({
   </section>
 
   <!-- Card layout -->
-  <section v-else-if="layout === 'card'" :style="{ backgroundColor: bg, padding:'64px 24px' }">
-    <div :style="{ maxWidth:'540px', margin:'0 auto', backgroundColor:'#fff', borderRadius:`${radius}px`, padding:'48px', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', border:'1px solid #f1f5f9', textAlign:'center' }">
-      <div :style="{ width:'56px', height:'56px', borderRadius:'50%', backgroundColor:`${accent}18`, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px' }">
+  <section v-else-if="layout === 'card'" :style="{ ...sectionBgStyle, padding:'64px 24px' }">
+    <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlayOpacity/100})` }" />
+    <div :style="{ position:'relative', maxWidth:'540px', margin:'0 auto', backgroundColor:'#fff', borderRadius:`${radius}px`, padding:'48px', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', border:'1px solid #f1f5f9', textAlign: align }">
+      <div :style="{ width:'56px', height:'56px', borderRadius:'50%', backgroundColor:`${accent}18`, display:'flex', alignItems:'center', justifyContent:'center', margin: align==='left' ? '0 auto 20px 0' : align==='right' ? '0 0 20px auto' : '0 auto 20px' }">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" :stroke="accent" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
           <polyline points="22,6 12,13 2,6" />
@@ -103,8 +116,8 @@ const inputStyleLight = computed(() => ({
       <h2 :style="{ color:text, fontSize:'26px', fontWeight:800, margin:'0 0 12px' }">{{ headline || 'Stay in the Loop' }}</h2>
       <p v-if="subheadline" :style="{ color:text, opacity:0.65, fontSize:'15px', margin:'0 0 28px', lineHeight:1.6 }">{{ subheadline }}</p>
       <form @submit.prevent="submit" :style="{ display:'flex', flexDirection:'column', gap:'12px' }">
-        <input v-if="showFirstName" type="text" placeholder="First name" v-model="firstName" :style="{ ...inputStyleLight, textAlign:'center' }" />
-        <input type="email" required :placeholder="placeholder || 'Enter your email address'" v-model="email" :style="{ ...inputStyleLight, textAlign:'center' }" />
+        <input v-if="showFirstName" type="text" placeholder="First name" v-model="firstName" :style="{ ...inputStyleLight, textAlign: align }" />
+        <input type="email" required :placeholder="placeholder || 'Enter your email address'" v-model="email" :style="{ ...inputStyleLight, textAlign: align }" />
         <button type="submit" :disabled="status==='loading'" :style="{ padding:'13px', borderRadius:`${inputRadius}px`, backgroundColor:accent, color:'#fff', border:'none', fontWeight:700, fontSize:'15px', cursor:'pointer' }">
           {{ status === 'loading' ? 'Subscribing…' : (buttonText || 'Subscribe') }}
         </button>
@@ -114,10 +127,11 @@ const inputStyleLight = computed(() => ({
   </section>
 
   <!-- Minimal layout -->
-  <section v-else :style="{ backgroundColor: bg, padding:'32px 24px' }">
-    <div :style="{ maxWidth:'800px', margin:'0 auto' }">
+  <section v-else :style="{ ...sectionBgStyle, padding:'32px 24px' }">
+    <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlayOpacity/100})` }" />
+    <div :style="{ position:'relative', maxWidth:'800px', margin:'0 auto' }">
       <div :style="{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:'24px' }">
-        <div :style="{ flex:'1 1 240px' }">
+        <div :style="{ flex:'1 1 240px', textAlign: align }">
           <h3 :style="{ color:text, fontSize:'20px', fontWeight:700, margin:'0 0 6px' }">{{ headline || 'Stay in the Loop' }}</h3>
           <p v-if="subheadline" :style="{ color:text, opacity:0.6, fontSize:'14px', margin:0 }">{{ subheadline }}</p>
         </div>
