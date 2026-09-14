@@ -8,7 +8,14 @@
 import type { BlogPost } from '~/server/utils/stratum'
 
 const route = useRoute()
-const slug  = route.params.slug as string
+const slug  = route.params.slug as string | undefined
+
+// No post slug in the route -- this widget is being used/previewed outside
+// an actual /blog/[slug] page (e.g. dropped into a homepage layout while
+// building a theme -- see the identical fix in ProductDetail.vue, confirmed
+// live 2026-09-14 on tenant 1's Dazzle homepage). Skip the fetch entirely
+// rather than calling /api/blog/undefined and render a placeholder below.
+const hasSlug = !!slug
 
 // Server-side relative $fetch does not carry the original request's Host
 // header, so the tenant-resolution middleware (server/middleware/tenant.ts)
@@ -17,23 +24,27 @@ const slug  = route.params.slug as string
 // headers to internal SSR fetches; plain $fetch does not.
 const requestFetch = useRequestFetch()
 
-const { data: post, error } = await useAsyncData<BlogPost>(
-  `blog-post-detail-${slug}`,
-  () => requestFetch(`/api/blog/${slug}`),
+const { data: post, error } = await useAsyncData<BlogPost | null>(
+  `blog-post-detail-${slug ?? 'none'}`,
+  () => hasSlug ? requestFetch(`/api/blog/${slug}`) : Promise.resolve(null),
   { server: true }
 )
 
-if (error.value || !post.value) {
+if (hasSlug && (error.value || !post.value)) {
   throw createError({ statusCode: 404, statusMessage: `Post "${slug}" not found.` })
 }
 
-useHead({
-  title: post.value.seo.title,
-  meta: [
-    { name: 'description', content: post.value.seo.meta_description },
-    ...(post.value.seo.og_image ? [{ property: 'og:image', content: post.value.seo.og_image }] : []),
-  ],
-})
+const hasPost = computed(() => hasSlug && !!post.value)
+
+if (hasPost.value) {
+  useHead({
+    title: post.value!.seo.title,
+    meta: [
+      { name: 'description', content: post.value!.seo.meta_description },
+      ...(post.value!.seo.og_image ? [{ property: 'og:image', content: post.value!.seo.og_image }] : []),
+    ],
+  })
+}
 
 const formattedDate = computed(() => {
   if (!post.value?.published_at) return null
@@ -44,7 +55,10 @@ const formattedDate = computed(() => {
 </script>
 
 <template>
-  <div style="max-width:840px;margin:0 auto;padding:48px 24px">
+  <div v-if="!hasPost" style="max-width:840px;margin:0 auto;padding:48px 24px;border:2px dashed #cbd5e0;border-radius:12px;text-align:center;color:#a0aec0;font-size:14px">
+    📰 Blog Post Detail — this block only shows real data on an actual blog post page
+  </div>
+  <div v-else style="max-width:840px;margin:0 auto;padding:48px 24px">
     <!-- Breadcrumb -->
     <nav style="font-size:13px;color:#718096;margin-bottom:32px">
       <a href="/" style="color:#3182ce;text-decoration:none">Home</a>
@@ -55,7 +69,7 @@ const formattedDate = computed(() => {
     </nav>
 
     <span
-      v-if="post!.categories.length"
+      v-if="post!.categories?.length"
       style="display:inline-block;background-color:#2563eb18;color:#2563eb;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px"
     >
       {{ post!.categories[0].name }}

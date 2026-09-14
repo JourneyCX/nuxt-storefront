@@ -16,7 +16,16 @@ const props = withDefaults(defineProps<{
 })
 
 const route = useRoute()
-const slug  = route.params.slug as string
+const slug  = route.params.slug as string | undefined
+
+// No product slug in the route -- this widget is being used/previewed
+// outside an actual /product/[slug] page (e.g. dropped into a homepage
+// layout while building a theme, confirmed live 2026-09-14 on tenant 1's
+// Dazzle homepage). Skip the fetch entirely rather than calling
+// /api/products/undefined and rendering a placeholder below instead of
+// crashing the whole page when the response's shape doesn't have the
+// fields (images, currency_symbol, ...) the rest of this component assumes.
+const hasSlug = !!slug
 
 // Server-side relative $fetch does not carry the original request's Host
 // header, so the tenant-resolution middleware (server/middleware/tenant.ts)
@@ -25,17 +34,21 @@ const slug  = route.params.slug as string
 // headers to internal SSR fetches; plain $fetch does not.
 const requestFetch = useRequestFetch()
 
-const { data: product, error } = await useAsyncData<WcProduct>(
-  `product-detail-${slug}`,
-  () => requestFetch(`/api/products/${slug}`),
+const { data: product, error } = await useAsyncData<WcProduct | null>(
+  `product-detail-${slug ?? 'none'}`,
+  () => hasSlug ? requestFetch(`/api/products/${slug}`) : Promise.resolve(null),
   { server: true }
 )
 
-if (error.value || !product.value) {
+if (hasSlug && (error.value || !product.value)) {
   throw createError({ statusCode: 404, statusMessage: `Product "${slug}" not found.` })
 }
 
-useHead({ title: product.value.name })
+const hasProduct = computed(() => hasSlug && !!product.value)
+
+if (hasProduct.value) {
+  useHead({ title: product.value!.name })
+}
 
 const { addToCart, cartLoading } = useCart()
 
@@ -126,7 +139,10 @@ async function handleAdd() {
 </script>
 
 <template>
-  <div style="max-width:1200px;margin:0 auto;padding:48px 24px">
+  <div v-if="!hasProduct" style="max-width:1200px;margin:0 auto;padding:48px 24px;border:2px dashed #cbd5e0;border-radius:12px;text-align:center;color:#a0aec0;font-size:14px">
+    🛍️ Product Detail — this block only shows real data on an actual product page
+  </div>
+  <div v-else style="max-width:1200px;margin:0 auto;padding:48px 24px">
     <!-- Breadcrumb -->
     <nav style="font-size:13px;color:#718096;margin-bottom:32px">
       <a href="/" style="color:#3182ce;text-decoration:none">Home</a>
@@ -148,9 +164,9 @@ async function handleAdd() {
             No image
           </div>
         </div>
-        <div v-if="product!.images.length > 1" style="display:flex;gap:8px;flex-wrap:wrap">
+        <div v-if="(product!.images?.length ?? 0) > 1" style="display:flex;gap:8px;flex-wrap:wrap">
           <button
-            v-for="(img, i) in product!.images"
+            v-for="(img, i) in (product!.images ?? [])"
             :key="i"
             @click="selectedImage = i"
             :style="{
