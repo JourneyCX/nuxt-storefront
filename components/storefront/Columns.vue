@@ -3,8 +3,10 @@
 // actual layout in the Puck editor (studio-app/src/components/Layout/Columns.tsx) —
 // `columns` is a legacy prop no longer written there. Must read `distribution` here
 // too, or asymmetric splits (sidebar layouts) silently render as equal-width columns.
-const props = defineProps<{ distribution?: string; columns?: number; gap?: number; backgroundColor?: string }>()
+const props = defineProps<{ distribution?: string; columns?: number; gap?: number; backgroundColor?: string; verticalAlign?: 'stretch' | 'top' | 'center' | 'bottom' }>()
 const colTemplate = computed(() => (COLUMN_DISTRIBUTIONS[props.distribution ?? 'equal2'] ?? COLUMN_DISTRIBUTIONS.equal2).template)
+const VERTICAL_ALIGN_CSS: Record<string, string> = { stretch: 'stretch', top: 'start', center: 'center', bottom: 'end' }
+const alignItemsCss = computed(() => VERTICAL_ALIGN_CSS[props.verticalAlign ?? 'stretch'] ?? 'stretch')
 </script>
 <template>
   <!-- sb-grid (assets/css/responsive.css) collapses this to 1 column on
@@ -12,7 +14,7 @@ const colTemplate = computed(() => (COLUMN_DISTRIBUTIONS[props.distribution ?? '
        distribution — a 4-column or 1:3 sidebar split has no business
        staying that shape on a 375px screen. Desktop keeps whatever
        colTemplate picks. -->
-  <div class="sb-grid" :style="{ backgroundColor:backgroundColor||'transparent', display:'grid', gridTemplateColumns:colTemplate, gap:`${gap||24}px` }">
+  <div class="sb-grid" :style="{ backgroundColor:backgroundColor||'transparent', display:'grid', gridTemplateColumns:colTemplate, gap:`${gap||24}px`, alignItems:alignItemsCss }">
     <slot />
   </div>
 </template>
