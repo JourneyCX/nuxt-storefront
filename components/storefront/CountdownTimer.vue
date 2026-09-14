@@ -8,7 +8,7 @@ const props = defineProps<{
   showHours?: boolean
   showMinutes?: boolean
   showSeconds?: boolean
-  cardStyle?: 'card' | 'minimal' | 'neon'
+  cardStyle?: 'card' | 'minimal' | 'neon' | 'bar'
   accentColor?: string
   backgroundColor?: string
   cardColor?: string
@@ -60,10 +60,39 @@ const units = computed(() => [
   { key: 'minutes' as const, lbl: 'Minutes', show: props.showMinutes !== false },
   { key: 'seconds' as const, lbl: 'Seconds', show: props.showSeconds !== false },
 ].filter(u => u.show))
+
+// Abbreviated labels for the slim bar style — matches studio-app's
+// CountdownTimer.tsx BAR_LABELS exactly, keep them in sync.
+const barUnits = computed(() => [
+  { key: 'days' as const,    lbl: 'Days',  show: props.showDays    !== false },
+  { key: 'hours' as const,   lbl: 'Hours', show: props.showHours   !== false },
+  { key: 'minutes' as const, lbl: 'Mins',  show: props.showMinutes !== false },
+  { key: 'seconds' as const, lbl: 'Sec',   show: props.showSeconds !== false },
+].filter(u => u.show))
 </script>
 
 <template>
-  <section :style="{ backgroundColor:bg, padding:'72px 24px', textAlign:'center' }">
+  <!-- Slim, single-row announcement-bar layout — deliberately not built on
+       unitStyle()/the stacked-card markup below (that's sized for 52px
+       digits), so it stays narrow enough to sit inside a Columns dropzone
+       instead of a full-width hero section. Mirrors studio-app's BarTimer. -->
+  <component :is="primaryButtonUrl ? 'a' : 'div'" v-if="cs === 'bar'" :href="primaryButtonUrl || undefined" :style="{ textDecoration:'none', display:'block' }">
+    <div :style="{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px', backgroundColor:bg, color:text, padding:'14px 24px' }">
+      <span v-if="headline" :style="{ fontSize:'15px', fontWeight:600 }">{{ headline }}</span>
+      <div :style="{ display:'flex', alignItems:'center', gap:'16px' }">
+        <span v-if="done && endMessage" :style="{ fontSize:'14px', fontWeight:700, color:accent }">{{ endMessage }}</span>
+        <div v-else :style="{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', fontWeight:600, fontVariantNumeric:'tabular-nums', flexWrap:'wrap' }">
+          <span v-for="(u, i) in barUnits" :key="u.key" :style="{ display:'flex', alignItems:'center', gap:'8px' }">
+            <span v-if="i > 0" :style="{ opacity:0.4 }">:</span>
+            {{ pad(time[u.key]) }} {{ u.lbl }}
+          </span>
+        </div>
+        <span v-if="primaryButtonUrl" :style="{ fontSize:'18px', lineHeight:1 }" aria-hidden="true">&rsaquo;</span>
+      </div>
+    </div>
+  </component>
+
+  <section v-else :style="{ backgroundColor:bg, padding:'72px 24px', textAlign:'center' }">
     <div :style="{ maxWidth:'800px', margin:'0 auto' }">
       <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
            narrow screens instead of staying fixed at 36px — the countdown
