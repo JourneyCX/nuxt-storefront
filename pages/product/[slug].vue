@@ -22,34 +22,41 @@ const tenantId = useState<number>('sb_tenantId', () => {
 const config = useRuntimeConfig()
 const route  = useRoute()
 
-const previewThemeId = computed(() => Number(route.query.previewTheme) || 0)
+// ?previewTheme= carries EITHER a theme's numeric id (older/internal links)
+// OR its public slug (links built from the public "/themes" gallery, or
+// forwarded here by ThemePreviewBar from a slug-addressed /preview/{slug}
+// session) -- same dual-identifier contract as pages/preview/[theme].vue.
+const previewThemeRaw  = computed(() => (route.query.previewTheme as string) || '')
+const previewThemeIsOn = computed(() => !!previewThemeRaw.value)
+const previewThemeId   = computed(() => (/^\d+$/.test(previewThemeRaw.value) ? Number(previewThemeRaw.value) : 0))
+const previewThemeRef  = computed(() => (previewThemeId.value ? { themeId: previewThemeId.value } : { slug: previewThemeRaw.value }))
 
 const { data: normalPage } = await useAsyncData<PuckPageData | null>(
   `product-theme-${tenantId.value}`,
-  () => previewThemeId.value ? Promise.resolve(null) : fetchPublishedPage(config.stratumInternalUrl, tenantId.value, 'product'),
+  () => previewThemeIsOn.value ? Promise.resolve(null) : fetchPublishedPage(config.stratumInternalUrl, tenantId.value, 'product'),
   { server: true }
 )
 
 const { data: previewData } = await useAsyncData<PreviewPageData | null>(
-  `product-preview-${previewThemeId.value}`,
-  () => previewThemeId.value ? fetchPreviewPage(config.stratumInternalUrl, previewThemeId.value, 'product') : Promise.resolve(null),
+  `product-preview-${previewThemeRaw.value}`,
+  () => previewThemeIsOn.value ? fetchPreviewPage(config.stratumInternalUrl, previewThemeRef.value, 'product') : Promise.resolve(null),
   { server: true }
 )
 
 const { data: themeCss } = await useAsyncData<ThemeCss | null>(
-  `product-preview-css-${previewThemeId.value}`,
-  () => previewThemeId.value ? fetchThemeCss(config.stratumInternalUrl, { themeId: previewThemeId.value }) : Promise.resolve(null),
+  `product-preview-css-${previewThemeRaw.value}`,
+  () => previewThemeIsOn.value ? fetchThemeCss(config.stratumInternalUrl, previewThemeRef.value) : Promise.resolve(null),
   { server: true }
 )
 
 useHead(() => ({
   link: themeCss.value?.google_fonts_url ? [{ rel: 'stylesheet', href: themeCss.value.google_fonts_url }] : [],
   style: themeCss.value?.css ? [{ innerHTML: themeCss.value.css, key: 'sb-theme-tokens' }] : [],
-  meta: previewThemeId.value ? [{ name: 'robots', content: 'noindex, nofollow' }] : [],
+  meta: previewThemeIsOn.value ? [{ name: 'robots', content: 'noindex, nofollow' }] : [],
 }))
 
 const puckJson = computed(() => {
-  if (previewThemeId.value) {
+  if (previewThemeIsOn.value) {
     return previewData.value?.success ? previewData.value.puckJson : null
   }
   return normalPage.value?.puckJson ?? null
@@ -59,15 +66,16 @@ const puckJson = computed(() => {
 <template>
   <div>
     <ThemePreviewBar
-      v-if="previewThemeId && previewData"
+      v-if="previewThemeIsOn && previewData"
       :theme-id="previewThemeId"
+      :theme-slug="previewData.themeSlug"
       :theme-name="previewData.themeName"
       :slots="previewData.slots"
       current-page-type="product"
       :demo-product-slug="(route.params.slug as string)"
     />
     <StorefrontRenderer v-if="puckJson" :puck-json="puckJson" />
-    <DefaultProductDetail v-else-if="!previewThemeId" />
+    <DefaultProductDetail v-else-if="!previewThemeIsOn" />
     <div v-else class="sb-preview-empty">
       <p>No page has been assigned to the "product" slot for this theme yet.</p>
     </div>

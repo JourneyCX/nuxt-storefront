@@ -10,6 +10,13 @@
 // route.params.slug directly and have no meaning without a real item's own
 // URL. See ThemePreviewBar.vue for how the nav between all of these stays
 // consistent.
+//
+// The [theme] segment accepts EITHER a theme's numeric id (internal nav,
+// admin-panel links predating the public gallery) OR its public slug (the
+// public "/themes" gallery links to these, and they're what a merchant would
+// hand-paste into WordPress or anywhere else) -- Store_builder_api's
+// preview_page()/theme_css() accept both, so no lookup is needed here beyond
+// telling a plain digit string apart from a slug.
 import { fetchPreviewPage, fetchThemeCss, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
 import type { WcProduct } from '~/server/utils/woocommerce'
 
@@ -26,30 +33,32 @@ definePageMeta({ layout: false })
 const route  = useRoute()
 const config = useRuntimeConfig()
 
-const themeId  = computed(() => Number(route.params.themeId) || 0)
-const pageType = computed(() => (route.query.page as string) || 'home')
+const rawTheme = computed(() => (route.params.theme as string) || '')
+const isNumeric = computed(() => /^\d+$/.test(rawTheme.value))
+const themeRef  = computed(() => (isNumeric.value ? { themeId: Number(rawTheme.value) } : { slug: rawTheme.value }))
+const pageType  = computed(() => (route.query.page as string) || 'home')
 
-if (!themeId.value) {
+if (!rawTheme.value) {
   throw createError({ statusCode: 404, statusMessage: 'Theme not found' })
 }
 
 const { data: page, error } = await useAsyncData<PreviewPageData | null>(
-  `preview-page-${themeId.value}`,
-  () => fetchPreviewPage(config.stratumInternalUrl, themeId.value, pageType.value),
+  `preview-page-${rawTheme.value}`,
+  () => fetchPreviewPage(config.stratumInternalUrl, themeRef.value, pageType.value),
   { server: true, watch: [pageType] }
 )
 
-// A genuine 404 here means the themeId itself doesn't resolve to a real,
-// published theme at all (fetchPreviewPage's own .catch(() => null)) -- a
-// slot that simply has no template assigned still returns page.value with
+// A genuine 404 here means the theme reference itself doesn't resolve to a
+// real, published theme at all (fetchPreviewPage's own .catch(() => null)) --
+// a slot that simply has no template assigned still returns page.value with
 // success:false + a real slots list, handled in the template below, not here.
 if (error.value || !page.value) {
   throw createError({ statusCode: 404, statusMessage: 'Theme not found or not published' })
 }
 
 const { data: themeCss } = await useAsyncData<ThemeCss | null>(
-  `preview-css-${themeId.value}`,
-  () => fetchThemeCss(config.stratumInternalUrl, { themeId: themeId.value }),
+  `preview-css-${rawTheme.value}`,
+  () => fetchThemeCss(config.stratumInternalUrl, themeRef.value),
   { server: true }
 )
 
@@ -85,7 +94,8 @@ useHead(() => ({
 <template>
   <div v-if="page">
     <ThemePreviewBar
-      :theme-id="themeId"
+      :theme-id="isNumeric ? Number(rawTheme) : 0"
+      :theme-slug="page.themeSlug"
       :theme-name="page.themeName"
       :slots="page.slots"
       :current-page-type="pageType"

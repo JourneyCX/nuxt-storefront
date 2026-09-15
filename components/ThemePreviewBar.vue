@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Sticky banner shown on every page of a theme "View Demo" session — the
-// dedicated /preview/[themeId] route, and /product/[slug] + /blog/[slug]
+// dedicated /preview/[theme] route, and /product/[slug] + /blog/[slug]
 // when visited with ?previewTheme=X (their own dynamic-data-driven page
 // types, see those files' own comments for why they can't render through
 // the generic preview route directly). Kept as a single shared component so
@@ -10,6 +10,12 @@ import type { PreviewSlot } from '~/server/utils/stratum'
 
 const props = withDefaults(defineProps<{
   themeId: number
+  // Theme's public slug, when known — used to build the /preview/{...} nav
+  // links so a merchant clicking Home -> Shop -> Collection stays on the same
+  // kind of URL they arrived on (numeric id or slug) rather than always
+  // collapsing back to the numeric id. Falls back to themeId when absent
+  // (e.g. an older caller that hasn't been updated to pass it).
+  themeSlug?: string | null
   themeName: string
   slots: PreviewSlot[]
   currentPageType: string
@@ -28,19 +34,26 @@ const props = withDefaults(defineProps<{
   // is confirmed live.
   productBlogPreviewLive?: boolean
 }>(), {
+  themeSlug: null,
   demoProductSlug: null,
   demoBlogSlug: null,
   productBlogPreviewLive: false,
 })
 
+// Whichever identifier this preview session itself arrived on (slug or
+// numeric id) is what every further nav link reuses — /product and /blog's
+// own ?previewTheme= parsing (see those files' previewThemeRaw) accepts
+// either form, same as /preview/{...} itself.
+const identifier = computed(() => props.themeSlug || props.themeId)
+
 function linkFor(slot: PreviewSlot) {
   if (slot.pageType === 'product' && props.demoProductSlug) {
-    return { path: `/product/${props.demoProductSlug}`, query: { previewTheme: props.themeId } }
+    return { path: `/product/${props.demoProductSlug}`, query: { previewTheme: identifier.value } }
   }
   if (slot.pageType === 'blog_post' && props.demoBlogSlug) {
-    return { path: `/blog/${props.demoBlogSlug}`, query: { previewTheme: props.themeId } }
+    return { path: `/blog/${props.demoBlogSlug}`, query: { previewTheme: identifier.value } }
   }
-  return { path: `/preview/${props.themeId}`, query: { page: slot.pageType } }
+  return { path: `/preview/${identifier.value}`, query: { page: slot.pageType } }
 }
 
 // A slot is genuinely clickable only when it has a template assigned AND

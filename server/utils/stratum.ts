@@ -113,11 +113,16 @@ export interface ThemeCss {
 
 export async function fetchThemeCss(
   stratumUrl: string,
-  opts: { tenantId?: number; themeId?: number }
+  opts: { tenantId?: number; themeId?: number; slug?: string }
 ): Promise<ThemeCss | null> {
+  const query = opts.themeId
+    ? { themeId: opts.themeId }
+    : opts.slug
+      ? { slug: opts.slug }
+      : { tenantId: opts.tenantId }
   return $fetch<ThemeCss>(
     `${stratumUrl}/admin/store_builder_api/theme_css`,
-    { query: opts.themeId ? { themeId: opts.themeId } : { tenantId: opts.tenantId } }
+    { query }
   ).catch(() => null)
 }
 
@@ -134,20 +139,47 @@ export interface PreviewSlot {
 // themeName/slots (so the preview nav can render) but no puckJson — this
 // specific slot just has no template assigned yet. Always HTTP 200 (see the
 // PHP endpoint's own comment) specifically so this shape survives instead of
-// $fetch throwing it away on a 404.
+// $fetch throwing it away on a 404. themeSlug is echoed back regardless of
+// whether the request was addressed by id or slug, so callers can always
+// build further nav links off the theme's own public slug.
 export type PreviewPageData =
-  | { success: true; themeName: string; pageType: string; pageName: string; puckJson: Record<string, unknown>; slots: PreviewSlot[] }
-  | { success: false; reason: string; themeName: string; pageType: string; slots: PreviewSlot[] }
+  | { success: true; themeName: string; themeSlug: string; pageType: string; pageName: string; puckJson: Record<string, unknown>; slots: PreviewSlot[] }
+  | { success: false; reason: string; themeName: string; themeSlug: string; pageType: string; slots: PreviewSlot[] }
 
+// Identify the theme either by its numeric id (internal nav, e.g. the
+// ?previewTheme= override on /product and /blog) or by its public slug (the
+// /preview/[theme] route, reachable from the public "/themes" gallery).
 export async function fetchPreviewPage(
   stratumUrl: string,
-  themeId: number,
+  theme: { themeId?: number; slug?: string },
   pageType: string
 ): Promise<PreviewPageData | null> {
+  const query = theme.themeId ? { themeId: theme.themeId, pageType } : { slug: theme.slug, pageType }
   return $fetch<PreviewPageData>(
     `${stratumUrl}/admin/store_builder_api/preview_page`,
-    { query: { themeId, pageType } }
+    { query }
   ).catch(() => null)
+}
+
+export interface PublishedThemeSummary {
+  id: number
+  name: string
+  slug: string
+  category: string
+  categoryName: string
+  description: string | null
+  previewImage: string | null
+  tags: string[]
+}
+
+// Public theme-gallery listing — backs the "/themes" storefront page.
+// Store_builder_api::published_themes() is a bare, unauthenticated
+// controller, same as theme_css()/preview_page() above.
+export async function fetchPublishedThemes(stratumUrl: string): Promise<PublishedThemeSummary[]> {
+  const data = await $fetch<{ themes: PublishedThemeSummary[] }>(
+    `${stratumUrl}/admin/store_builder_api/published_themes`
+  ).catch(() => null)
+  return data?.themes ?? []
 }
 
 export async function fetchWooCredentials(
