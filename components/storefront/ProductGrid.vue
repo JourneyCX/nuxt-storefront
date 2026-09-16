@@ -54,6 +54,17 @@ const queryMaxPrice = computed(() => {
 const effectiveCategory = computed(() => (queryCategory.value || props.categorySlug || undefined))
 const effectiveMaxPrice = computed(() => queryMaxPrice.value)
 
+// `sort` is "<orderby>-<order>" as written by ProductFilter.vue's select (e.g.
+// "price-asc"), forwarded as-is to /api/products -> wc.getProducts(), which already
+// supports WooCommerce REST's own orderby/order params -- that pass-through already
+// existed, only nothing ever populated the query param before this.
+const querySort = computed(() => {
+  const q = route.query.sort
+  return Array.isArray(q) ? q[0] : q
+})
+const effectiveOrderby = computed(() => querySort.value?.split('-')[0] || undefined)
+const effectiveOrder   = computed(() => (querySort.value?.split('-')[1] as 'asc' | 'desc' | undefined) || undefined)
+
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
@@ -64,9 +75,11 @@ const { data: products, pending } = await useAsyncData<WcProduct[]>(
       category:  effectiveCategory.value,
       per_page:  perPage.value,
       max_price: effectiveMaxPrice.value,
+      orderby:   effectiveOrderby.value,
+      order:     effectiveOrder.value,
     },
   }),
-  { default: () => [] as WcProduct[], watch: [effectiveCategory, effectiveMaxPrice, perPage] }
+  { default: () => [] as WcProduct[], watch: [effectiveCategory, effectiveMaxPrice, effectiveOrderby, effectiveOrder, perPage] }
 )
 
 const showGrid = computed(() =>
