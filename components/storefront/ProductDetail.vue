@@ -93,10 +93,33 @@ function selectOption(attrName: string, option: string) {
 
 const activeSource = computed(() => matchedVariation.value ?? product.value!)
 
-const mainImage = computed(() => {
-  if (matchedVariation.value?.image) return matchedVariation.value.image.src
-  return product.value?.images?.[selectedImage.value]?.src ?? ''
+// A matched variation's own image (e.g. the Gold option's dedicated photo)
+// often isn't one of the parent product's own gallery images at all -- it
+// needs to be spliced into one combined, browsable list so the thumbnails,
+// and the lightbox's prev/next arrows, still work once a variant is picked
+// instead of getting stuck showing only that one variant image.
+const galleryImages = computed(() => {
+  const base = product.value?.images ?? []
+  const variantImage = matchedVariation.value?.image
+  if (!variantImage) return base
+  if (base.some(img => img.src === variantImage.src)) return base
+  return [variantImage, ...base]
 })
+
+// Jump to the matched variation's own photo (if it has one) whenever the
+// variant selection changes, but keep selectedImage pointing into
+// galleryImages so it stays a valid, browsable index either way.
+watch(matchedVariation, (variation) => {
+  const variantImage = variation?.image
+  if (!variantImage) {
+    selectedImage.value = 0
+    return
+  }
+  const idx = galleryImages.value.findIndex(img => img.src === variantImage.src)
+  selectedImage.value = idx !== -1 ? idx : 0
+})
+
+const mainImage = computed(() => galleryImages.value[selectedImage.value]?.src ?? '')
 
 const price = computed(() => {
   const s = activeSource.value
@@ -150,7 +173,7 @@ function closeLightbox() {
   lightboxOpen.value = false
 }
 function stepImage(delta: number) {
-  const len = product.value?.images?.length ?? 0
+  const len = galleryImages.value.length
   if (len < 2) return
   selectedImage.value = (selectedImage.value + delta + len) % len
 }
@@ -203,9 +226,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
             </svg>
           </button>
         </div>
-        <div v-if="(product!.images?.length ?? 0) > 1" style="display:flex;gap:8px;flex-wrap:wrap">
+        <div v-if="galleryImages.length > 1" style="display:flex;gap:8px;flex-wrap:wrap">
           <button
-            v-for="(img, i) in (product!.images ?? [])"
+            v-for="(img, i) in galleryImages"
             :key="i"
             @click="selectedImage = i"
             :style="{
@@ -317,7 +340,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
         </button>
 
         <button
-          v-if="(product!.images?.length ?? 0) > 1"
+          v-if="galleryImages.length > 1"
           @click="stepImage(-1)"
           aria-label="Previous image"
           style="position:absolute;left:16px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"
@@ -332,7 +355,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
         />
 
         <button
-          v-if="(product!.images?.length ?? 0) > 1"
+          v-if="galleryImages.length > 1"
           @click="stepImage(1)"
           aria-label="Next image"
           style="position:absolute;right:16px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"
@@ -341,10 +364,10 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
         </button>
 
         <div
-          v-if="(product!.images?.length ?? 0) > 1"
+          v-if="galleryImages.length > 1"
           style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:12px"
         >
-          {{ selectedImage + 1 }} / {{ product!.images!.length }}
+          {{ selectedImage + 1 }} / {{ galleryImages.length }}
         </div>
       </div>
     </Teleport>
