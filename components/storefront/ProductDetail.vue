@@ -106,17 +106,17 @@ const galleryImages = computed(() => {
   return [variantImage, ...base]
 })
 
-// Jump to the matched variation's own photo (if it has one) whenever the
-// variant selection changes, but keep selectedImage pointing into
-// galleryImages so it stays a valid, browsable index either way.
+// Jump to the matched variation's own photo only when it actually has one
+// tagged in WooCommerce. Most products have no per-variant image at all
+// (the product creation flow has no UI to tag one to a specific option),
+// so leave selectedImage untouched in that case -- otherwise every variant
+// click would snap the shopper back to the same fixed image regardless of
+// which option they picked, or whatever else they were browsing.
 watch(matchedVariation, (variation) => {
   const variantImage = variation?.image
-  if (!variantImage) {
-    selectedImage.value = 0
-    return
-  }
+  if (!variantImage) return
   const idx = galleryImages.value.findIndex(img => img.src === variantImage.src)
-  selectedImage.value = idx !== -1 ? idx : 0
+  if (idx !== -1) selectedImage.value = idx
 })
 
 const mainImage = computed(() => galleryImages.value[selectedImage.value]?.src ?? '')
