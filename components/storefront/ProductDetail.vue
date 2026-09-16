@@ -136,6 +136,33 @@ async function handleAdd() {
   const id = matchedVariation.value?.id ?? product.value!.id
   await addToCart(id, quantity.value)
 }
+
+// Fullscreen image lightbox with prev/next -- opens on the currently
+// selected thumbnail and shares selectedImage so the thumbnail strip stays
+// in sync with whatever image the shopper navigates to inside it.
+const lightboxOpen = ref(false)
+
+function openLightbox() {
+  if (!mainImage.value) return
+  lightboxOpen.value = true
+}
+function closeLightbox() {
+  lightboxOpen.value = false
+}
+function stepImage(delta: number) {
+  const len = product.value?.images?.length ?? 0
+  if (len < 2) return
+  selectedImage.value = (selectedImage.value + delta + len) % len
+}
+
+function handleLightboxKeydown(e: KeyboardEvent) {
+  if (!lightboxOpen.value) return
+  if (e.key === 'Escape') closeLightbox()
+  else if (e.key === 'ArrowLeft') stepImage(-1)
+  else if (e.key === 'ArrowRight') stepImage(1)
+}
+onMounted(() => window.addEventListener('keydown', handleLightboxKeydown))
+onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
 </script>
 
 <template>
@@ -157,12 +184,24 @@ async function handleAdd() {
     >
       <!-- Image gallery -->
       <div :style="{ order: props.layout === 'gallery-right' ? 2 : 1 }">
-        <div style="border-radius:12px;overflow:hidden;background:#f7f8fa;aspect-ratio:1;margin-bottom:12px">
+        <div style="position:relative;border-radius:12px;overflow:hidden;background:#f7f8fa;aspect-ratio:1;margin-bottom:12px">
           <img v-if="mainImage" :src="mainImage" :alt="product!.name"
-               style="width:100%;height:100%;object-fit:cover;display:block" />
+               style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in"
+               @click="openLightbox" />
           <div v-else style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#a0aec0;font-size:14px">
             No image
           </div>
+          <button
+            v-if="mainImage"
+            @click="openLightbox"
+            aria-label="Enlarge image"
+            style="position:absolute;bottom:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.9);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.2)"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a202c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
+          </button>
         </div>
         <div v-if="(product!.images?.length ?? 0) > 1" style="display:flex;gap:8px;flex-wrap:wrap">
           <button
@@ -262,5 +301,52 @@ async function handleAdd() {
         />
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="lightboxOpen"
+        @click.self="closeLightbox"
+        style="position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:1000;display:flex;align-items:center;justify-content:center"
+      >
+        <button
+          @click="closeLightbox"
+          aria-label="Close"
+          style="position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+
+        <button
+          v-if="(product!.images?.length ?? 0) > 1"
+          @click="stepImage(-1)"
+          aria-label="Previous image"
+          style="position:absolute;left:16px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+        </button>
+
+        <img
+          :src="mainImage" :alt="product!.name"
+          style="max-width:88vw;max-height:88vh;object-fit:contain"
+          @click.stop
+        />
+
+        <button
+          v-if="(product!.images?.length ?? 0) > 1"
+          @click="stepImage(1)"
+          aria-label="Next image"
+          style="position:absolute;right:16px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
+
+        <div
+          v-if="(product!.images?.length ?? 0) > 1"
+          style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:12px"
+        >
+          {{ selectedImage + 1 }} / {{ product!.images!.length }}
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
