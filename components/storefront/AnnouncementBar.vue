@@ -26,6 +26,7 @@ const visible = computed(() => Boolean(props.settings.announcementEnabled && pro
 const bg = computed(() => props.settings.announcementBgColor || '#dc2626')
 const text = computed(() => props.settings.announcementTextColor || '#ffffff')
 const speed = computed(() => Math.max(props.settings.announcementSpeed || 20, 5))
+const fontSize = computed(() => props.settings.announcementFontSize || 13)
 const isScroll = computed(() => props.settings.announcementMode === 'scroll')
 const countdownTarget = computed(() => (
   props.settings.announcementShowCountdown && props.settings.announcementCountdownEnd
@@ -85,7 +86,7 @@ onBeforeUnmount(() => {
   <div
     v-if="visible"
     :style="{
-      backgroundColor: bg, color: text, fontSize: '13px', fontWeight: 500,
+      backgroundColor: bg, color: text, fontSize: `${fontSize}px`, fontWeight: 500,
       padding: isScroll && !showCountdown ? '10px 0' : '10px 16px',
       overflow: 'hidden',
     }"
@@ -123,8 +124,8 @@ onBeforeUnmount(() => {
 
       <div
         v-if="showCountdown"
-        style="display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap"
-        :style="{ color: text }"
+        style="display:flex;align-items:center;gap:6px;flex-shrink:0;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap"
+        :style="{ color: text, fontSize: `${fontSize}px` }"
       >
         <span>{{ pad(time.days) }} Days</span>
         <span aria-hidden="true" style="opacity:0.5">:</span>
