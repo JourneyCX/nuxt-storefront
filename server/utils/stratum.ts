@@ -79,6 +79,8 @@ export interface SiteSettings {
   announcementShowCountdown: boolean
   announcementCountdownEnd: string | null
   announcementFontSize: number
+  announcementCountdownFontSize: number
+  announcementCountdownBold: boolean
 }
 
 export async function fetchSiteSettings(

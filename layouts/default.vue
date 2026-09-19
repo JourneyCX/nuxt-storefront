@@ -47,6 +47,7 @@ const s = computed<SiteSettings>(() => ({
   announcementSpeed: 20,
   announcementShowCountdown: false, announcementCountdownEnd: null,
   announcementFontSize: 13,
+  announcementCountdownFontSize: 13, announcementCountdownBold: true,
   ...(settings.value ?? {}),
 }))
 
