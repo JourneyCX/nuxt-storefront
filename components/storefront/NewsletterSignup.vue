@@ -79,9 +79,9 @@ const inputStyleLight = computed(() => ({
   </section>
 
   <!-- Banner layout -->
-  <section v-else-if="layout === 'banner'" :style="{ ...(hasImage ? sectionBgStyle : { backgroundColor: accent }), padding:'56px 24px' }">
+  <section v-else-if="layout === 'banner'" :style="{ ...(hasImage ? sectionBgStyle : { backgroundColor: accent }), padding:'56px 24px', display:'flex', justifyContent: justify }">
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlayOpacity/100})` }" />
-    <div :style="{ position:'relative', maxWidth:'700px', margin:'0 auto', textAlign: align }">
+    <div :style="{ position:'relative', width:'100%', maxWidth:'700px', textAlign: align }">
       <div :style="{ marginBottom:'8px', display:'flex', justifyContent: justify }">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" :stroke="'rgba(255,255,255,0.7)'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -104,9 +104,9 @@ const inputStyleLight = computed(() => ({
   </section>
 
   <!-- Card layout -->
-  <section v-else-if="layout === 'card'" :style="{ ...sectionBgStyle, padding:'64px 24px' }">
+  <section v-else-if="layout === 'card'" :style="{ ...sectionBgStyle, padding:'64px 24px', display:'flex', justifyContent: justify }">
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlayOpacity/100})` }" />
-    <div :style="{ position:'relative', maxWidth:'540px', margin:'0 auto', backgroundColor:'#fff', borderRadius:`${radius}px`, padding:'48px', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', border:'1px solid #f1f5f9', textAlign: align }">
+    <div :style="{ position:'relative', width:'100%', maxWidth:'540px', backgroundColor:'#fff', borderRadius:`${radius}px`, padding:'48px', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', border:'1px solid #f1f5f9', textAlign: align }">
       <div :style="{ width:'56px', height:'56px', borderRadius:'50%', backgroundColor:`${accent}18`, display:'flex', alignItems:'center', justifyContent:'center', margin: align==='left' ? '0 auto 20px 0' : align==='right' ? '0 0 20px auto' : '0 auto 20px' }">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" :stroke="accent" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -127,9 +127,9 @@ const inputStyleLight = computed(() => ({
   </section>
 
   <!-- Minimal layout -->
-  <section v-else :style="{ ...sectionBgStyle, padding:'32px 24px' }">
+  <section v-else :style="{ ...sectionBgStyle, padding:'32px 24px', display:'flex', justifyContent: justify }">
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlayOpacity/100})` }" />
-    <div :style="{ position:'relative', maxWidth:'800px', margin:'0 auto' }">
+    <div :style="{ position:'relative', width:'100%', maxWidth:'800px' }">
       <div :style="{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:'24px' }">
         <div :style="{ flex:'1 1 240px', textAlign: align }">
           <h3 :style="{ color:text, fontSize:'20px', fontWeight:700, margin:'0 0 6px' }">{{ headline || 'Stay in the Loop' }}</h3>
