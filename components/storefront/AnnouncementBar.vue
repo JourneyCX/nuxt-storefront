@@ -35,8 +35,19 @@ const countdownTarget = computed(() => (
 
 interface TimeLeft { days: number; hours: number; minutes: number; seconds: number }
 
+// announcement_countdown_end round-trips through a MySQL DATETIME column, which comes
+// back as a naive "YYYY-MM-DD HH:mm:ss" string (no timezone) -- new Date() parses that
+// space-separated form as LOCAL time in whichever runtime evaluates it (the SSR Node
+// process here, not necessarily UTC), silently shifting the countdown by the server's
+// local UTC offset. The value is always UTC by convention (studio-app's picker converts
+// via toISOString() before saving), so force it to be read as UTC unless it already
+// carries an explicit offset.
+function toUtcIso(target: string): string {
+  return /Z$|[+-]\d{2}:?\d{2}$/.test(target) ? target : `${target.replace(' ', 'T')}Z`
+}
+
 function getTimeLeft(target: string): TimeLeft {
-  const diff = new Date(target).getTime() - Date.now()
+  const diff = new Date(toUtcIso(target)).getTime() - Date.now()
   if (isNaN(diff) || diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 }
   return {
     days: Math.floor(diff / 86400000),
