@@ -45,6 +45,7 @@ const s = computed<SiteSettings>(() => ({
   announcementEnabled: false, announcementMessage: null, announcementMode: 'static',
   announcementBgColor: '#dc2626', announcementTextColor: '#ffffff', announcementLinkUrl: null,
   announcementSpeed: 20,
+  announcementShowCountdown: false, announcementCountdownEnd: null,
   ...(settings.value ?? {}),
 }))
 

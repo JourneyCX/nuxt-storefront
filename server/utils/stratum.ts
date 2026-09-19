@@ -76,6 +76,8 @@ export interface SiteSettings {
   announcementTextColor: string | null
   announcementLinkUrl: string | null
   announcementSpeed: number
+  announcementShowCountdown: boolean
+  announcementCountdownEnd: string | null
 }
 
 export async function fetchSiteSettings(

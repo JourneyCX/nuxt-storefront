@@ -4,7 +4,10 @@
 // interface). Ported 1:1 from studio-app's components/Navigation/AnnouncementBar.tsx
 // so both renderers behave identically — keep both in sync. 'static' renders the
 // message once, centered; 'scroll' runs it as a continuous CSS-keyframe marquee.
-// announcementSpeed is seconds per full loop (lower = faster).
+// announcementSpeed is seconds per full loop (lower = faster). An optional
+// "sale ends in" countdown (announcementShowCountdown/announcementCountdownEnd)
+// renders alongside the message — fixed to the right of the scrolling track in
+// scroll mode, or grouped with the message in static mode.
 //
 // The message is repeated REPEAT_COUNT times per half-track (not just duplicated
 // once) so the animated track is comfortably wider than the viewport regardless of
@@ -24,6 +27,47 @@ const bg = computed(() => props.settings.announcementBgColor || '#dc2626')
 const text = computed(() => props.settings.announcementTextColor || '#ffffff')
 const speed = computed(() => Math.max(props.settings.announcementSpeed || 20, 5))
 const isScroll = computed(() => props.settings.announcementMode === 'scroll')
+const countdownTarget = computed(() => (
+  props.settings.announcementShowCountdown && props.settings.announcementCountdownEnd
+    ? props.settings.announcementCountdownEnd
+    : null
+))
+
+interface TimeLeft { days: number; hours: number; minutes: number; seconds: number }
+
+function getTimeLeft(target: string): TimeLeft {
+  const diff = new Date(target).getTime() - Date.now()
+  if (isNaN(diff) || diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 }
+  return {
+    days: Math.floor(diff / 86400000),
+    hours: Math.floor((diff % 86400000) / 3600000),
+    minutes: Math.floor((diff % 3600000) / 60000),
+    seconds: Math.floor((diff % 60000) / 1000),
+  }
+}
+
+function pad(n: number) { return String(n).padStart(2, '0') }
+
+const time = ref<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+const countdownDone = computed(() => time.value.days === 0 && time.value.hours === 0 && time.value.minutes === 0 && time.value.seconds === 0)
+const showCountdown = computed(() => Boolean(countdownTarget.value) && !countdownDone.value)
+
+let intervalId: ReturnType<typeof setInterval> | undefined
+
+function tick() {
+  if (countdownTarget.value) time.value = getTimeLeft(countdownTarget.value)
+}
+
+watch(countdownTarget, (target) => {
+  if (intervalId) clearInterval(intervalId)
+  if (!target) return
+  tick()
+  intervalId = setInterval(tick, 1000)
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  if (intervalId) clearInterval(intervalId)
+})
 </script>
 
 <template>
@@ -31,33 +75,54 @@ const isScroll = computed(() => props.settings.announcementMode === 'scroll')
     v-if="visible"
     :style="{
       backgroundColor: bg, color: text, fontSize: '13px', fontWeight: 500,
-      padding: isScroll ? '10px 0' : '10px 16px', textAlign: isScroll ? 'left' : 'center',
-      overflow: 'hidden', whiteSpace: 'nowrap',
+      padding: isScroll && !showCountdown ? '10px 0' : '10px 16px',
+      overflow: 'hidden',
     }"
   >
-    <div v-if="isScroll" style="display:inline-flex" :style="{ animation: `announcement-marquee ${speed}s linear infinite` }">
-      <span style="display:inline-flex">
-        <span v-for="n in REPEAT_COUNT" :key="`a-${n}`" style="display:inline-flex;align-items:center;padding-right:64px">
-          <a v-if="settings.announcementLinkUrl" :href="settings.announcementLinkUrl" :style="{ color: text, textDecoration: 'none' }">
-            {{ settings.announcementMessage }}<span aria-hidden="true" style="margin-left:8px">&rarr;</span>
-          </a>
-          <span v-else :style="{ color: text }">{{ settings.announcementMessage }}</span>
-        </span>
-      </span>
-      <span aria-hidden="true" style="display:inline-flex">
-        <span v-for="n in REPEAT_COUNT" :key="`b-${n}`" style="display:inline-flex;align-items:center;padding-right:64px">
-          <a v-if="settings.announcementLinkUrl" :href="settings.announcementLinkUrl" :style="{ color: text, textDecoration: 'none' }">
-            {{ settings.announcementMessage }}<span aria-hidden="true" style="margin-left:8px">&rarr;</span>
-          </a>
-          <span v-else :style="{ color: text }">{{ settings.announcementMessage }}</span>
-        </span>
-      </span>
-    </div>
-    <div v-else style="overflow:hidden;text-overflow:ellipsis">
-      <a v-if="settings.announcementLinkUrl" :href="settings.announcementLinkUrl" :style="{ color: text, textDecoration: 'none' }">
-        {{ settings.announcementMessage }}<span aria-hidden="true" style="margin-left:8px">&rarr;</span>
-      </a>
-      <span v-else :style="{ color: text }">{{ settings.announcementMessage }}</span>
+    <div
+      style="display:flex;align-items:center;gap:16px"
+      :style="{ justifyContent: isScroll ? 'flex-start' : 'center', flexWrap: isScroll ? 'nowrap' : 'wrap' }"
+    >
+      <div v-if="isScroll" style="flex:1;min-width:0;overflow:hidden;white-space:nowrap">
+        <div style="display:inline-flex" :style="{ animation: `announcement-marquee ${speed}s linear infinite` }">
+          <span style="display:inline-flex">
+            <span v-for="n in REPEAT_COUNT" :key="`a-${n}`" style="display:inline-flex;align-items:center;padding-right:64px">
+              <a v-if="settings.announcementLinkUrl" :href="settings.announcementLinkUrl" :style="{ color: text, textDecoration: 'none' }">
+                {{ settings.announcementMessage }}<span aria-hidden="true" style="margin-left:8px">&rarr;</span>
+              </a>
+              <span v-else :style="{ color: text }">{{ settings.announcementMessage }}</span>
+            </span>
+          </span>
+          <span aria-hidden="true" style="display:inline-flex">
+            <span v-for="n in REPEAT_COUNT" :key="`b-${n}`" style="display:inline-flex;align-items:center;padding-right:64px">
+              <a v-if="settings.announcementLinkUrl" :href="settings.announcementLinkUrl" :style="{ color: text, textDecoration: 'none' }">
+                {{ settings.announcementMessage }}<span aria-hidden="true" style="margin-left:8px">&rarr;</span>
+              </a>
+              <span v-else :style="{ color: text }">{{ settings.announcementMessage }}</span>
+            </span>
+          </span>
+        </div>
+      </div>
+      <div v-else style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <a v-if="settings.announcementLinkUrl" :href="settings.announcementLinkUrl" :style="{ color: text, textDecoration: 'none' }">
+          {{ settings.announcementMessage }}<span aria-hidden="true" style="margin-left:8px">&rarr;</span>
+        </a>
+        <span v-else :style="{ color: text }">{{ settings.announcementMessage }}</span>
+      </div>
+
+      <div
+        v-if="showCountdown"
+        style="display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap"
+        :style="{ color: text }"
+      >
+        <span>{{ pad(time.days) }} Days</span>
+        <span aria-hidden="true" style="opacity:0.5">:</span>
+        <span>{{ pad(time.hours) }} Hours</span>
+        <span aria-hidden="true" style="opacity:0.5">:</span>
+        <span>{{ pad(time.minutes) }} Mins</span>
+        <span aria-hidden="true" style="opacity:0.5">:</span>
+        <span>{{ pad(time.seconds) }} Sec</span>
+      </div>
     </div>
   </div>
 </template>
