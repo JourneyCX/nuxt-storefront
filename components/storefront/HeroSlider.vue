@@ -15,6 +15,8 @@ type Slide = {
   overlayOpacity?: number
   backgroundSize?: string
   backgroundPosition?: string
+  headlineFontSize?: number
+  subheadlineFontSize?: number
 }
 
 const props = defineProps<{
@@ -122,10 +124,11 @@ function stopProp(e: Event) { e.stopPropagation() }
           v-if="slide.headline"
           class="sb-text-fluid-lg"
           style="color:#fff;font-weight:800;margin:0 0 18px;line-height:1.12;text-shadow:0 2px 8px rgba(0,0,0,0.4)"
+          :style="slide.headlineFontSize ? { fontSize: `${slide.headlineFontSize}px` } : {}"
         >{{ slide.headline }}</h1>
         <p
           v-if="slide.subheadline"
-          :style="{ color:'rgba(255,255,255,0.88)', fontSize:'20px', margin: isPositioned ? '0' : '0 0 36px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)' }"
+          :style="{ color:'rgba(255,255,255,0.88)', fontSize: `${slide.subheadlineFontSize || 20}px`, margin: isPositioned ? '0' : '0 0 36px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)' }"
         >{{ slide.subheadline }}</p>
 
         <!-- Inline button -->
