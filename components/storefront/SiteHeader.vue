@@ -49,12 +49,17 @@ const navLinks = computed(() => props.settings.navLinks || [])
 const navFontFamily = computed(() => props.settings.headerNavFontFamily || "'Montserrat', sans-serif")
 const navFontSize = computed(() => props.settings.headerNavFontSize || 15)
 const navChildFontSize = computed(() => Math.max(11, navFontSize.value - 1))
+const navLeft = computed(() => props.settings.headerMenuPosition === 'nav-left')
 </script>
 
 <template>
   <header :style="{ backgroundColor: settings.headerBackgroundColor || '#fff', color: settings.headerTextColor || '#1a202c', position: settings.headerSticky ? 'sticky' : 'relative', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }">
     <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between">
-      <a href="/" style="text-decoration:none">
+      <!-- Logo and desktop nav swap places depending on headerMenuPosition via
+           flex `order` — the parent row is already display:flex, so reordering
+           here doesn't require restructuring either element's own markup. The
+           icon cluster below gets order:3 to stay last in both arrangements. -->
+      <a href="/" :style="{ textDecoration:'none', order: navLeft ? 2 : 1 }">
         <img v-if="settings.logoUrl" :src="settings.logoUrl" :alt="settings.logoAlt || 'Store logo'" :style="{ height: (settings.headerLogoHeight || 40) + 'px', objectFit: 'contain' }" />
         <span v-else :style="{ fontSize:'20px',fontWeight:700,color:settings.headerTextColor||'#1a202c' }">{{ settings.logoText || settings.businessName || 'Your Store' }}</span>
       </a>
@@ -63,7 +68,7 @@ const navChildFontSize = computed(() => Math.max(11, navFontSize.value - 1))
            mobile breakpoint (assets/css/responsive.css). Wrapped in a plain
            div with no inline style of its own so .sb-nav-desktop-only's
            block/none toggle isn't fighting the nav's own display:flex. -->
-      <div class="sb-nav-desktop-only">
+      <div class="sb-nav-desktop-only" :style="{ order: navLeft ? 1 : 2 }">
         <nav style="display:flex;gap:28px">
           <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
             <a :href="link.url"
@@ -82,7 +87,7 @@ const navChildFontSize = computed(() => Math.max(11, navFontSize.value - 1))
         </nav>
       </div>
 
-      <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;align-items:center;gap:16px;order:3">
         <a
           v-if="settings.headerCtaText"
           class="sb-nav-desktop-only"

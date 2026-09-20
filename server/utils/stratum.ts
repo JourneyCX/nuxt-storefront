@@ -63,6 +63,10 @@ export interface SiteSettings {
   // hardcoded value). Kept in sync with studio-app's FontsSection.tsx FONT_OPTIONS.
   headerNavFontFamily: string | null
   headerNavFontSize: number
+  // Which side of the header the logo sits on. 'logo-left' (default) matches every
+  // existing tenant's current rendering unchanged. Kept in sync with studio-app's
+  // siteSettings.ts.
+  headerMenuPosition: 'logo-left' | 'nav-left'
   footerBackgroundColor: string | null
   footerTextColor: string | null
   footerAccentColor: string | null
