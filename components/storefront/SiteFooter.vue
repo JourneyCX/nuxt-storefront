@@ -53,6 +53,8 @@ const showRichRow   = computed(() => hasBrandBlock.value || hasColumns.value || 
 const hasContact = computed(() => Boolean(
   props.settings.contactPhone || props.settings.contactEmail || props.settings.contactAddress
 ))
+const navFontFamily = computed(() => props.settings.footerNavFontFamily || undefined)
+const navFontSize = computed(() => props.settings.footerNavFontSize || 13)
 </script>
 
 <template>
@@ -82,7 +84,7 @@ const hasContact = computed(() => Boolean(
           <div :style="{ fontWeight:600, marginBottom:'10px', color: settings.footerAccentColor || settings.footerTextColor || '#a0aec0' }">{{ col.heading }}</div>
           <a
             v-for="(link, j) in (col.links || [])" :key="j" :href="link.url"
-            :style="{ display:'block', marginBottom:'6px', fontSize:'13px', opacity:0.85, textDecoration:'none', color: settings.footerTextColor||'#a0aec0' }"
+            :style="{ display:'block', marginBottom:'6px', fontSize:navFontSize+'px', fontFamily:navFontFamily, opacity:0.85, textDecoration:'none', color: settings.footerTextColor||'#a0aec0' }"
           >{{ link.label }}</a>
         </div>
         <div v-if="hasSocial" style="display:flex;gap:12px;align-items:flex-start">

@@ -54,8 +54,10 @@ export default defineNuxtConfig({
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        // Montserrat — used for the header nav menu links (SiteHeader.vue).
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap' },
+        // Main Menu / Footer Menus font choices (studio-app's FontsSection.tsx FONT_OPTIONS) —
+        // used for the header/footer nav (SiteHeader.vue, SiteFooter.vue). Arial/Georgia are
+        // system fonts, not loaded here. Matches studio-app's index.html.
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=Roboto:wght@400;500;600&family=Nunito:wght@400;500;600&family=Oswald:wght@400;500;600&family=Playfair+Display:wght@400;500;600&family=Lora:wght@400;500;600&display=swap' },
       ],
     },
   },

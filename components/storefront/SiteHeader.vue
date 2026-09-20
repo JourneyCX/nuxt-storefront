@@ -46,6 +46,9 @@ function closeMobileMenu() {
 }
 
 const navLinks = computed(() => props.settings.navLinks || [])
+const navFontFamily = computed(() => props.settings.headerNavFontFamily || "'Montserrat', sans-serif")
+const navFontSize = computed(() => props.settings.headerNavFontSize || 15)
+const navChildFontSize = computed(() => Math.max(11, navFontSize.value - 1))
 </script>
 
 <template>
@@ -64,13 +67,13 @@ const navLinks = computed(() => props.settings.navLinks || [])
         <nav style="display:flex;gap:28px">
           <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
             <a :href="link.url"
-               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:'15px',fontWeight:'500',fontFamily:'\'Montserrat\',sans-serif',display:'flex',alignItems:'center',gap:'4px' }">
+               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:navFontSize+'px',fontWeight:'500',fontFamily:navFontFamily,display:'flex',alignItems:'center',gap:'4px' }">
               {{ link.label }}
               <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
             </a>
             <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;padding-top:8px;z-index:200">
               <div style="background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0">
-                <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
+                <a v-for="child in link.children" :key="child.url" :href="child.url" :style="{ display:'block',padding:'8px 14px',color:'#1a202c',textDecoration:'none',fontSize:navChildFontSize+'px',fontFamily:navFontFamily }">
                   {{ child.label }}
                 </a>
               </div>
@@ -140,7 +143,7 @@ const navLinks = computed(() => props.settings.navLinks || [])
           <a
             :href="link.url"
             @click="closeMobileMenu"
-            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', textDecoration:'none', fontSize:'16px', fontWeight:'500', fontFamily:'\'Montserrat\',sans-serif' }"
+            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', textDecoration:'none', fontSize:navFontSize+'px', fontWeight:'500', fontFamily:navFontFamily }"
           >{{ link.label }}</a>
           <button
             v-if="(link.children?.length ?? 0) > 0"
@@ -157,7 +160,7 @@ const navLinks = computed(() => props.settings.navLinks || [])
             :key="child.url"
             :href="child.url"
             @click="closeMobileMenu"
-            :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:'15px' }"
+            :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:navChildFontSize+'px', fontFamily:navFontFamily }"
           >{{ child.label }}</a>
         </div>
       </div>

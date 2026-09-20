@@ -57,12 +57,21 @@ export interface SiteSettings {
   headerSticky: boolean
   headerCtaText: string | null
   headerCtaUrl: string | null
+  // CSS font-family value (e.g. "'Poppins', sans-serif"), applied to the whole
+  // main menu — top-level links and dropdown children, desktop and mobile.
+  // null = renderer's own default (Montserrat, matching the pre-existing
+  // hardcoded value). Kept in sync with studio-app's FontsSection.tsx FONT_OPTIONS.
+  headerNavFontFamily: string | null
+  headerNavFontSize: number
   footerBackgroundColor: string | null
   footerTextColor: string | null
   footerAccentColor: string | null
   footerCopyrightText: string | null
   footerColumns: { heading: string; links: { label: string; url: string }[] }[]
   footerShowBrandColumn: boolean
+  // Same convention, applied to the footer's column link lists ("footer menus").
+  footerNavFontFamily: string | null
+  footerNavFontSize: number
   whatsappEnabled: boolean
   whatsappPopupEnabled: boolean
   whatsappPhone: string | null
