@@ -104,6 +104,64 @@ export async function fetchPublishedPage(
   ).catch(() => null)
 }
 
+// Manually-curated, cross-category product groupings — see
+// Store_builder_api::published_collections()/published_collection() (bare,
+// unauthenticated, published-only — same auth shape as fetchPublishedPage
+// above). image/count are CI3-native (no WC call needed for the list);
+// productIds on the detail shape are resolved into full WcProduct data by
+// the caller (server/api/collections/[slug].get.ts), same split as every
+// other CI3-vs-WC data source in this file.
+export interface PublishedCollectionSummary {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  imageUrl: string | null
+  pageSlug: string | null
+  itemCount: number
+}
+
+export interface PublishedCollectionDetail {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  imageUrl: string | null
+  pageSlug: string | null
+  productIds: number[]
+}
+
+export async function fetchPublishedCollections(
+  stratumUrl: string,
+  tenantId: number
+): Promise<PublishedCollectionSummary[]> {
+  const data = await $fetch<{ collections: Array<{ id: number; name: string; slug: string; description: string | null; image_url: string | null; page_slug: string | null; item_count: number }> }>(
+    `${stratumUrl}/admin/store_builder_api/published_collections`,
+    { query: { tenantId } }
+  ).catch(() => null)
+  return (data?.collections ?? []).map(c => ({
+    id: c.id, name: c.name, slug: c.slug, description: c.description,
+    imageUrl: c.image_url, pageSlug: c.page_slug, itemCount: c.item_count,
+  }))
+}
+
+export async function fetchPublishedCollection(
+  stratumUrl: string,
+  tenantId: number,
+  slug: string
+): Promise<PublishedCollectionDetail | null> {
+  const data = await $fetch<{ collection: { id: number; name: string; slug: string; description: string | null; image_url: string | null; page_slug: string | null; product_ids: number[] } }>(
+    `${stratumUrl}/admin/store_builder_api/published_collection`,
+    { query: { tenantId, slug } }
+  ).catch(() => null)
+  if (!data?.collection) return null
+  const c = data.collection
+  return {
+    id: c.id, name: c.name, slug: c.slug, description: c.description,
+    imageUrl: c.image_url, pageSlug: c.page_slug, productIds: c.product_ids ?? [],
+  }
+}
+
 // Store Theme Manager's style tokens (primary/secondary color, fonts, border
 // radius, button style), compiled server-side into a :root{...} custom-
 // property CSS block by the same code the admin Theme Styles editor uses.
