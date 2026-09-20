@@ -64,9 +64,11 @@ const isAuto = computed(() => (props.postsSource ?? 'manual') === 'auto')
 // this internal call — same fix already applied to pages/blog/[slug].vue
 // and pages/product/[slug].vue.
 const requestFetch = useRequestFetch()
+// No postCount -> omit the limit param entirely so the backend's own default
+// (20, see Store_builder_api::blog_posts()) applies instead of an artificial cap.
 const { data: liveData, pending: liveLoading, error: liveError } = await useAsyncData<import('~/server/utils/stratum').BlogPostSummary[]>(
   `blog-posts-auto-${useId()}`,
-  () => requestFetch(`/api/blog?limit=${props.postCount ?? 3}`),
+  () => requestFetch(typeof props.postCount === 'number' ? `/api/blog?limit=${props.postCount}` : '/api/blog'),
   { server: true, immediate: isAuto.value }
 )
 
@@ -140,7 +142,9 @@ const isFeatured = computed(() => props.layout === 'featured')
           </div>
         </article>
         <div v-if="displayPosts.length > 1" style="display:flex;flex-direction:column;gap:16px;">
-          <article v-for="(post, i) in displayPosts.slice(1, 4)" :key="i" :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', border: '1px solid #f1f5f9' }">
+          <!-- Grid Columns doubles as "how many posts in the featured sidebar" here —
+               the featured layout has no other use for that field. -->
+          <article v-for="(post, i) in displayPosts.slice(1, 1 + (columns || 3))" :key="i" :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', border: '1px solid #f1f5f9' }">
             <!-- min(200px, 30vw) keeps this thumbnail from forcing horizontal
                  overflow in the flex row on a narrow phone -->
             <div style="width:min(200px, 30vw);flex-shrink:0;">
