@@ -21,7 +21,12 @@ const props = withDefaults(defineProps<{
   readMoreText?: string
   ctaText?: string
   ctaUrl?: string
+  // Legacy raw count — no longer set by the studio-app panel (superseded by rowsToShow),
+  // kept only as a fallback for pages saved while it was the only control.
   postCount?: number
+  // Number of grid rows to display (each row holding `columns` posts), or 0 for "All" —
+  // see effectiveCount below. Matches studio-app's BlogPostList.tsx rowsToShow field.
+  rowsToShow?: number
   // Additive — a page saved before this existed has no postsSource key at all
   // and must keep rendering its hand-typed `posts` prop exactly as before
   // (see the `?? 'manual'` fallback below), matching studio-app's own note.
@@ -59,16 +64,22 @@ function formatPostDate(published_at: string | null): string {
 
 const isAuto = computed(() => (props.postsSource ?? 'manual') === 'auto')
 
+// rowsToShow (0 = "All") drives the count as `rows * columns`; a page saved before
+// rowsToShow existed falls back to its own postCount, then to showing everything.
+const effectiveCount = computed(() => props.rowsToShow
+  ? props.rowsToShow * (props.columns || 3)
+  : (typeof props.postCount === 'number' ? props.postCount : undefined))
+
 // Server-side relative $fetch does not carry the original request's Host
 // header, so the tenant-resolution middleware can't identify the store on
 // this internal call — same fix already applied to pages/blog/[slug].vue
 // and pages/product/[slug].vue.
 const requestFetch = useRequestFetch()
-// No postCount -> omit the limit param entirely so the backend's own default
+// No effectiveCount -> omit the limit param entirely so the backend's own default
 // (20, see Store_builder_api::blog_posts()) applies instead of an artificial cap.
 const { data: liveData, pending: liveLoading, error: liveError } = await useAsyncData<import('~/server/utils/stratum').BlogPostSummary[]>(
   `blog-posts-auto-${useId()}`,
-  () => requestFetch(typeof props.postCount === 'number' ? `/api/blog?limit=${props.postCount}` : '/api/blog'),
+  () => requestFetch(typeof effectiveCount.value === 'number' ? `/api/blog?limit=${effectiveCount.value}` : '/api/blog'),
   { server: true, immediate: isAuto.value }
 )
 
@@ -84,10 +95,10 @@ const livePosts = computed<Post[]>(() => (liveData.value ?? []).map(p => ({
 
 const displayPosts = computed(() => {
   if (isAuto.value) {
-    return typeof props.postCount === 'number' ? livePosts.value.slice(0, props.postCount) : livePosts.value
+    return typeof effectiveCount.value === 'number' ? livePosts.value.slice(0, effectiveCount.value) : livePosts.value
   }
   const base = props.posts?.length ? props.posts : FALLBACK_POSTS
-  return typeof props.postCount === 'number' ? base.slice(0, props.postCount) : base
+  return typeof effectiveCount.value === 'number' ? base.slice(0, effectiveCount.value) : base
 })
 
 const isList = computed(() => props.layout === 'list')
