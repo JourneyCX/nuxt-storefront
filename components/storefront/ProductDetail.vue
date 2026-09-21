@@ -11,8 +11,12 @@ import type { WcProduct, WcVariation } from '~/server/utils/woocommerce'
 
 const props = withDefaults(defineProps<{
   layout?: 'gallery-left' | 'gallery-right'
+  showRelated?: boolean
+  relatedHeading?: string
 }>(), {
   layout: 'gallery-left',
+  showRelated: true,
+  relatedHeading: 'You May Also Like',
 })
 
 const route = useRoute()
@@ -48,6 +52,59 @@ const hasProduct = computed(() => hasSlug && !!product.value)
 
 if (hasProduct.value) {
   useHead({ title: product.value!.name })
+}
+
+const RELATED_COUNT = 4
+
+// "You may also like" -- no real recommendation engine exists, so this picks
+// products from the current product's own first category (closest thing to
+// a relevance signal WooCommerce gives us for free), then pads with the
+// most recently added products if that category doesn't have enough, always
+// excluding the product being viewed. Fetched server-side alongside the
+// product itself so the section is present in the initial HTML, not a
+// client-side afterthought.
+const { data: relatedProducts } = await useAsyncData<WcProduct[]>(
+  `product-detail-related-${slug}`,
+  async () => {
+    if (!hasProduct.value || !props.showRelated) return []
+    const currentId = product.value!.id
+    const categorySlug = product.value!.categories?.[0]?.slug
+    const picked: WcProduct[] = []
+    const seen = new Set<number>([currentId])
+
+    if (categorySlug) {
+      const sameCategory = await requestFetch<WcProduct[]>('/api/products', {
+        query: { category: categorySlug, per_page: RELATED_COUNT + 1 },
+      })
+      for (const p of sameCategory) {
+        if (seen.has(p.id)) continue
+        seen.add(p.id)
+        picked.push(p)
+        if (picked.length >= RELATED_COUNT) break
+      }
+    }
+
+    if (picked.length < RELATED_COUNT) {
+      const recent = await requestFetch<WcProduct[]>('/api/products', {
+        query: { per_page: RELATED_COUNT + 1, orderby: 'date', order: 'desc' },
+      })
+      for (const p of recent) {
+        if (seen.has(p.id)) continue
+        seen.add(p.id)
+        picked.push(p)
+        if (picked.length >= RELATED_COUNT) break
+      }
+    }
+
+    return picked
+  },
+  { server: true, default: () => [] as WcProduct[], watch: [() => product.value?.id] }
+)
+
+function relatedPrice(p: WcProduct) {
+  const sym = product.value?.currency_symbol ?? ''
+  const amount = p.sale_price ? p.sale_price : (p.price || '0')
+  return `${sym} ${parseFloat(amount).toFixed(2)}`
 }
 
 const { addToCart, cartLoading } = useCart()
@@ -324,6 +381,47 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
         />
       </div>
     </div>
+
+    <!-- You may also like -->
+    <section v-if="props.showRelated && relatedProducts && relatedProducts.length > 0" style="margin-top:64px;border-top:1px solid #e2e8f0;padding-top:48px">
+      <h2 style="margin:0 0 24px;font-size:24px;font-weight:700;color:#1a202c">{{ props.relatedHeading }}</h2>
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:24px" class="sb-grid">
+        <a
+          v-for="rp in relatedProducts"
+          :key="rp.id"
+          :href="`/product/${rp.slug}`"
+          style="display:block;text-decoration:none;color:inherit;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff"
+        >
+          <div style="position:relative;aspect-ratio:1;background:#f7f8fa">
+            <span
+              v-if="rp.on_sale"
+              style="position:absolute;top:10px;left:10px;background:#fed7d7;color:#c53030;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;z-index:1"
+            >
+              Sale
+            </span>
+            <img
+              v-if="rp.images?.[0]"
+              :src="rp.images[0].src"
+              :alt="rp.images[0].alt || rp.name"
+              style="width:100%;height:100%;object-fit:cover;display:block"
+            />
+            <div v-else style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#a0aec0;font-size:13px">
+              No image
+            </div>
+          </div>
+          <div style="padding:14px">
+            <p v-if="rp.categories?.[0]" style="margin:0 0 4px;font-size:11px;color:#a0aec0;text-transform:uppercase;letter-spacing:0.03em">{{ rp.categories[0].name }}</p>
+            <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#1a202c;line-height:1.3">{{ rp.name }}</p>
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <span :style="{ fontSize:'14px', fontWeight:700, color: rp.on_sale ? '#c53030' : '#1a202c' }">{{ relatedPrice(rp) }}</span>
+              <span v-if="rp.on_sale && rp.regular_price" style="font-size:12px;color:#a0aec0;text-decoration:line-through">
+                {{ product!.currency_symbol }} {{ parseFloat(rp.regular_price).toFixed(2) }}
+              </span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
 
     <Teleport to="body">
       <div
