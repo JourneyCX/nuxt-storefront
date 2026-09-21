@@ -94,6 +94,20 @@ export interface SiteSettings {
   announcementFontSize: number
   announcementCountdownFontSize: number
   announcementCountdownBold: boolean
+  // Floating "Shop Assistant" chat bubble — site-wide chrome fixed to the bottom of
+  // every screen. Kept in sync with studio-app's siteSettings.ts. aiBubbleProxyEndpoint/
+  // aiBubbleApiKey are resolved and persisted server-side (Store_builder_api::
+  // update_site_settings()) the moment this section is first saved in Studio — never
+  // set from either frontend.
+  aiBubbleEnabled: boolean
+  aiBubblePosition: 'bottom-right' | 'bottom-left'
+  aiBubbleAssistantName: string | null
+  aiBubbleGreeting: string | null
+  aiBubbleStarterPrompts: string | null
+  aiBubbleAccentColor: string | null
+  aiBubbleSystemPrompt: string | null
+  aiBubbleProxyEndpoint: string | null
+  aiBubbleApiKey: string | null
 }
 
 export async function fetchSiteSettings(

@@ -6,6 +6,7 @@ import { fetchSiteSettings, fetchThemeCss, type SiteSettings, type ThemeCss } fr
 import SiteHeader from '~/components/storefront/SiteHeader.vue'
 import SiteFooter from '~/components/storefront/SiteFooter.vue'
 import WhatsAppWidget from '~/components/storefront/WhatsAppWidget.vue'
+import ShopAssistantBubble from '~/components/storefront/ShopAssistantBubble.vue'
 import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
 
 // tenantId is resolved once by server/middleware/tenant.ts for every request and
@@ -48,6 +49,10 @@ const s = computed<SiteSettings>(() => ({
   announcementShowCountdown: false, announcementCountdownEnd: null,
   announcementFontSize: 13,
   announcementCountdownFontSize: 13, announcementCountdownBold: true,
+  aiBubbleEnabled: false, aiBubblePosition: 'bottom-right',
+  aiBubbleAssistantName: null, aiBubbleGreeting: null,
+  aiBubbleStarterPrompts: null, aiBubbleAccentColor: null, aiBubbleSystemPrompt: null,
+  aiBubbleProxyEndpoint: null, aiBubbleApiKey: null,
   ...(settings.value ?? {}),
 }))
 
@@ -86,6 +91,7 @@ useHead(() => ({
   <slot />
   <SiteFooter :settings="s" />
   <WhatsAppWidget :settings="s" />
+  <ShopAssistantBubble :settings="s" />
 </template>
 
 <style>
