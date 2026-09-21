@@ -11,6 +11,7 @@
 import type { WcProduct } from '~/server/utils/woocommerce'
 
 type TabDef = { label: string; fieldSlug: string }
+type Alignment = 'left' | 'center' | 'right'
 
 const props = withDefaults(defineProps<{
   tabs?: TabDef[]
@@ -18,13 +19,22 @@ const props = withDefaults(defineProps<{
   textColor?: string
   accentColor?: string
   maxWidth?: number
+  alignment?: Alignment
 }>(), {
   tabs: () => [],
   backgroundColor: '#ffffff',
   textColor: '#1a202c',
   accentColor: '#2b6cb0',
   maxWidth: 1200,
+  alignment: 'center',
 })
+
+const ALIGNMENT_MARGIN: Record<Alignment, string> = {
+  left:   '0 auto 0 0',
+  center: '0 auto',
+  right:  '0 0 0 auto',
+}
+const contentMargin = computed(() => ALIGNMENT_MARGIN[props.alignment] ?? ALIGNMENT_MARGIN.center)
 
 const route = useRoute()
 const slug  = route.params.slug as string | undefined
@@ -61,7 +71,7 @@ watch(visibleTabs, () => { activeIndex.value = 0 })
     🗂️ Product Tabs — this block only shows real data on an actual product page
   </div>
   <section v-else-if="visibleTabs.length > 0" :style="{ backgroundColor, padding: '24px' }">
-    <div :style="{ maxWidth: `${maxWidth}px`, margin: '0 auto' }">
+    <div :style="{ maxWidth: `${maxWidth}px`, margin: contentMargin }">
       <div :style="{ display: 'flex', gap: '8px', borderBottom: `1px solid ${textColor}1a`, marginBottom: '24px', flexWrap: 'wrap' }">
         <button
           v-for="(tab, i) in visibleTabs" :key="i"
