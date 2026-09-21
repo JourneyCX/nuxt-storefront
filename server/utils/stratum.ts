@@ -67,6 +67,10 @@ export interface SiteSettings {
   // existing tenant's current rendering unchanged. Kept in sync with studio-app's
   // siteSettings.ts.
   headerMenuPosition: 'logo-left' | 'nav-left'
+  // Horizontal gap (px) between top-level Main Menu items, desktop only. Default 28
+  // matches what SiteHeader.vue's `nav { gap: 28px }` had hardcoded before this
+  // setting existed. Kept in sync with studio-app's siteSettings.ts.
+  headerNavItemSpacing: number
   footerBackgroundColor: string | null
   footerTextColor: string | null
   footerAccentColor: string | null

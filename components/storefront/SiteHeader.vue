@@ -50,6 +50,7 @@ const navFontFamily = computed(() => props.settings.headerNavFontFamily || "'Mon
 const navFontSize = computed(() => props.settings.headerNavFontSize || 15)
 const navChildFontSize = computed(() => Math.max(11, navFontSize.value - 1))
 const navLeft = computed(() => props.settings.headerMenuPosition === 'nav-left')
+const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
 </script>
 
 <template>
@@ -79,7 +80,7 @@ const navLeft = computed(() => props.settings.headerMenuPosition === 'nav-left')
       <!-- Desktop nav — unchanged hover-dropdown behavior, hidden below the
            mobile breakpoint (assets/css/responsive.css). -->
       <div class="sb-nav-desktop-only" :style="navLeft ? {} : { position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)' }">
-        <nav style="display:flex;gap:28px">
+        <nav :style="{ display:'flex', gap: navItemSpacing+'px' }">
           <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
             <a :href="link.url"
                :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:navFontSize+'px',fontWeight:'500',fontFamily:navFontFamily,display:'flex',alignItems:'center',gap:'4px' }">
