@@ -54,23 +54,31 @@ const navLeft = computed(() => props.settings.headerMenuPosition === 'nav-left')
 
 <template>
   <header :style="{ backgroundColor: settings.headerBackgroundColor || '#fff', color: settings.headerTextColor || '#1a202c', position: settings.headerSticky ? 'sticky' : 'relative', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }">
-    <!-- CSS Grid, not flex space-between — space-between only guarantees equal
-         GAPS around the middle item, not a middle item that's actually centered
-         in the row, once the two flanking items have unequal widths (nav vs. the
-         much narrower icon cluster). minmax(0,1fr) on the two flanking columns
-         caps their content-driven minimum at 0, forcing them to split the
-         remaining space exactly evenly regardless of what's in them — that's
-         what makes the auto (middle) column's content genuinely centered. -->
-    <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:16px">
-      <!-- Logo and desktop nav swap grid columns depending on headerMenuPosition. -->
-      <a href="/" :style="{ textDecoration:'none', gridColumn: navLeft ? 2 : 1, justifySelf: navLeft ? 'center' : 'start', minWidth: 0 }">
+    <!-- Not CSS Grid with minmax(0,1fr) flanking columns — tried that, but
+         capping the nav column's minimum at 0 meant a nav too wide for its
+         "fair share" got squeezed hard enough to visually break onto its own
+         line instead of just centering imperfectly. Absolute-positioning the
+         centered element instead sidesteps the whole problem: whichever of
+         logo/nav stays in normal flow keeps its natural, unconstrained width
+         (plain 2-item flex space-between with the icon cluster), while the
+         other one is taken out of flow entirely and centered at the row's true
+         midpoint — its own width can't push or squeeze anything else. Same
+         pattern real storefront themes use for a centered-logo header. -->
+    <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:relative">
+      <!-- Logo and desktop nav swap between "in flow" and "absolutely centered"
+           depending on headerMenuPosition — DOM order is unchanged, since
+           flexbox skips absolutely-positioned children when laying out the
+           remaining flow items, so whichever of the two stays in flow always
+           lands at the start (left), same as always being first among the
+           (now effectively 2-item) flow children ahead of the icon cluster. -->
+      <a href="/" :style="navLeft ? { textDecoration:'none', position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)' } : { textDecoration:'none' }">
         <img v-if="settings.logoUrl" :src="settings.logoUrl" :alt="settings.logoAlt || 'Store logo'" :style="{ height: (settings.headerLogoHeight || 40) + 'px', objectFit: 'contain' }" />
         <span v-else :style="{ fontSize:'20px',fontWeight:700,color:settings.headerTextColor||'#1a202c' }">{{ settings.logoText || settings.businessName || 'Your Store' }}</span>
       </a>
 
       <!-- Desktop nav — unchanged hover-dropdown behavior, hidden below the
            mobile breakpoint (assets/css/responsive.css). -->
-      <div class="sb-nav-desktop-only" :style="{ gridColumn: navLeft ? 1 : 2, justifySelf: navLeft ? 'start' : 'center', minWidth: 0 }">
+      <div class="sb-nav-desktop-only" :style="navLeft ? {} : { position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)' }">
         <nav style="display:flex;gap:28px">
           <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
             <a :href="link.url"
@@ -89,7 +97,7 @@ const navLeft = computed(() => props.settings.headerMenuPosition === 'nav-left')
         </nav>
       </div>
 
-      <div style="display:flex;align-items:center;gap:16px;grid-column:3;justify-self:end">
+      <div style="display:flex;align-items:center;gap:16px">
         <a
           v-if="settings.headerCtaText"
           class="sb-nav-desktop-only"
