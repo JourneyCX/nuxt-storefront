@@ -48,9 +48,11 @@ export interface SiteSettings {
   socialLinks: { platform: string; url: string }[]
   // children = one level of dropdown nesting, derived server-side from the
   // Pages panel's menu tree (Store_builder_model::build_nav_links()) — a
-  // top-level entry with no children renders as a plain link. Kept in sync
-  // with studio-app's siteSettings.ts.
-  navLinks: { label: string; url: string; children?: { label: string; url: string }[] }[]
+  // top-level entry with no children renders as a plain link. url is absent
+  // (not empty-string) for a menu_group page — a dropdown-only label with no
+  // link of its own; SiteHeader.vue renders a <span>, not an <a>, for that
+  // case. Kept in sync with studio-app's siteSettings.ts.
+  navLinks: { label: string; url?: string; children?: { label: string; url?: string }[] }[]
   headerBackgroundColor: string | null
   headerTextColor: string | null
   headerAccentColor: string | null

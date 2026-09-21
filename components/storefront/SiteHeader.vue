@@ -81,15 +81,19 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
            mobile breakpoint (assets/css/responsive.css). -->
       <div class="sb-nav-desktop-only" :style="navLeft ? {} : { position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)' }">
         <nav :style="{ display:'flex', gap: navItemSpacing+'px' }">
-          <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
-            <a :href="link.url"
-               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:navFontSize+'px',fontWeight:'500',fontFamily:navFontFamily,display:'flex',alignItems:'center',gap:'4px' }">
+          <div v-for="(link, i) in navLinks" :key="i" class="sb-nav-item" style="position:relative">
+            <!-- menu_group pages have no url — a dropdown label that isn't itself
+                 clickable. Rendered as a plain span instead of <a href> so there's
+                 nothing to navigate to; hover-dropdown still works since that's
+                 keyed off the wrapping .sb-nav-item div, not this element. -->
+            <component :is="link.url ? 'a' : 'span'" v-bind="link.url ? { href: link.url } : {}"
+               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:navFontSize+'px',fontWeight:'500',fontFamily:navFontFamily,display:'flex',alignItems:'center',gap:'4px',cursor:link.url?'pointer':'default' }">
               {{ link.label }}
               <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
-            </a>
+            </component>
             <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;padding-top:8px;z-index:200">
               <div style="background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0">
-                <a v-for="child in link.children" :key="child.url" :href="child.url" :style="{ display:'block',padding:'8px 14px',color:'#1a202c',textDecoration:'none',fontSize:navChildFontSize+'px',fontFamily:navFontFamily }">
+                <a v-for="(child, ci) in link.children" :key="ci" :href="child.url" :style="{ display:'block',padding:'8px 14px',color:'#1a202c',textDecoration:'none',fontSize:navChildFontSize+'px',fontFamily:navFontFamily }">
                   {{ child.label }}
                 </a>
               </div>
@@ -154,13 +158,18 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
          multi-level links use tap-to-expand instead of a :hover pattern
          that has no equivalent on touch. -->
     <nav v-if="mobileOpen" class="sb-nav-mobile-only" style="border-top:1px solid rgba(0,0,0,0.08)">
-      <div v-for="(link, i) in navLinks" :key="link.url" style="border-bottom:1px solid rgba(0,0,0,0.06)">
+      <div v-for="(link, i) in navLinks" :key="i" style="border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="display:flex;align-items:center">
           <a
+            v-if="link.url"
             :href="link.url"
             @click="closeMobileMenu"
             :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', textDecoration:'none', fontSize:navFontSize+'px', fontWeight:'500', fontFamily:navFontFamily }"
           >{{ link.label }}</a>
+          <span
+            v-else
+            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', fontSize:navFontSize+'px', fontWeight:'500', fontFamily:navFontFamily }"
+          >{{ link.label }}</span>
           <button
             v-if="(link.children?.length ?? 0) > 0"
             type="button"
@@ -172,8 +181,8 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
         </div>
         <div v-if="(link.children?.length ?? 0) > 0 && expanded.has(i)" style="padding-bottom:8px">
           <a
-            v-for="child in link.children"
-            :key="child.url"
+            v-for="(child, ci) in link.children"
+            :key="ci"
             :href="child.url"
             @click="closeMobileMenu"
             :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:navChildFontSize+'px', fontFamily:navFontFamily }"
