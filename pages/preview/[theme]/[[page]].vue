@@ -29,26 +29,36 @@ import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
 // that layout fetches the TENANT's currently-applied theme's CSS -- this page
 // fetches the PREVIEWED theme's CSS instead (below), and both would fight
 // over the same 'sb-theme-tokens' useHead() key. Renders the real
-// SiteHeader/SiteFooter/AnnouncementBar directly instead (same components,
-// same useSiteSettings() composable the layout itself now uses) so a merchant
-// previewing a theme sees their actual real nav/footer alongside it --
-// confirmed with Dana 2026-09-22 this is what she wants while actively
-// building a theme's own header/footer content, not the earlier "hide all
-// tenant chrome" default this page originally shipped with.
+// SiteHeader/SiteFooter/AnnouncementBar directly instead (same components).
+//
+// Chrome source: THEME-owned (usePreviewSiteSettings), not the tenant's own
+// (useSiteSettings) -- reversed from the 2026-09-22 "show the real tenant's
+// nav/footer during preview" decision, now that a theme can genuinely own its
+// own menu/branding (Full Theme Ownership work). Preview now shows exactly
+// what Apply Theme would actually produce for a brand-new tenant, rather than
+// a borrowed live tenant's own content, which could silently differ from the
+// theme itself. The demo tenant (80) is still used below for catalog data
+// only (real products/blog posts for ProductGrid-type blocks and the
+// Product/Blog Post nav entries) -- there's no per-theme WooCommerce store,
+// so dynamic blocks still need a real catalog behind them.
 definePageMeta({ layout: false })
 
 const route  = useRoute()
 const config = useRuntimeConfig()
 
+// Still needed for catalog-only data below (real products/blog posts) --
+// dynamic blocks have no per-theme WooCommerce store, so they resolve
+// against the demo tenant's real catalog regardless of chrome source.
 const tenantId = useState<number>('sb_tenantId', () => {
   const ev = useRequestEvent()
   return (ev?.context?.tenantId as number) ?? 0
 })
-const { s } = await useSiteSettings(tenantId)
 
 const rawTheme = computed(() => (route.params.theme as string) || '')
 const isNumeric = computed(() => /^\d+$/.test(rawTheme.value))
 const themeRef  = computed(() => (isNumeric.value ? { themeId: Number(rawTheme.value) } : { slug: rawTheme.value }))
+
+const { s } = await usePreviewSiteSettings(themeRef.value)
 // [[page]] optional catch segment (Nuxt 3 array-or-undefined shape for a
 // single optional param) is the URL-friendly form -- /preview/{slug}/collection
 // instead of /preview/{slug}?page=collection. ?page= is still read as a

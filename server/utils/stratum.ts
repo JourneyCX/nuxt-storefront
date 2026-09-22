@@ -275,6 +275,23 @@ export async function fetchPreviewPage(
   ).catch(() => null)
 }
 
+// Theme-preview counterpart to fetchSiteSettings() — sourced entirely from
+// the THEME's own owned menu/branding data (Store_builder_api::
+// preview_site_settings(), backed by Store_theme_manager_model::
+// build_theme_nav_links()/build_theme_footer_columns()/_extract_theme_chrome()),
+// not any tenant's sb_site_settings row. Same identifier contract as
+// fetchPreviewPage()/fetchThemeCss() — themeId or slug.
+export async function fetchPreviewSiteSettings(
+  stratumUrl: string,
+  theme: { themeId?: number; slug?: string }
+): Promise<SiteSettings | null> {
+  const query = theme.themeId ? { themeId: theme.themeId } : { slug: theme.slug }
+  return $fetch<{ settings: SiteSettings }>(
+    `${stratumUrl}/admin/store_builder_api/preview_site_settings`,
+    { query }
+  ).then(r => r.settings).catch(() => null)
+}
+
 export interface PublishedThemeSummary {
   id: number
   name: string
