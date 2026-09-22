@@ -137,6 +137,24 @@ export async function fetchPublishedPage(
   ).catch(() => null)
 }
 
+// Category-specific product-detail template (Store_builder_api::
+// resolve_category_template()). categoryIds is the viewed product's own
+// WC categories[].id list (already present on the WcProduct the page fetches
+// separately) -- returns null puckJson when no category override is
+// configured, so the caller falls back to fetchPublishedPage(tenantId,
+// 'product') exactly like today. Only called with a non-empty categoryIds
+// list; an empty list is a caller bug, not something to special-case here.
+export async function fetchCategoryProductTemplate(
+  stratumUrl: string,
+  tenantId: number,
+  categoryIds: number[]
+): Promise<PuckPageData | null> {
+  return $fetch<PuckPageData>(
+    `${stratumUrl}/admin/store_builder_api/resolve_category_template`,
+    { query: { tenantId, categoryIds: categoryIds.join(',') } }
+  ).catch(() => null)
+}
+
 // Manually-curated, cross-category product groupings — see
 // Store_builder_api::published_collections()/published_collection() (bare,
 // unauthenticated, published-only — same auth shape as fetchPublishedPage

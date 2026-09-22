@@ -12,7 +12,8 @@
 // real product straight from THIS route's own slug param; there is no
 // meaningful "preview a product page" without a real product's URL to render
 // it against. See ThemePreviewBar.vue for the shared preview nav.
-import { fetchPublishedPage, fetchPreviewPage, fetchThemeCss, type PuckPageData, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
+import { fetchPublishedPage, fetchCategoryProductTemplate, fetchPreviewPage, fetchThemeCss, type PuckPageData, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
+import type { WcProduct } from '~/server/utils/woocommerce'
 
 const tenantId = useState<number>('sb_tenantId', () => {
   const ev = useRequestEvent()
@@ -21,6 +22,7 @@ const tenantId = useState<number>('sb_tenantId', () => {
 
 const config = useRuntimeConfig()
 const route  = useRoute()
+const requestFetch = useRequestFetch()
 
 // ?previewTheme= carries EITHER a theme's numeric id (older/internal links)
 // OR its public slug (links built from the public "/themes" gallery, or
@@ -34,6 +36,29 @@ const previewThemeRef  = computed(() => (previewThemeId.value ? { themeId: previ
 const { data: normalPage } = await useAsyncData<PuckPageData | null>(
   `product-theme-${tenantId.value}`,
   () => previewThemeIsOn.value ? Promise.resolve(null) : fetchPublishedPage(config.stratumInternalUrl, tenantId.value, 'product'),
+  { server: true }
+)
+
+// Category-specific override (see Store_builder::category_templates()) --
+// fetched here, separately from storefront/ProductDetail.vue's own self-fetch
+// by the same slug, specifically so the category ids are known BEFORE
+// deciding which puckJson to render below. A second small request for the
+// same product is an accepted tradeoff over threading product data down
+// through StorefrontRenderer's props, which every other self-fetching widget
+// (ProductGrid, this page's own ProductDetail) deliberately doesn't do.
+const slug = route.params.slug as string
+const { data: productForCategory } = await useAsyncData<WcProduct | null>(
+  `product-category-lookup-${slug}`,
+  () => (!previewThemeIsOn.value && slug) ? requestFetch(`/api/products/${slug}`).catch(() => null) : Promise.resolve(null),
+  { server: true }
+)
+
+const { data: categoryPage } = await useAsyncData<PuckPageData | null>(
+  `product-category-theme-${tenantId.value}-${slug}`,
+  () => {
+    const categoryIds = productForCategory.value?.categories?.map(c => c.id) ?? []
+    return categoryIds.length ? fetchCategoryProductTemplate(config.stratumInternalUrl, tenantId.value, categoryIds) : Promise.resolve(null)
+  },
   { server: true }
 )
 
@@ -59,7 +84,10 @@ const puckJson = computed(() => {
   if (previewThemeIsOn.value) {
     return previewData.value?.success ? previewData.value.puckJson : null
   }
-  return normalPage.value?.puckJson ?? null
+  // Category override wins when set; otherwise the theme's single, catalog-
+  // wide "product" template (unchanged behaviour for every tenant not using
+  // Category Templates).
+  return categoryPage.value?.puckJson ?? normalPage.value?.puckJson ?? null
 })
 </script>
 
