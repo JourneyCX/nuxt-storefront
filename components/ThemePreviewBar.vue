@@ -117,7 +117,21 @@ function disabledReason(slot: PreviewSlot): string | undefined {
      once scrolled, rather than visibly below it. AnnouncementBar.vue is not
      sticky, so it isn't part of this offset. */
   top: 64px;
-  z-index: 9999;
+  /* Was 9999 -- SiteHeader.vue's own <header> sets position:sticky AND
+     z-index:100, which makes it (and everything nested inside it, including
+     .sb-nav-dropdown's z-index:200) one self-contained stacking context
+     capped at 100 from any sibling's point of view. This bar sits right
+     after <header> in the DOM as a plain sibling, so at 9999 it was forcing
+     the header's ENTIRE context -- dropdown included -- to render behind it,
+     regardless of the dropdown's own z-index (confirmed live 2026-09-22:
+     opening a nav dropdown while previewing a theme showed it behind this
+     bar). 90 sits just under the header's 100 so the header (and its
+     dropdown) always wins, while staying above ordinary unpositioned page
+     content, which is all this bar actually needs to clear. Deliberately
+     still under every other overlay on this page too (CartDrawer.vue's
+     200/201, ProductDetail.vue's fullscreen gallery at 1000, WhatsAppWidget's
+     9998) so none of those regress being covered by a lower value here. */
+  z-index: 90;
   display: flex;
   align-items: center;
   justify-content: space-between;
