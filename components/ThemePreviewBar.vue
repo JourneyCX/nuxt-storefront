@@ -53,7 +53,14 @@ function linkFor(slot: PreviewSlot) {
   if (slot.pageType === 'blog_post' && props.demoBlogSlug) {
     return { path: `/blog/${props.demoBlogSlug}`, query: { previewTheme: identifier.value } }
   }
-  return { path: `/preview/${identifier.value}`, query: { page: slot.pageType } }
+  // Path segment, not a ?page= query -- home has no suffix at all (matches
+  // pages/preview/[theme]/[[page]].vue's own default), everything else reads
+  // as a real path (/preview/{slug}/collection) rather than a query string.
+  return {
+    path: slot.pageType === 'home'
+      ? `/preview/${identifier.value}`
+      : `/preview/${identifier.value}/${slot.pageType}`,
+  }
 }
 
 // A slot is genuinely clickable only when it has a template assigned AND

@@ -49,7 +49,17 @@ const { s } = await useSiteSettings(tenantId)
 const rawTheme = computed(() => (route.params.theme as string) || '')
 const isNumeric = computed(() => /^\d+$/.test(rawTheme.value))
 const themeRef  = computed(() => (isNumeric.value ? { themeId: Number(rawTheme.value) } : { slug: rawTheme.value }))
-const pageType  = computed(() => (route.query.page as string) || 'home')
+// [[page]] optional catch segment (Nuxt 3 array-or-undefined shape for a
+// single optional param) is the URL-friendly form -- /preview/{slug}/collection
+// instead of /preview/{slug}?page=collection. ?page= is still read as a
+// fallback so any link built against the old shape (this shipped 2026-09-22,
+// so there may already be a handful out in the wild) keeps working rather
+// than silently 404ing or falling back to "home".
+const pageType = computed(() => {
+  const seg = route.params.page
+  const fromPath = Array.isArray(seg) ? seg[0] : seg
+  return fromPath || (route.query.page as string) || 'home'
+})
 
 if (!rawTheme.value) {
   throw createError({ statusCode: 404, statusMessage: 'Theme not found' })
