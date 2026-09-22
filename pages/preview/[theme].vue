@@ -19,19 +19,32 @@
 // telling a plain digit string apart from a slug.
 import { fetchPreviewPage, fetchThemeCss, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
 import type { WcProduct } from '~/server/utils/woocommerce'
+// Explicit import, not Nuxt's directory-based auto-import (matches
+// layouts/default.vue's own reasoning for the same components).
+import SiteHeader from '~/components/storefront/SiteHeader.vue'
+import SiteFooter from '~/components/storefront/SiteFooter.vue'
+import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
 
-// Opts out of layouts/default.vue's AnnouncementBar/SiteHeader/SiteFooter/
-// WhatsAppWidget entirely -- those render the DEMO TENANT'S OWN real site
-// chrome (its actual product categories, WhatsApp number, etc.), which has
-// nothing to do with whichever theme is being previewed and only confuses
-// the "what does this theme look like" experience ThemePreviewBar already
-// exists to provide. Safe to drop: this page already fetches and injects its
-// own theme-css (below), so nothing from the default layout's useHead() is
-// lost by skipping it.
+// Opts out of layouts/default.vue itself (rather than just using it) because
+// that layout fetches the TENANT's currently-applied theme's CSS -- this page
+// fetches the PREVIEWED theme's CSS instead (below), and both would fight
+// over the same 'sb-theme-tokens' useHead() key. Renders the real
+// SiteHeader/SiteFooter/AnnouncementBar directly instead (same components,
+// same useSiteSettings() composable the layout itself now uses) so a merchant
+// previewing a theme sees their actual real nav/footer alongside it --
+// confirmed with Dana 2026-09-22 this is what she wants while actively
+// building a theme's own header/footer content, not the earlier "hide all
+// tenant chrome" default this page originally shipped with.
 definePageMeta({ layout: false })
 
 const route  = useRoute()
 const config = useRuntimeConfig()
+
+const tenantId = useState<number>('sb_tenantId', () => {
+  const ev = useRequestEvent()
+  return (ev?.context?.tenantId as number) ?? 0
+})
+const { s } = await useSiteSettings(tenantId)
 
 const rawTheme = computed(() => (route.params.theme as string) || '')
 const isNumeric = computed(() => /^\d+$/.test(rawTheme.value))
@@ -93,6 +106,8 @@ useHead(() => ({
 
 <template>
   <div v-if="page">
+    <AnnouncementBar :settings="s" />
+    <SiteHeader :settings="s" />
     <ThemePreviewBar
       :theme-id="isNumeric ? Number(rawTheme) : 0"
       :theme-slug="page.themeSlug"
@@ -107,6 +122,7 @@ useHead(() => ({
     <div v-else class="sb-preview-empty">
       <p>No page has been assigned to the "{{ pageType }}" slot for this theme yet.</p>
     </div>
+    <SiteFooter :settings="s" />
   </div>
 </template>
 

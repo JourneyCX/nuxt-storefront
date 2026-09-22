@@ -102,7 +102,14 @@ function disabledReason(slot: PreviewSlot): string | undefined {
 <style scoped>
 .sb-preview-bar {
   position: sticky;
-  top: 0;
+  /* SiteHeader.vue renders at a fixed 64px height when sticky (its own inline
+     style, not a shared variable) -- this bar now renders directly below a
+     real sticky SiteHeader on both its use sites (pages/preview/[theme].vue
+     and the product/blog ?previewTheme= pages), so top:0 would make it stick
+     UNDER/behind the header (both racing for the same viewport position)
+     once scrolled, rather than visibly below it. AnnouncementBar.vue is not
+     sticky, so it isn't part of this offset. */
+  top: 64px;
   z-index: 9999;
   display: flex;
   align-items: center;
