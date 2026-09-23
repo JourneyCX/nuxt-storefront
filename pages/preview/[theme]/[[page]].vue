@@ -17,7 +17,7 @@
 // hand-paste into WordPress or anywhere else) -- Store_builder_api's
 // preview_page()/theme_css() accept both, so no lookup is needed here beyond
 // telling a plain digit string apart from a slug.
-import { fetchPreviewPage, fetchThemeCss, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
+import type { PreviewPageData, ThemeCss } from '~/server/utils/stratum'
 import type { WcProduct } from '~/server/utils/woocommerce'
 // Explicit import, not Nuxt's directory-based auto-import (matches
 // layouts/default.vue's own reasoning for the same components).
@@ -44,7 +44,19 @@ import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
 definePageMeta({ layout: false })
 
 const route  = useRoute()
-const config = useRuntimeConfig()
+
+// Server-side fetch to this same app's own /api/** -- NOT a direct call to
+// config.stratumInternalUrl from this page component. That value is
+// deliberately server-only (nuxt.config.ts), so it resolved during SSR but
+// came back undefined the moment this exact code re-ran client-side (a
+// ThemePreviewBar pill click triggers useAsyncData's `watch: [pageType]`
+// refetch, which runs in the browser) -- confirmed live 2026-09-23: the
+// resulting fetch to "undefined/admin/..." 404'd, which the 404 guard below
+// then threw as an uncaught client error, blanking the page. Routing
+// through /api/preview/* (server/api/preview/*.get.ts) keeps every browser
+// call same-origin, exactly like demoProduct/demoBlogPosts below already do
+// for /api/products and /api/blog.
+const requestFetch = useRequestFetch()
 
 // Still needed for catalog-only data below (real products/blog posts) --
 // dynamic blocks have no per-theme WooCommerce store, so they resolve
@@ -76,14 +88,14 @@ if (!rawTheme.value) {
 }
 
 const { data: page, error } = await useAsyncData<PreviewPageData | null>(
-  `preview-page-${rawTheme.value}`,
-  () => fetchPreviewPage(config.stratumInternalUrl, themeRef.value, pageType.value),
+  `preview-page-${rawTheme.value}-${pageType.value}`,
+  () => requestFetch('/api/preview/page', { query: { ...themeRef.value, pageType: pageType.value } }).catch(() => null),
   { server: true, watch: [pageType] }
 )
 
 // A genuine 404 here means the theme reference itself doesn't resolve to a
-// real, published theme at all (fetchPreviewPage's own .catch(() => null)) --
-// a slot that simply has no template assigned still returns page.value with
+// real, published theme at all (the .catch(() => null) above) -- a slot that
+// simply has no template assigned still returns page.value with
 // success:false + a real slots list, handled in the template below, not here.
 if (error.value || !page.value) {
   throw createError({ statusCode: 404, statusMessage: 'Theme not found or not published' })
@@ -91,17 +103,12 @@ if (error.value || !page.value) {
 
 const { data: themeCss } = await useAsyncData<ThemeCss | null>(
   `preview-css-${rawTheme.value}`,
-  () => fetchThemeCss(config.stratumInternalUrl, themeRef.value),
+  () => requestFetch('/api/preview/css', { query: { ...themeRef.value } }).catch(() => null),
   { server: true }
 )
 
 // Real demo item slugs for the Product/Blog Post nav entries -- see
-// ThemePreviewBar.vue. useRequestFetch() (not plain $fetch): these are
-// server-side calls to this same app's own /api/**, which needs the
-// original request's Host header to resolve the tenant (server/middleware/
-// tenant.ts) -- same requirement ProductDetail.vue documents for itself.
-const requestFetch = useRequestFetch()
-
+// ThemePreviewBar.vue.
 const { data: demoProduct } = await useAsyncData<WcProduct[]>(
   'preview-demo-product',
   () => requestFetch('/api/products', { query: { per_page: 1 } }),

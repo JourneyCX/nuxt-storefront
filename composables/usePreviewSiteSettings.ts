@@ -1,4 +1,4 @@
-import { fetchPreviewSiteSettings, type SiteSettings } from '~/server/utils/stratum'
+import type { SiteSettings } from '~/server/utils/stratum'
 
 // Theme-preview counterpart to useSiteSettings() — same "fetch with graceful
 // defaults" shape (defaults kept byte-identical to that composable's, so a
@@ -9,12 +9,21 @@ import { fetchPreviewSiteSettings, type SiteSettings } from '~/server/utils/stra
 // useSiteSettings(tenantId) — the theme now owns its own nav/menu, so preview
 // should show exactly what Apply Theme would actually produce.
 export async function usePreviewSiteSettings(theme: { themeId?: number; slug?: string }) {
-  const config = useRuntimeConfig()
+  const requestFetch = useRequestFetch()
   const key = theme.slug || theme.themeId || 'unknown'
 
+  // Same-origin proxy (server/api/preview/site-settings.get.ts), not a direct
+  // call to config.stratumInternalUrl from this composable -- that value is
+  // server-only (nuxt.config.ts) and this composable has no `watch`, so it
+  // normally only ever runs once during SSR, but a client-side-only first
+  // navigation into a preview page (e.g. clicking "View Demo" from the public
+  // /themes gallery via <NuxtLink>, with no prior SSR payload for this exact
+  // route) would run it in the browser instead, where that config value
+  // resolves to undefined -- see pages/preview/[theme]/[[page]].vue's fuller
+  // comment on the same class of bug, confirmed live 2026-09-23.
   const { data: settings } = await useAsyncData<SiteSettings | null>(
     `preview-settings-${key}`,
-    () => fetchPreviewSiteSettings(config.stratumInternalUrl, theme),
+    () => requestFetch('/api/preview/site-settings', { query: theme }).catch(() => null),
     { server: true }
   )
 
