@@ -12,7 +12,7 @@
 // real product straight from THIS route's own slug param; there is no
 // meaningful "preview a product page" without a real product's URL to render
 // it against. See ThemePreviewBar.vue for the shared preview nav.
-import { fetchPublishedPage, fetchCategoryProductTemplate, fetchPreviewPage, fetchThemeCss, type PuckPageData, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
+import type { PuckPageData, PreviewPageData, ThemeCss } from '~/server/utils/stratum'
 import type { WcProduct } from '~/server/utils/woocommerce'
 
 const tenantId = useState<number>('sb_tenantId', () => {
@@ -20,8 +20,13 @@ const tenantId = useState<number>('sb_tenantId', () => {
   return (ev?.context?.tenantId as number) ?? 0
 })
 
-const config = useRuntimeConfig()
 const route  = useRoute()
+// Same-origin fetch to this app's own /api/** -- NOT a direct call to
+// config.stratumInternalUrl from this page component. See
+// server/api/preview/page.get.ts's comment: that value is server-only and
+// resolves to undefined the moment page-component code calling it runs
+// client-side instead of during SSR (confirmed live 2026-09-23 for the
+// theme-preview route; the same direct-import pattern existed here too).
 const requestFetch = useRequestFetch()
 
 // ?previewTheme= carries EITHER a theme's numeric id (older/internal links)
@@ -35,7 +40,7 @@ const previewThemeRef  = computed(() => (previewThemeId.value ? { themeId: previ
 
 const { data: normalPage } = await useAsyncData<PuckPageData | null>(
   `product-theme-${tenantId.value}`,
-  () => previewThemeIsOn.value ? Promise.resolve(null) : fetchPublishedPage(config.stratumInternalUrl, tenantId.value, 'product'),
+  () => previewThemeIsOn.value ? Promise.resolve(null) : requestFetch('/api/published-page', { query: { tenantId: tenantId.value, slug: 'product' } }).catch(() => null),
   { server: true }
 )
 
@@ -57,20 +62,22 @@ const { data: categoryPage } = await useAsyncData<PuckPageData | null>(
   `product-category-theme-${tenantId.value}-${slug}`,
   () => {
     const categoryIds = productForCategory.value?.categories?.map(c => c.id) ?? []
-    return categoryIds.length ? fetchCategoryProductTemplate(config.stratumInternalUrl, tenantId.value, categoryIds) : Promise.resolve(null)
+    return categoryIds.length
+      ? requestFetch('/api/category-product-template', { query: { tenantId: tenantId.value, categoryIds: categoryIds.join(',') } }).catch(() => null)
+      : Promise.resolve(null)
   },
   { server: true }
 )
 
 const { data: previewData } = await useAsyncData<PreviewPageData | null>(
   `product-preview-${previewThemeRaw.value}`,
-  () => previewThemeIsOn.value ? fetchPreviewPage(config.stratumInternalUrl, previewThemeRef.value, 'product') : Promise.resolve(null),
+  () => previewThemeIsOn.value ? requestFetch('/api/preview/page', { query: { ...previewThemeRef.value, pageType: 'product' } }).catch(() => null) : Promise.resolve(null),
   { server: true }
 )
 
 const { data: themeCss } = await useAsyncData<ThemeCss | null>(
   `product-preview-css-${previewThemeRaw.value}`,
-  () => previewThemeIsOn.value ? fetchThemeCss(config.stratumInternalUrl, previewThemeRef.value) : Promise.resolve(null),
+  () => previewThemeIsOn.value ? requestFetch('/api/preview/css', { query: { ...previewThemeRef.value } }).catch(() => null) : Promise.resolve(null),
   { server: true }
 )
 

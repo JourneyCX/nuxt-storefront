@@ -9,15 +9,18 @@
 // ?previewTheme=X (Store Theme Manager "View Demo") — same override pattern
 // as pages/product/[slug].vue; see that file's own comment for why this
 // route (not /preview/[themeId]) handles blog_post-type previews.
-import { fetchPublishedPage, fetchPreviewPage, fetchThemeCss, type PuckPageData, type PreviewPageData, type ThemeCss } from '~/server/utils/stratum'
+import type { PuckPageData, PreviewPageData, ThemeCss } from '~/server/utils/stratum'
 
 const tenantId = useState<number>('sb_tenantId', () => {
   const ev = useRequestEvent()
   return (ev?.context?.tenantId as number) ?? 0
 })
 
-const config = useRuntimeConfig()
 const route  = useRoute()
+// Same-origin fetch to this app's own /api/** -- see
+// pages/product/[slug].vue's identical comment; config.stratumInternalUrl is
+// server-only and resolves to undefined if this code runs client-side.
+const requestFetch = useRequestFetch()
 
 // ?previewTheme= carries EITHER a theme's numeric id (older/internal links)
 // OR its public slug (links built from the public "/themes" gallery, or
@@ -30,19 +33,19 @@ const previewThemeRef  = computed(() => (previewThemeId.value ? { themeId: previ
 
 const { data: normalPage } = await useAsyncData<PuckPageData | null>(
   `blog-post-theme-${tenantId.value}`,
-  () => previewThemeIsOn.value ? Promise.resolve(null) : fetchPublishedPage(config.stratumInternalUrl, tenantId.value, 'blog_post'),
+  () => previewThemeIsOn.value ? Promise.resolve(null) : requestFetch('/api/published-page', { query: { tenantId: tenantId.value, slug: 'blog_post' } }).catch(() => null),
   { server: true }
 )
 
 const { data: previewData } = await useAsyncData<PreviewPageData | null>(
   `blog-post-preview-${previewThemeRaw.value}`,
-  () => previewThemeIsOn.value ? fetchPreviewPage(config.stratumInternalUrl, previewThemeRef.value, 'blog_post') : Promise.resolve(null),
+  () => previewThemeIsOn.value ? requestFetch('/api/preview/page', { query: { ...previewThemeRef.value, pageType: 'blog_post' } }).catch(() => null) : Promise.resolve(null),
   { server: true }
 )
 
 const { data: themeCss } = await useAsyncData<ThemeCss | null>(
   `blog-post-preview-css-${previewThemeRaw.value}`,
-  () => previewThemeIsOn.value ? fetchThemeCss(config.stratumInternalUrl, previewThemeRef.value) : Promise.resolve(null),
+  () => previewThemeIsOn.value ? requestFetch('/api/preview/css', { query: { ...previewThemeRef.value } }).catch(() => null) : Promise.resolve(null),
   { server: true }
 )
 
