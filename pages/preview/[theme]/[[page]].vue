@@ -24,6 +24,8 @@ import type { WcProduct } from '~/server/utils/woocommerce'
 import SiteHeader from '~/components/storefront/SiteHeader.vue'
 import SiteFooter from '~/components/storefront/SiteFooter.vue'
 import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
+import WhatsAppWidget from '~/components/storefront/WhatsAppWidget.vue'
+import ShopAssistantBubble from '~/components/storefront/ShopAssistantBubble.vue'
 
 // Opts out of layouts/default.vue itself (rather than just using it) because
 // that layout fetches the TENANT's currently-applied theme's CSS -- this page
@@ -150,6 +152,8 @@ useHead(() => ({
       <p>No page has been assigned to the "{{ pageType }}" slot for this theme yet.</p>
     </div>
     <SiteFooter :settings="s" />
+    <WhatsAppWidget :settings="s" />
+    <ShopAssistantBubble :settings="s" />
   </div>
 </template>
 
