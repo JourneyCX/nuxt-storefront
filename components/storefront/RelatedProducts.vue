@@ -26,6 +26,10 @@ const hasSlug = !!slug
 // here since this component self-fetches independently.
 const requestFetch = useRequestFetch()
 
+// Keeps theme-preview context flowing into "You may also like" links -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
+
 const { data: product } = await useAsyncData<WcProduct | null>(
   `related-products-source-${slug ?? 'none'}`,
   () => hasSlug ? requestFetch(`/api/products/${slug}`) : Promise.resolve(null),
@@ -92,7 +96,7 @@ function relatedPrice(p: WcProduct) {
       <a
         v-for="rp in relatedProducts"
         :key="rp.id"
-        :href="`/product/${rp.slug}`"
+        :href="`/product/${rp.slug}${previewSuffix}`"
         style="display:block;text-decoration:none;color:inherit;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff"
       >
         <div style="position:relative;aspect-ratio:1;background:#f7f8fa">

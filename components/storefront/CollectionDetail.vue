@@ -16,6 +16,11 @@ const props = withDefaults(defineProps<{
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
+
+// Keeps theme-preview context flowing into individual product links -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
+
 const { data, pending, error } = await useAsyncData<{ collection: PublishedCollectionDetail; products: WcProduct[] } | null>(
   `collection-detail-${props.collectionSlug}`,
   () => props.collectionSlug
@@ -64,7 +69,7 @@ function price(product: WcProduct) {
             :key="product.id"
             :style="{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column' }"
           >
-            <a :href="`/product/${product.slug}`" :style="{ display: 'block' }">
+            <a :href="`/product/${product.slug}${previewSuffix}`" :style="{ display: 'block' }">
               <div :style="{ aspectRatio: '1/1', overflow: 'hidden', background: '#f7f8fa' }">
                 <img
                   v-if="product.images?.[0]"
@@ -78,7 +83,7 @@ function price(product: WcProduct) {
               </div>
             </a>
             <div :style="{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }">
-              <a :href="`/product/${product.slug}`" :style="{ textDecoration: 'none' }">
+              <a :href="`/product/${product.slug}${previewSuffix}`" :style="{ textDecoration: 'none' }">
                 <p :style="{ margin: '0 0 6px', fontWeight: 600, fontSize: '15px', color: '#2d3748', lineHeight: 1.3 }">{{ product.name }}</p>
               </a>
               <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }">
@@ -86,7 +91,7 @@ function price(product: WcProduct) {
                   {{ price(product) }}
                 </span>
                 <a
-                  :href="`/product/${product.slug}`"
+                  :href="`/product/${product.slug}${previewSuffix}`"
                   :style="{ background: product.stock_status === 'instock' ? '#3182ce' : '#a0aec0', color: '#fff', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none', fontSize: '13px', fontWeight: 600, pointerEvents: product.stock_status !== 'instock' ? 'none' : 'auto' }"
                 >
                   {{ product.stock_status === 'instock' ? 'View Product' : 'Out of Stock' }}

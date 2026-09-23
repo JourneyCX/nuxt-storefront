@@ -60,6 +60,11 @@ function scroll(dir: 'left' | 'right') {
 // (not plain $fetch) so this internal SSR call carries the original request's
 // Host header — see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
+
+// Keeps theme-preview context flowing into individual product links -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
+
 const { data: products, pending } = await useAsyncData<WcProduct[]>(
   `carousel-products-${props.categorySlug}-${clamp.value}`,
   () => requestFetch('/api/products', {
@@ -122,7 +127,7 @@ function price(product: WcProduct) {
         <template v-else-if="showCarousel">
           <div v-for="product in products" :key="product.id"
             :style="{ width: `${cardWidth || 220}px`, flexShrink: 0, backgroundColor: '#fff', borderRadius: `${cardRadius || 12}px`, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' }">
-            <a :href="`/product/${product.slug}`" style="display:block;">
+            <a :href="`/product/${product.slug}${previewSuffix}`" style="display:block;">
               <div style="position:relative;width:100%;aspect-ratio:1/1;background-color:#e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;">
                 <img
                   v-if="product.images?.[0]"
@@ -140,14 +145,14 @@ function price(product: WcProduct) {
               <div v-if="showRating" style="display:flex;gap:2px;margin-bottom:6px;">
                 <span v-for="n in 5" :key="n" :style="{ color: n <= 4 ? (accentColor || '#2563eb') : '#d1d5db', fontSize: '11px' }">★</span>
               </div>
-              <a :href="`/product/${product.slug}`" style="text-decoration:none;">
+              <a :href="`/product/${product.slug}${previewSuffix}`" style="text-decoration:none;">
                 <p :style="{ margin: '0 0 4px', fontWeight: 600, fontSize: '14px', color: textColor || '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }">{{ product.name }}</p>
               </a>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
                 <span v-if="showPrices" :style="{ fontWeight: 800, fontSize: '16px', color: product.on_sale ? '#c53030' : (textColor || '#1e293b') }">{{ price(product) }}</span>
                 <a
                   v-if="showAddToCart"
-                  :href="`/product/${product.slug}`"
+                  :href="`/product/${product.slug}${previewSuffix}`"
                   :style="{ backgroundColor: product.stock_status === 'instock' ? (accentColor || '#2563eb') : '#a0aec0', color: '#fff', border: 'none', padding: '7px 12px', borderRadius: '6px', textDecoration: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, pointerEvents: product.stock_status !== 'instock' ? 'none' : 'auto' }"
                 >{{ product.stock_status === 'instock' ? '+ Cart' : 'Sold Out' }}</a>
               </div>

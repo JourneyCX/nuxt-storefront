@@ -83,6 +83,10 @@ const { data: liveData, pending: liveLoading, error: liveError } = await useAsyn
   { server: true, immediate: isAuto.value }
 )
 
+// Keeps theme-preview context flowing into individual post links -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
+
 const livePosts = computed<Post[]>(() => (liveData.value ?? []).map(p => ({
   title: p.title,
   excerpt: p.excerpt ?? '',
@@ -90,7 +94,7 @@ const livePosts = computed<Post[]>(() => (liveData.value ?? []).map(p => ({
   date: formatPostDate(p.published_at),
   category: p.categories[0]?.name ?? '',
   author: p.author,
-  url: p.url,
+  url: `${p.url}${previewSuffix.value}`,
 })))
 
 const displayPosts = computed(() => {
