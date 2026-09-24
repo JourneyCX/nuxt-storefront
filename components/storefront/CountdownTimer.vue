@@ -17,6 +17,8 @@ const props = defineProps<{
   headingColor?: string
   textColor?: string
   labelColor?: string
+  digitScale?: number
+  digitsOffsetY?: number
   primaryButtonText?: string
   primaryButtonUrl?: string
 }>()
@@ -30,6 +32,8 @@ const label = computed(() => props.labelColor || '#64748b')
 const cs = computed(() => props.cardStyle || 'card')
 const hasImage = computed(() => !!props.backgroundImage)
 const overlay = computed(() => (props.overlayOpacity ?? 55) / 100)
+const scale = computed(() => (props.digitScale || 100) / 100)
+const px = (base: number) => Math.round(base * scale.value)
 
 function getTimeLeft() {
   const diff = new Date(props.targetDate || '').getTime() - Date.now()
@@ -52,9 +56,9 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 function pad(n: number) { return String(n).padStart(2, '0') }
 
 function unitStyle() {
-  if (cs.value === 'neon') return { backgroundColor:'#000', borderRadius:'10px', padding:'18px 24px', minWidth:'90px', boxShadow:`0 0 20px ${accent.value}55, 0 0 40px ${accent.value}22`, border:`1px solid ${accent.value}66` }
-  if (cs.value === 'minimal') return { padding:'10px 20px', minWidth:'80px' }
-  return { backgroundColor:cardBg.value, borderRadius:'12px', padding:'20px 28px', minWidth:'90px', boxShadow:'0 4px 20px rgba(0,0,0,0.1)', border:`2px solid ${accent.value}22` }
+  if (cs.value === 'neon') return { backgroundColor:'#000', borderRadius:'10px', padding:`${px(18)}px ${px(24)}px`, minWidth:`${px(90)}px`, boxShadow:`0 0 20px ${accent.value}55, 0 0 40px ${accent.value}22`, border:`1px solid ${accent.value}66` }
+  if (cs.value === 'minimal') return { padding:`${px(10)}px ${px(20)}px`, minWidth:`${px(80)}px` }
+  return { backgroundColor:cardBg.value, borderRadius:'12px', padding:`${px(20)}px ${px(28)}px`, minWidth:`${px(90)}px`, boxShadow:'0 4px 20px rgba(0,0,0,0.1)', border:`2px solid ${accent.value}22` }
 }
 
 function numColor() { return cs.value === 'neon' ? accent.value : text.value }
@@ -119,22 +123,24 @@ const barUnits = computed(() => [
       <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:heading, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
       <p v-if="subheadline" :style="{ color:heading, opacity:0.65, fontSize:'18px', margin:'0 0 48px', lineHeight:1.65 }">{{ subheadline }}</p>
 
-      <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">
-        <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
-      </div>
+      <div :style="{ marginTop: `${props.digitsOffsetY || 0}px` }">
+        <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">
+          <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
+        </div>
 
-      <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:'center', gap:'12px', flexWrap:'wrap' }">
-        <template v-for="(u, i) in units" :key="u.key">
-          <div :style="{ display:'flex', flexDirection:'column', alignItems:'center', gap:'8px' }">
-            <div :style="unitStyle()">
-              <div :style="{ fontSize:'52px', fontWeight:800, lineHeight:1, color:numColor(), fontVariantNumeric:'tabular-nums', textShadow:numShadow(), letterSpacing:'-2px' }">
-                {{ pad(time[u.key]) }}
+        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:'center', gap:`${px(12)}px`, flexWrap:'wrap' }">
+          <template v-for="(u, i) in units" :key="u.key">
+            <div :style="{ display:'flex', flexDirection:'column', alignItems:'center', gap:`${px(8)}px` }">
+              <div :style="unitStyle()">
+                <div :style="{ fontSize:`${px(52)}px`, fontWeight:800, lineHeight:1, color:numColor(), fontVariantNumeric:'tabular-nums', textShadow:numShadow(), letterSpacing:'-2px' }">
+                  {{ pad(time[u.key]) }}
+                </div>
               </div>
+              <span :style="{ fontSize:`${px(12)}px`, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:label }">{{ u.lbl }}</span>
             </div>
-            <span :style="{ fontSize:'12px', fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:label }">{{ u.lbl }}</span>
-          </div>
-          <div v-if="i < units.length - 1" :style="{ display:'flex', flexDirection:'column', gap:'12px', paddingBottom:'28px', color:text, opacity:0.5, fontSize:'32px', fontWeight:800 }">:</div>
-        </template>
+            <div v-if="i < units.length - 1" :style="{ display:'flex', flexDirection:'column', gap:`${px(12)}px`, paddingBottom:`${px(28)}px`, color:text, opacity:0.5, fontSize:`${px(32)}px`, fontWeight:800 }">:</div>
+          </template>
+        </div>
       </div>
 
       <div v-if="primaryButtonText" :style="{ marginTop:'48px' }">
