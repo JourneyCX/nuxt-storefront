@@ -6,7 +6,7 @@
 // split here (this is the live top-level page), but onMounted/onUnmounted is
 // still used for the window/scroll-listener access per this repo's established
 // SSR-safety idiom (see HeroSlider.vue, ParticleBackground.vue, etc.).
-type MidgroundPosition = 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+type MidgroundPosition = 'center' | 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
 
 const props = defineProps<{
   backgroundImage?: string
@@ -59,21 +59,29 @@ function backgroundLayerStyle(image?: string) {
 function midgroundAnchorStyle(position: MidgroundPosition, width: number) {
   const base = { position: 'absolute' as const, willChange: 'transform', pointerEvents: 'none' as const, width: `${width}px`, height: 'auto', display: 'block' }
   switch (position) {
-    case 'top-left':     return { ...base, top: '24px', left: '24px' }
-    case 'top-right':    return { ...base, top: '24px', right: '24px' }
-    case 'bottom-left':  return { ...base, bottom: '24px', left: '24px' }
-    case 'bottom-right': return { ...base, bottom: '24px', right: '24px' }
+    case 'top-left':      return { ...base, top: '24px', left: '24px' }
+    case 'top-center':    return { ...base, top: '24px', left: '50%' }
+    case 'top-right':     return { ...base, top: '24px', right: '24px' }
+    case 'bottom-left':   return { ...base, bottom: '24px', left: '24px' }
+    case 'bottom-center': return { ...base, bottom: '24px', left: '50%' }
+    case 'bottom-right':  return { ...base, bottom: '24px', right: '24px' }
     case 'center':
-    default:              return { ...base, top: '50%', left: '50%' }
+    default:               return { ...base, top: '50%', left: '50%' }
   }
 }
 
-// 'center' is anchored via top:50%/left:50%, so its own centring transform has
-// to be composed with the scroll-driven translateY rather than overwritten by
-// it — translateY() after translate(-50%,-50%) simply adds to the same axis,
-// so this composes correctly with no extra math needed.
+// Anchors placed at left:50% (center, top-center, bottom-center) need their
+// own horizontal-centring transform composed with the scroll-driven
+// translateY rather than overwritten by it — translateX/Y() after
+// translate(-50%, ...) simply adds to its own axis, so this composes
+// correctly with no extra math needed.
 function midgroundBaseTransform(position: MidgroundPosition) {
-  return position === 'center' ? 'translate(-50%, -50%) ' : ''
+  switch (position) {
+    case 'center':        return 'translate(-50%, -50%) '
+    case 'top-center':
+    case 'bottom-center': return 'translateX(-50%) '
+    default:               return ''
+  }
 }
 
 let removeListeners: (() => void) | null = null
