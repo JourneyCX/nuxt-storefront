@@ -11,6 +11,8 @@ const props = defineProps<{
   cardStyle?: 'card' | 'minimal' | 'neon' | 'bar'
   accentColor?: string
   backgroundColor?: string
+  backgroundImage?: string
+  overlayOpacity?: number
   cardColor?: string
   textColor?: string
   labelColor?: string
@@ -24,6 +26,8 @@ const cardBg = computed(() => props.cardColor || '#ffffff')
 const text = computed(() => props.textColor || '#1e293b')
 const label = computed(() => props.labelColor || '#64748b')
 const cs = computed(() => props.cardStyle || 'card')
+const hasImage = computed(() => !!props.backgroundImage)
+const overlay = computed(() => (props.overlayOpacity ?? 55) / 100)
 
 function getTimeLeft() {
   const diff = new Date(props.targetDate || '').getTime() - Date.now()
@@ -92,8 +96,20 @@ const barUnits = computed(() => [
     </div>
   </component>
 
-  <section v-else :style="{ backgroundColor:bg, padding:'72px 24px', textAlign:'center' }">
-    <div :style="{ maxWidth:'800px', margin:'0 auto' }">
+  <section
+    v-else
+    :style="{
+      position: 'relative',
+      backgroundColor: hasImage ? undefined : bg,
+      backgroundImage: hasImage ? `url(${props.backgroundImage})` : undefined,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      padding: '72px 24px',
+      textAlign: 'center',
+    }"
+  >
+    <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlay})` }" />
+    <div :style="{ position:'relative', zIndex:1, maxWidth:'800px', margin:'0 auto' }">
       <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
            narrow screens instead of staying fixed at 36px — the countdown
            digits/separator below stay fixed, they're short and narrow
