@@ -3,7 +3,7 @@ defineProps<{
   headline?: string; subheadline?: string; buttonText?: string; buttonUrl?: string
   buttonColor?: string; buttonTextColor?: string; buttonBorderColor?: string; buttonBorderWidth?: number
   backgroundImage?: string; overlayOpacity?: number
-  textAlign?: string; minHeight?: number
+  textAlign?: string; minHeight?: number; borderRadius?: number
   headlineFontSize?: number; subheadlineFontSize?: number
 }>()
 </script>
@@ -15,7 +15,8 @@ defineProps<{
     backgroundImage: backgroundImage?`url(${backgroundImage})`:undefined,
     backgroundColor: backgroundImage?undefined:'#2d3748',
     backgroundSize:'cover', backgroundPosition:'center',
-    padding:'40px 24px', textAlign:(textAlign||'center') as any
+    padding:'40px 24px', textAlign:(textAlign||'center') as any,
+    borderRadius:`${borderRadius||0}px`, overflow:'hidden'
   }">
     <div v-if="backgroundImage" :style="{ position:'absolute',inset:0,backgroundColor:`rgba(0,0,0,${(overlayOpacity||40)/100})` }" />
     <div style="position:relative;z-index:1;max-width:640px">
