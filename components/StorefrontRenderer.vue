@@ -21,6 +21,7 @@ import { defineComponent, h, Suspense, type PropType } from 'vue'
 // warning box.
 import ContainerSF       from './storefront/Container.vue'
 import ColumnsSF         from './storefront/Columns.vue'
+import ParallaxSectionSF from './storefront/ParallaxSection.vue'
 import TextBlockSF       from './storefront/TextBlock.vue'
 import ImageBlockSF      from './storefront/ImageBlock.vue'
 import IconBoxSF         from './storefront/IconBox.vue'
@@ -81,6 +82,7 @@ const SKIP_TYPES = new Set(['SiteHeader', 'SiteFooter'])
 const componentMap: Record<string, unknown> = {
   Container:        ContainerSF,
   Columns:          ColumnsSF,
+  ParallaxSection:  ParallaxSectionSF,
   TextBlock:        TextBlockSF,
   ImageBlock:       ImageBlockSF,
   IconBox:          IconBoxSF,
@@ -157,8 +159,8 @@ function renderBlock(item: PuckItem, zones: Record<string, PuckItem[]>): ReturnT
   const itemId = item.props.id as string | undefined
   let slots: Record<string, () => ReturnType<typeof h>[]> | undefined
 
-  if (item.type === 'Container' && itemId) {
-    // DropZone name in Container.tsx is "content"
+  if ((item.type === 'Container' || item.type === 'ParallaxSection') && itemId) {
+    // DropZone name in Container.tsx / ParallaxSection.tsx is "content"
     const zoneItems = zones[`${itemId}:content`] ?? []
     slots = { default: () => zoneItems.map(child => renderBlock(child, zones)) }
   } else if (item.type === 'Columns' && itemId) {
