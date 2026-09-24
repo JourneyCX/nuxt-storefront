@@ -14,6 +14,7 @@ const props = defineProps<{
   backgroundImage?: string
   overlayOpacity?: number
   cardColor?: string
+  headingColor?: string
   textColor?: string
   labelColor?: string
   primaryButtonText?: string
@@ -24,6 +25,7 @@ const accent = computed(() => props.accentColor || '#2563eb')
 const bg = computed(() => props.backgroundColor || '#f8fafc')
 const cardBg = computed(() => props.cardColor || '#ffffff')
 const text = computed(() => props.textColor || '#1e293b')
+const heading = computed(() => props.headingColor || '#1e293b')
 const label = computed(() => props.labelColor || '#64748b')
 const cs = computed(() => props.cardStyle || 'card')
 const hasImage = computed(() => !!props.backgroundImage)
@@ -81,9 +83,9 @@ const barUnits = computed(() => [
        digits), so it stays narrow enough to sit inside a Columns dropzone
        instead of a full-width hero section. Mirrors studio-app's BarTimer. -->
   <component :is="primaryButtonUrl ? 'a' : 'div'" v-if="cs === 'bar'" :href="primaryButtonUrl || undefined" :style="{ textDecoration:'none', display:'block' }">
-    <div :style="{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px', backgroundColor:bg, color:text, padding:'14px 24px' }">
-      <span v-if="headline" :style="{ fontSize:'15px', fontWeight:600 }">{{ headline }}</span>
-      <div :style="{ display:'flex', alignItems:'center', gap:'16px' }">
+    <div :style="{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px', backgroundColor:bg, padding:'14px 24px' }">
+      <span v-if="headline" :style="{ fontSize:'15px', fontWeight:600, color:heading }">{{ headline }}</span>
+      <div :style="{ display:'flex', alignItems:'center', gap:'16px', color:text }">
         <span v-if="done && endMessage" :style="{ fontSize:'14px', fontWeight:700, color:accent }">{{ endMessage }}</span>
         <div v-else :style="{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', fontWeight:600, fontVariantNumeric:'tabular-nums', flexWrap:'wrap' }">
           <span v-for="(u, i) in barUnits" :key="u.key" :style="{ display:'flex', alignItems:'center', gap:'8px' }">
@@ -114,8 +116,8 @@ const barUnits = computed(() => [
            narrow screens instead of staying fixed at 36px — the countdown
            digits/separator below stay fixed, they're short and narrow
            regardless of viewport width. -->
-      <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:text, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
-      <p v-if="subheadline" :style="{ color:text, opacity:0.65, fontSize:'18px', margin:'0 0 48px', lineHeight:1.65 }">{{ subheadline }}</p>
+      <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:heading, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
+      <p v-if="subheadline" :style="{ color:heading, opacity:0.65, fontSize:'18px', margin:'0 0 48px', lineHeight:1.65 }">{{ subheadline }}</p>
 
       <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">
         <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
