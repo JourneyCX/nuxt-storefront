@@ -13,7 +13,7 @@ const props = defineProps<{
   primaryButtonColor?: string
   secondaryButtonText?: string
   secondaryButtonUrl?: string
-  textAlign?: 'left' | 'center'
+  textAlign?: 'left' | 'center' | 'left-bottom' | 'center-bottom'
   // Accepted for schema parity with studio-app's VideoBackground.tsx and with stored
   // puck_json — not yet wired to actual mute control (the <video> below is
   // unconditionally muted), same as the editor's current behaviour.
@@ -35,6 +35,12 @@ function hexToRgb(hex: string) {
 const ytId = computed(() => props.videoType === 'youtube' && props.videoUrl ? getYouTubeId(props.videoUrl) : '')
 const hasMp4 = computed(() => props.videoType === 'mp4' && !!props.videoUrl)
 const hasYt  = computed(() => props.videoType === 'youtube' && !!ytId.value)
+
+// textAlign carries both horizontal ('left'/'center') and vertical ('-bottom' suffix)
+// positioning, so it isn't a valid raw CSS text-align value on its own — derive both axes.
+const isBottom = computed(() => props.textAlign === 'left-bottom' || props.textAlign === 'center-bottom')
+const isLeft   = computed(() => props.textAlign === 'left' || props.textAlign === 'left-bottom')
+const hAlign   = computed(() => (isLeft.value ? 'left' : 'center'))
 </script>
 
 <template>
@@ -43,8 +49,8 @@ const hasYt  = computed(() => props.videoType === 'youtube' && !!ytId.value)
     minHeight: `${minHeight ?? 560}px`,
     overflow: 'hidden',
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: textAlign === 'left' ? 'flex-start' : 'center',
+    alignItems: isBottom ? 'flex-end' : 'center',
+    justifyContent: isLeft ? 'flex-start' : 'center',
     backgroundColor: '#0f172a',
   }">
     <!-- MP4 video -->
@@ -67,13 +73,13 @@ const hasYt  = computed(() => props.videoType === 'youtube' && !!ytId.value)
     <div :style="{ position: 'absolute', inset: 0, backgroundColor: `rgba(${hexToRgb(overlayColor || '#000000')},${(overlayOpacity ?? 50) / 100})` }" />
 
     <!-- Content -->
-    <div :style="{ position: 'relative', zIndex: 2, maxWidth: textAlign === 'left' ? '580px' : '700px', padding: '64px 40px', textAlign: textAlign || 'center' }">
+    <div :style="{ position: 'relative', zIndex: 2, maxWidth: isLeft ? '580px' : '700px', padding: '64px 40px', textAlign: hAlign }">
       <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
            narrow screens instead of staying fixed at 52px — replaces the
            previous one-off inline clamp() with the shared token. -->
       <h1 v-if="headline" class="sb-text-fluid-lg" style="color:#fff;font-weight:800;margin:0 0 20px;line-height:1.1;">{{ headline }}</h1>
       <p v-if="subheadline" style="color:rgba(255,255,255,0.82);font-size:19px;margin:0 0 40px;line-height:1.65;">{{ subheadline }}</p>
-      <div :style="{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: textAlign === 'left' ? 'flex-start' : 'center' }">
+      <div :style="{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: isLeft ? 'flex-start' : 'center' }">
         <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#fff', color: (primaryButtonColor === '#ffffff' || primaryButtonColor === '#fff') ? '#1e293b' : '#fff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '16px' }">
           {{ primaryButtonText }}
         </a>
