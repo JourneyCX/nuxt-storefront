@@ -31,6 +31,7 @@ import HeroBannerSF      from './storefront/HeroBanner.vue'
 import HeroSliderSF      from './storefront/HeroSlider.vue'
 import PromoBannerGridSF from './storefront/PromoBannerGrid.vue'
 import LogoStripSF       from './storefront/LogoStrip.vue'
+import CircleCategoryListSF from './storefront/CircleCategoryList.vue'
 import HeroSectionSF     from './storefront/HeroSection.vue'
 import ProductGridSF     from './storefront/ProductGrid.vue'
 import ProductCardSF     from './storefront/ProductCard.vue'
@@ -94,6 +95,7 @@ const componentMap: Record<string, unknown> = {
   HeroSlider:       HeroSliderSF,
   PromoBannerGrid:  PromoBannerGridSF,
   LogoStrip:        LogoStripSF,
+  CircleCategoryList: CircleCategoryListSF,
   HeroSection:      HeroSectionSF,
   ProductGrid:      ProductGridSF,
   ProductCard:      ProductCardSF,
