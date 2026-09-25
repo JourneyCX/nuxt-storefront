@@ -17,6 +17,9 @@ type Slide = {
   backgroundPosition?: string
   headlineFontSize?: number
   subheadlineFontSize?: number
+  // Empty/absent keeps the theme's default body font — see the matching
+  // comment in studio-app's HeroSlider.tsx.
+  fontFamily?: string
   // Distance (px) between the text block and the button — see the matching
   // comment in studio-app's HeroSlider.tsx.
   buttonGap?: number
@@ -133,11 +136,11 @@ function stopProp(e: Event) { e.stopPropagation() }
           v-if="slide.headline"
           class="sb-text-fluid-lg"
           style="color:#fff;font-weight:800;margin:0 0 18px;line-height:1.12;text-shadow:0 2px 8px rgba(0,0,0,0.4)"
-          :style="slide.headlineFontSize ? { fontSize: `${slide.headlineFontSize}px` } : {}"
+          :style="{ ...(slide.fontFamily ? { fontFamily: slide.fontFamily } : {}), ...(slide.headlineFontSize ? { fontSize: `${slide.headlineFontSize}px` } : {}) }"
         >{{ slide.headline }}</h1>
         <p
           v-if="slide.subheadline"
-          :style="{ color:'rgba(255,255,255,0.88)', fontSize: `${slide.subheadlineFontSize || 20}px`, margin: isPositioned ? '0' : `0 0 ${buttonGap}px`, lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)' }"
+          :style="{ color:'rgba(255,255,255,0.88)', fontSize: `${slide.subheadlineFontSize || 20}px`, margin: isPositioned ? '0' : `0 0 ${buttonGap}px`, lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)', ...(slide.fontFamily ? { fontFamily: slide.fontFamily } : {}) }"
         >{{ slide.subheadline }}</p>
 
         <!-- Positioned buttons (top/bottom-*) are absolute against this div,
