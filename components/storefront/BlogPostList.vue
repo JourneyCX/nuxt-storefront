@@ -31,6 +31,9 @@ const props = withDefaults(defineProps<{
   // and must keep rendering its hand-typed `posts` prop exactly as before
   // (see the `?? 'manual'` fallback below), matching studio-app's own note.
   postsSource?: 'manual' | 'auto'
+  // Restricts Auto mode to one Store Blog category slug — '' or absent means
+  // "all categories". Matches studio-app's BlogPostList.tsx categorySlug field.
+  categorySlug?: string
   backgroundColor?: string
   textColor?: string
   accentColor?: string
@@ -77,10 +80,16 @@ const effectiveCount = computed(() => props.rowsToShow
 const requestFetch = useRequestFetch()
 // No effectiveCount -> omit the limit param entirely so the backend's own default
 // (20, see Store_builder_api::blog_posts()) applies instead of an artificial cap.
+// No categorySlug -> omit the category param entirely, returning all categories.
 const { data: liveData, pending: liveLoading, error: liveError } = await useAsyncData<import('~/server/utils/stratum').BlogPostSummary[]>(
   `blog-posts-auto-${useId()}`,
-  () => requestFetch(typeof effectiveCount.value === 'number' ? `/api/blog?limit=${effectiveCount.value}` : '/api/blog'),
-  { server: true, immediate: isAuto.value }
+  () => requestFetch('/api/blog', {
+    query: {
+      limit: typeof effectiveCount.value === 'number' ? effectiveCount.value : undefined,
+      category: props.categorySlug || undefined,
+    },
+  }),
+  { server: true, immediate: isAuto.value, watch: [() => props.categorySlug] }
 )
 
 // Keeps theme-preview context flowing into individual post links -- see

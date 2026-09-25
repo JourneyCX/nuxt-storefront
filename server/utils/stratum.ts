@@ -373,11 +373,12 @@ export interface BlogPostSummary {
 export async function fetchBlogPosts(
   stratumUrl: string,
   tenantId: number,
-  limit?: number
+  limit?: number,
+  categorySlug?: string
 ): Promise<BlogPostSummary[]> {
   return $fetch<{ data: BlogPostSummary[] }>(
     `${stratumUrl}/admin/store_builder_api/blog_posts`,
-    { query: { tenantId, limit } }
+    { query: { tenantId, limit, category: categorySlug || undefined } }
   ).then(r => r.data).catch(() => [])
 }
 
