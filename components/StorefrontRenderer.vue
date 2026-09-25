@@ -38,6 +38,7 @@ import ProductDetailSF   from './storefront/ProductDetail.vue'
 import ProductTabsSF     from './storefront/ProductTabs.vue'
 import RelatedProductsSF from './storefront/RelatedProducts.vue'
 import ProductCarouselSF from './storefront/ProductCarousel.vue'
+import CollectionCarouselSF from './storefront/CollectionCarousel.vue'
 import CollectionListSF  from './storefront/CollectionList.vue'
 import CollectionDetailSF from './storefront/CollectionDetail.vue'
 import FeatureGridSF     from './storefront/FeatureGrid.vue'
@@ -99,6 +100,7 @@ const componentMap: Record<string, unknown> = {
   ProductTabs:      ProductTabsSF,
   RelatedProducts:  RelatedProductsSF,
   ProductCarousel:  ProductCarouselSF,
+  CollectionCarousel: CollectionCarouselSF,
   CollectionList:   CollectionListSF,
   CollectionDetail: CollectionDetailSF,
   FeatureGrid:      FeatureGridSF,
