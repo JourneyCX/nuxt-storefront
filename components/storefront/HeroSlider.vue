@@ -22,6 +22,10 @@ type Slide = {
   fontFamily?: string
   headlineColor?: string
   subheadlineColor?: string
+  // Caps the text column's width so headlines wrap sooner instead of
+  // running out over an image — see the matching comment in studio-app's
+  // HeroSlider.tsx.
+  textMaxWidth?: number
   // Distance (px) between the text block and the button — see the matching
   // comment in studio-app's HeroSlider.tsx.
   buttonGap?: number
@@ -131,7 +135,7 @@ function stopProp(e: Event) { e.stopPropagation() }
       padding:'60px 48px',
       textAlign: align as any,
     }">
-      <div style="max-width:700px; position:relative">
+      <div :style="{ maxWidth: `${slide.textMaxWidth || 700}px`, minWidth: 0, position: 'relative' }">
         <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
              narrow screens instead of staying fixed at 52px. -->
         <h1
