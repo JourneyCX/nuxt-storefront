@@ -1,5 +1,6 @@
 import { createWcClient } from '~/server/utils/woocommerce'
 import { fetchWooCredentials, fetchPublishedCollection } from '~/server/utils/stratum'
+import { getRawQuery } from '~/server/utils/http-compat'
 
 // Proxies Store_builder_api::published_collection() for meta + productIds,
 // then resolves full WcProduct data for those ids directly via WC (no CI3
@@ -7,11 +8,13 @@ import { fetchWooCredentials, fetchPublishedCollection } from '~/server/utils/st
 // preview uses; the live storefront already talks to WC itself for
 // everything else, so it does the same here). orderby: 'include' preserves
 // the merchant's manual product ordering within the collection.
+// getRawQuery(), NOT h3's own getQuery() -- see index.get.ts's identical
+// comment for why (confirmed live 2026-09-26, ERR_INVALID_URL).
 export default defineEventHandler(async (event) => {
   const config      = useRuntimeConfig()
   const tenantId    = event.context.tenantId as number
   const slug        = getRouterParam(event, 'slug')!
-  const query       = getQuery(event)
+  const query       = getRawQuery(event)
   const previewTheme = typeof query.previewTheme === 'string' ? query.previewTheme : undefined
 
   const collection = await fetchPublishedCollection(config.stratumInternalUrl, tenantId, slug, previewTheme)
