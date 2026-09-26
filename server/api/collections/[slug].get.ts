@@ -8,11 +8,13 @@ import { fetchWooCredentials, fetchPublishedCollection } from '~/server/utils/st
 // everything else, so it does the same here). orderby: 'include' preserves
 // the merchant's manual product ordering within the collection.
 export default defineEventHandler(async (event) => {
-  const config   = useRuntimeConfig()
-  const tenantId = event.context.tenantId as number
-  const slug     = getRouterParam(event, 'slug')!
+  const config      = useRuntimeConfig()
+  const tenantId    = event.context.tenantId as number
+  const slug        = getRouterParam(event, 'slug')!
+  const query       = getQuery(event)
+  const previewTheme = typeof query.previewTheme === 'string' ? query.previewTheme : undefined
 
-  const collection = await fetchPublishedCollection(config.stratumInternalUrl, tenantId, slug)
+  const collection = await fetchPublishedCollection(config.stratumInternalUrl, tenantId, slug, previewTheme)
   if (!collection) {
     throw createError({ statusCode: 404, statusMessage: `Collection "${slug}" not found.` })
   }

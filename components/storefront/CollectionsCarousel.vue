@@ -38,13 +38,19 @@ function hue(index: number) {
   return `hsl(${index * 60}, 25%, 88%)`
 }
 
+// Theme context forwarded through so a theme-linked collection only shows
+// under its own theme — see CollectionList.vue's identical comment
+// (usePreviewThemeQuery(), not a bare route.query.previewTheme read, so this
+// also works on the dedicated /preview/{theme}/{page} route).
+const { previewTheme } = usePreviewThemeQuery()
+
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
 
 const { data: collections, pending } = await useAsyncData<PublishedCollectionSummary[]>(
   'carousel-collections',
-  () => requestFetch('/api/collections'),
+  () => requestFetch('/api/collections', { query: { previewTheme: previewTheme.value ?? undefined } }),
   { default: () => [] as PublishedCollectionSummary[] }
 )
 

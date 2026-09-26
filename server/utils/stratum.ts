@@ -182,13 +182,26 @@ export interface PublishedCollectionDetail {
   productIds: number[]
 }
 
+// previewTheme: the raw ?previewTheme= route value (digit id or slug,
+// theme-PREVIEW mode only — see /preview/[theme]/[page].vue and the
+// ?previewTheme= override on /product/[slug] + /blog/[slug]). Undefined on
+// the real live storefront, where Store_builder_api::published_collections()
+// resolves the tenant's own active theme itself — see its
+// _resolve_context_theme_id() for why a collection linked to a theme is
+// filtered out of every OTHER theme's Collection List / detail page.
+function _themeContextQuery(previewTheme?: string): Record<string, string> {
+  if (!previewTheme) return {}
+  return /^\d+$/.test(previewTheme) ? { themeId: previewTheme } : { slug: previewTheme }
+}
+
 export async function fetchPublishedCollections(
   stratumUrl: string,
-  tenantId: number
+  tenantId: number,
+  previewTheme?: string
 ): Promise<PublishedCollectionSummary[]> {
   const data = await $fetch<{ collections: Array<{ id: number; name: string; slug: string; description: string | null; image_url: string | null; page_slug: string | null; item_count: number }> }>(
     `${stratumUrl}/admin/store_builder_api/published_collections`,
-    { query: { tenantId } }
+    { query: { tenantId, ..._themeContextQuery(previewTheme) } }
   ).catch(() => null)
   return (data?.collections ?? []).map(c => ({
     id: c.id, name: c.name, slug: c.slug, description: c.description,
@@ -199,11 +212,20 @@ export async function fetchPublishedCollections(
 export async function fetchPublishedCollection(
   stratumUrl: string,
   tenantId: number,
-  slug: string
+  slug: string,
+  previewTheme?: string
 ): Promise<PublishedCollectionDetail | null> {
+  // published_collection()'s own `slug` query key is the COLLECTION's slug
+  // (the `slug` param above), so a theme-slug context has to use a
+  // differently-named key here — `previewThemeSlug`, not `slug`.
+  const themeQuery = _themeContextQuery(previewTheme)
+  if (themeQuery.slug) {
+    themeQuery.previewThemeSlug = themeQuery.slug
+    delete themeQuery.slug
+  }
   const data = await $fetch<{ collection: { id: number; name: string; slug: string; description: string | null; image_url: string | null; page_slug: string | null; product_ids: number[] } }>(
     `${stratumUrl}/admin/store_builder_api/published_collection`,
-    { query: { tenantId, slug } }
+    { query: { tenantId, slug, ...themeQuery } }
   ).catch(() => null)
   if (!data?.collection) return null
   const c = data.collection

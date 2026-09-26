@@ -25,12 +25,22 @@ function hue(index: number) {
 
 const isLive = computed(() => (props.mode ?? 'manual') === 'live')
 
+// Theme context forwarded through to /api/collections so a theme-linked
+// collection (see the "belongs to a theme" v32 migration) is only shown
+// under the theme it's actually linked to. usePreviewThemeQuery() (not a
+// bare route.query.previewTheme read) so this also works when rendered
+// INSIDE the dedicated /preview/{theme}/{page} route, which carries the
+// identifier as a :theme route param, not a query string — see that
+// composable's own comment. undefined on the real live storefront, where
+// the backend resolves the tenant's own active theme itself.
+const { previewTheme } = usePreviewThemeQuery()
+
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
 const { data: liveCollections, pending, error } = await useAsyncData<PublishedCollectionSummary[]>(
   'collection-list',
-  () => isLive.value ? requestFetch('/api/collections') : Promise.resolve([]),
+  () => isLive.value ? requestFetch('/api/collections', { query: { previewTheme: previewTheme.value ?? undefined } }) : Promise.resolve([]),
   { default: () => [], watch: [isLive] }
 )
 </script>

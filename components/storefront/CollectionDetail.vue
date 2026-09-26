@@ -18,13 +18,16 @@ const props = withDefaults(defineProps<{
 const requestFetch = useRequestFetch()
 
 // Keeps theme-preview context flowing into individual product links -- see
-// composables/usePreviewThemeQuery.ts.
-const { suffix: previewSuffix } = usePreviewThemeQuery()
+// composables/usePreviewThemeQuery.ts. previewTheme itself is also forwarded
+// on the fetch below so a collection linked to a DIFFERENT theme 404s here
+// too (published_collection()'s own theme-scope check — see
+// Store_builder_api::_resolve_context_theme_id()).
+const { previewTheme, suffix: previewSuffix } = usePreviewThemeQuery()
 
 const { data, pending, error } = await useAsyncData<{ collection: PublishedCollectionDetail; products: WcProduct[] } | null>(
   `collection-detail-${props.collectionSlug}`,
   () => props.collectionSlug
-    ? requestFetch(`/api/collections/${props.collectionSlug}`).catch(() => null)
+    ? requestFetch(`/api/collections/${props.collectionSlug}`, { query: { previewTheme: previewTheme.value ?? undefined } }).catch(() => null)
     : Promise.resolve(null),
   { default: () => null, watch: [() => props.collectionSlug] }
 )
