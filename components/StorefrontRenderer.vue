@@ -52,6 +52,7 @@ import NewsletterSignupSF  from './storefront/NewsletterSignup.vue'
 import TeamSectionSF       from './storefront/TeamSection.vue'
 import BeforeAfterSliderSF from './storefront/BeforeAfterSlider.vue'
 import CountdownTimerSF    from './storefront/CountdownTimer.vue'
+import ScrollingTextSF     from './storefront/ScrollingText.vue'
 import PricingTableSF    from './storefront/PricingTable.vue'
 import VideoBackgroundSF from './storefront/VideoBackground.vue'
 import ImageGallerySF    from './storefront/ImageGallery.vue'
@@ -116,6 +117,7 @@ const componentMap: Record<string, unknown> = {
   TeamSection:      TeamSectionSF,
   BeforeAfterSlider: BeforeAfterSliderSF,
   CountdownTimer:   CountdownTimerSF,
+  ScrollingText:    ScrollingTextSF,
   PricingTable:     PricingTableSF,
   VideoBackground:  VideoBackgroundSF,
   ImageGallery:     ImageGallerySF,
