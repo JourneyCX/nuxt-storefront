@@ -73,7 +73,7 @@ const navFontSize = computed(() => props.settings.footerNavFontSize || 13)
           >
           <div v-if="settings.businessName" :style="{ fontSize:'18px', fontWeight:700, color: settings.footerTextColor||'#a0aec0' }">{{ settings.businessName }}</div>
           <div v-if="settings.tagline" style="font-size:13px;opacity:0.85;margin-top:6px">{{ settings.tagline }}</div>
-          <div v-if="settings.description" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6;max-width:280px;text-align:justify">{{ settings.description }}</div>
+          <div v-if="settings.description" :style="{ fontSize:'13px', opacity:0.85, marginTop:'10px', lineHeight:1.6, maxWidth:'280px', textAlign: settings.descriptionAlign === 'left' ? 'left' : 'justify' }">{{ settings.description }}</div>
           <div v-if="hasContact" style="font-size:13px;opacity:0.85;margin-top:10px;line-height:1.6">
             <div v-if="settings.contactAddress">{{ settings.contactAddress }}</div>
             <div v-if="settings.contactPhone">{{ settings.contactPhone }}</div>

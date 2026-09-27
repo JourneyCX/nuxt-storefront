@@ -19,7 +19,7 @@ export async function useSiteSettings(tenantId: Ref<number>) {
 
   const s = computed<SiteSettings>(() => ({
     logoUrl: null, logoAlt: null, logoText: null, faviconUrl: null,
-    businessName: 'Your Store', tagline: null, description: null,
+    businessName: 'Your Store', tagline: null, description: null, descriptionAlign: 'justify',
     contactPhone: null, contactEmail: null, contactAddress: null,
     socialLinks: [], navLinks: [],
     headerBackgroundColor: '#ffffff', headerTextColor: '#1a202c', headerAccentColor: '#1a202c',

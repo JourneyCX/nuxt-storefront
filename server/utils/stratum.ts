@@ -38,6 +38,10 @@ export interface SiteSettings {
   businessName: string | null
   tagline: string | null
   description: string | null
+  // Text alignment for the footer brand block's Description paragraph only —
+  // 'justify' (default, matches every existing tenant's rendering before this
+  // setting existed) or 'left'. Kept in sync with studio-app's siteSettings.ts.
+  descriptionAlign: 'justify' | 'left'
   // Not rendered by this phase — kept in sync with studio-app's SiteSettings type
   // per this file's own convention. Consumed server-side by the Storefront AI
   // Assistant chat endpoint on the Stratum backend, not by the storefront itself.
