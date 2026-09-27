@@ -8,6 +8,8 @@
 const props = withDefaults(defineProps<{
   items?: { text: string }[]
   separator?: string
+  separatorImage?: string
+  separatorImageSize?: number
   fontFamily?: string
   fontSize?: number
   fontWeight?: string
@@ -34,6 +36,8 @@ const props = withDefaults(defineProps<{
 }>(), {
   items: () => [],
   separator: '',
+  separatorImage: '',
+  separatorImageSize: 70,
   fontFamily: '',
   fontSize: 140,
   fontWeight: '800',
@@ -82,7 +86,9 @@ function responsiveFontSize(px: number) {
   return `max(28px, min(${size}px, ${(size / 14.4).toFixed(3)}vw))`
 }
 
-const isImage = computed(() => props.backgroundType === 'image')
+// Image shows whenever one is set — backgroundType is legacy, ignored
+// (see studio-app's ScrollingText.tsx).
+const isImage = computed(() => !!props.backgroundImage)
 const duration = computed(() => (seqWidth.value > 0 ? seqWidth.value / (props.speed > 0 ? props.speed : 80) : 30))
 
 const outerStyle = computed(() => ({
@@ -93,7 +99,7 @@ const outerStyle = computed(() => ({
   display: 'flex',
   flexDirection: 'column' as const,
   justifyContent: props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center',
-  backgroundColor: isImage.value ? '#1e293b' : (props.backgroundColor || 'transparent'),
+  backgroundColor: props.backgroundColor || (isImage.value ? '#1e293b' : 'transparent'),
 }))
 
 const trackStyle = computed(() => ({
@@ -135,7 +141,7 @@ onMounted(() => {
   document.fonts?.ready.then(measure).catch(() => {})
 })
 
-watch(() => [list.value.join('\u0000'), props.separator, props.fontFamily, props.fontSize, props.fontWeight, props.uppercase, props.letterSpacing], () => nextTick(measure))
+watch(() => [list.value.join('\u0000'), props.separator, props.separatorImage, props.separatorImageSize, props.fontFamily, props.fontSize, props.fontWeight, props.uppercase, props.letterSpacing], () => nextTick(measure))
 
 onUnmounted(() => { ro?.disconnect() })
 </script>
@@ -163,7 +169,13 @@ onUnmounted(() => { ro?.disconnect() })
         >
           <span v-for="(t, i) in list" :key="i" style="display: inline-flex; align-items: center">
             <span style="padding-right: 0.4em">{{ t }}</span>
-            <span v-if="separator" style="padding-right: 0.4em">{{ separator }}</span>
+            <img
+              v-if="separatorImage"
+              :src="separatorImage"
+              alt=""
+              :style="{ height: `${(separatorImageSize > 0 ? separatorImageSize : 70) / 100}em`, width: 'auto', marginRight: '0.4em', display: 'block', flexShrink: 0 }"
+            >
+            <span v-else-if="separator" style="padding-right: 0.4em">{{ separator }}</span>
           </span>
         </div>
       </div>
