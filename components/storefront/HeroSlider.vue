@@ -26,6 +26,9 @@ type Slide = {
   // running out over an image — see the matching comment in studio-app's
   // HeroSlider.tsx.
   textMaxWidth?: number
+  // Narrows just the subheadline's wrap width — see the matching comment in
+  // studio-app's HeroSlider.tsx.
+  subheadlineMaxWidth?: number
   // Distance (px) between the text block and the button — see the matching
   // comment in studio-app's HeroSlider.tsx.
   buttonGap?: number
@@ -146,7 +149,7 @@ function stopProp(e: Event) { e.stopPropagation() }
         >{{ slide.headline }}</h1>
         <p
           v-if="slide.subheadline"
-          :style="{ color: slide.subheadlineColor || 'rgba(255,255,255,0.88)', fontSize: `${slide.subheadlineFontSize || 20}px`, margin: isPositioned ? '0' : `0 0 ${buttonGap}px`, lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)', ...(slide.fontFamily ? { fontFamily: slide.fontFamily } : {}) }"
+          :style="{ color: slide.subheadlineColor || 'rgba(255,255,255,0.88)', fontSize: `${slide.subheadlineFontSize || 20}px`, margin: isPositioned ? '0' : `0 0 ${buttonGap}px`, lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)', ...(slide.fontFamily ? { fontFamily: slide.fontFamily } : {}), ...(slide.subheadlineMaxWidth ? { maxWidth: `${slide.subheadlineMaxWidth}px` } : {}) }"
         >{{ slide.subheadline }}</p>
 
         <!-- Positioned buttons (top/bottom-*) are absolute against this div,
