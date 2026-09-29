@@ -21,6 +21,9 @@ const props = defineProps<{
   digitsOffsetY?: number
   primaryButtonText?: string
   primaryButtonUrl?: string
+  // Internal only: set by ParallaxCountdown.vue, which supplies its own
+  // section padding/background, so the timer drops its 72px padding.
+  embedded?: boolean
 }>()
 
 const accent = computed(() => props.accentColor || '#2563eb')
@@ -110,7 +113,7 @@ const barUnits = computed(() => [
       backgroundImage: hasImage ? `url(${props.backgroundImage})` : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      padding: '72px 24px',
+      padding: props.embedded ? 0 : '72px 24px',
       textAlign: 'center',
     }"
   >
