@@ -37,6 +37,7 @@ import ProductGridSF     from './storefront/ProductGrid.vue'
 import ProductCardSF     from './storefront/ProductCard.vue'
 import ProductDetailSF   from './storefront/ProductDetail.vue'
 import ProductTabsSF     from './storefront/ProductTabs.vue'
+import ProductAccordionSF from './storefront/ProductAccordion.vue'
 import RelatedProductsSF from './storefront/RelatedProducts.vue'
 import ProductCarouselSF from './storefront/ProductCarousel.vue'
 import CollectionCarouselSF from './storefront/CollectionCarousel.vue'
@@ -103,6 +104,7 @@ const componentMap: Record<string, unknown> = {
   ProductCard:      ProductCardSF,
   ProductDetail:    ProductDetailSF,
   ProductTabs:      ProductTabsSF,
+  ProductAccordion: ProductAccordionSF,
   RelatedProducts:  RelatedProductsSF,
   ProductCarousel:  ProductCarouselSF,
   CollectionCarousel: CollectionCarouselSF,
