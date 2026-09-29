@@ -25,6 +25,11 @@ const props = defineProps<{
   contentAlign?: 'top' | 'center' | 'bottom'
   contentMaxWidth?: number
   forceAnimation?: boolean
+  // Not ParallaxSection fields (defaults keep its behaviour identical) — set
+  // by ParallaxCountdown.vue. See ParallaxSection.tsx LayerOptions.
+  contentHorizontalAlign?: 'left' | 'center' | 'right' | 'split'
+  backgroundFit?: 'cover' | 'contain'
+  sectionBackgroundColor?: string
 }>()
 
 const MAX_SHIFT_PX = 80
@@ -45,12 +50,30 @@ function hexToRgb(hex: string) {
 }
 
 function backgroundFillStyle(image?: string) {
+  const color = props.sectionBackgroundColor
   return {
-    backgroundImage: image ? `url(${image})` : 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)',
-    backgroundSize: 'cover',
+    backgroundColor: color || undefined,
+    backgroundImage: image ? `url(${image})` : color ? undefined : 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)',
+    backgroundSize: props.backgroundFit || 'cover',
+    backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center',
   }
 }
+
+// Mirrors ParallaxSection.tsx contentBoxStyle(): centre keeps the original
+// column; left/right push it to that side, split spans the full max width,
+// both with a wider viewport-scaled gutter.
+const contentBoxStyle = computed(() => {
+  const align = props.contentHorizontalAlign || 'center'
+  return {
+    position: 'relative' as const,
+    zIndex: 2,
+    width: '100%',
+    maxWidth: `${props.contentMaxWidth ?? 800}px`,
+    margin: align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto',
+    padding: align === 'center' ? '64px 24px' : '64px clamp(24px, 6vw, 96px)',
+  }
+})
 
 // Drift mode only — Sticky mode always centres its travelling image.
 function midgroundAnchorStyle(position: MidgroundPosition, width: number) {
@@ -148,7 +171,7 @@ onUnmounted(() => {
     }">
       <div :style="{ position: 'absolute', inset: 0, ...backgroundFillStyle(backgroundImage) }" />
       <div :style="{ position: 'absolute', inset: 0, backgroundColor: `rgba(${hexToRgb(overlayColor)},${(overlayOpacity ?? 30) / 100})` }" />
-      <div :style="{ position: 'relative', zIndex: 2, width: '100%', maxWidth: `${contentMaxWidth ?? 800}px`, margin: '0 auto', padding: '64px 24px' }">
+      <div :style="contentBoxStyle">
         <slot />
       </div>
     </div>
@@ -177,7 +200,7 @@ onUnmounted(() => {
     <div ref="bgLayerEl" :style="{ position: 'absolute', top: `-${MAX_SHIFT_PX}px`, bottom: `-${MAX_SHIFT_PX}px`, left: 0, right: 0, willChange: 'transform', ...backgroundFillStyle(backgroundImage) }" />
     <img v-if="hasMidground" ref="midLayerEl" :src="midgroundImage" alt="" :style="midgroundAnchorStyle(midgroundPosition ?? 'center', midgroundWidth ?? 300)" />
     <div :style="{ position: 'absolute', inset: 0, backgroundColor: `rgba(${hexToRgb(overlayColor)},${(overlayOpacity ?? 30) / 100})` }" />
-    <div :style="{ position: 'relative', zIndex: 2, width: '100%', maxWidth: `${contentMaxWidth ?? 800}px`, margin: '0 auto', padding: '64px 24px' }">
+    <div :style="contentBoxStyle">
       <slot />
     </div>
   </div>

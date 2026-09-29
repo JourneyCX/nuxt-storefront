@@ -9,7 +9,7 @@ import CountdownTimer from './CountdownTimer.vue'
 
 type MidgroundPosition = 'center' | 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   // Countdown
   targetDate?: string
   headline?: string
@@ -44,7 +44,16 @@ const props = defineProps<{
   contentAlign?: 'top' | 'center' | 'bottom'
   contentMaxWidth?: number
   forceAnimation?: boolean
-}>()
+  // Layout extras
+  countdownPosition?: 'left' | 'center' | 'right' | 'split'
+  showSeparators?: boolean
+  backgroundFit?: 'cover' | 'contain'
+  sectionBackgroundColor?: string
+}>(), {
+  // Vue casts absent booleans to false — blocks saved before this option
+  // existed must keep their separators.
+  showSeparators: true,
+})
 
 const parallaxProps = computed(() => ({
   scrollMode: props.scrollMode,
@@ -61,6 +70,9 @@ const parallaxProps = computed(() => ({
   contentAlign: props.contentAlign,
   contentMaxWidth: props.contentMaxWidth,
   forceAnimation: props.forceAnimation,
+  contentHorizontalAlign: props.countdownPosition || 'center',
+  backgroundFit: props.backgroundFit || 'cover',
+  sectionBackgroundColor: props.sectionBackgroundColor,
 }))
 
 const timerProps = computed(() => ({
@@ -85,6 +97,8 @@ const timerProps = computed(() => ({
   backgroundColor: 'transparent',
   backgroundImage: '',
   embedded: true,
+  align: props.countdownPosition || 'center',
+  showSeparators: props.showSeparators,
 }))
 </script>
 

@@ -24,6 +24,11 @@ const props = defineProps<{
   // Internal only: set by ParallaxCountdown.vue, which supplies its own
   // section padding/background, so the timer drops its 72px padding.
   embedded?: boolean
+  // Internal only (ParallaxCountdown): 'left'/'right' align the stack,
+  // 'split' puts text left and digits right of one row.
+  align?: 'left' | 'center' | 'right' | 'split'
+  // Internal only (ParallaxCountdown): false hides the ":" between boxes.
+  showSeparators?: boolean
 }>()
 
 const accent = computed(() => props.accentColor || '#2563eb')
@@ -37,6 +42,12 @@ const hasImage = computed(() => !!props.backgroundImage)
 const overlay = computed(() => (props.overlayOpacity ?? 55) / 100)
 const scale = computed(() => (props.digitScale || 100) / 100)
 const px = (base: number) => Math.round(base * scale.value)
+const align = computed(() => props.align || 'center')
+// Boolean props are cast to false when absent, so the plain Countdown Timer
+// (which never passes this) is told explicitly via the embedded flag.
+const separators = computed(() => !props.embedded || props.showSeparators !== false)
+const stackJustify = computed(() => align.value === 'left' ? 'flex-start' : align.value === 'right' ? 'flex-end' : 'center')
+const stackMargin = computed(() => align.value === 'left' ? '0 auto 0 0' : align.value === 'right' ? '0 0 0 auto' : '0 auto')
 
 function getTimeLeft() {
   const diff = new Date(props.targetDate || '').getTime() - Date.now()
@@ -114,11 +125,41 @@ const barUnits = computed(() => [
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       padding: props.embedded ? 0 : '72px 24px',
-      textAlign: 'center',
+      textAlign: align === 'split' ? 'left' : align,
     }"
   >
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlay})` }" />
-    <div :style="{ position:'relative', zIndex:1, maxWidth:'800px', margin:'0 auto' }">
+    <!-- Split row: text left, digits right, space between for a midground
+         image to pass through. Wraps to a stacked column on narrow screens. -->
+    <div v-if="align === 'split'" :style="{ position:'relative', zIndex:1, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'24px' }">
+      <div :style="{ flex:'0 1 auto', maxWidth:'520px' }">
+        <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:heading, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
+        <p v-if="subheadline" :style="{ color:heading, opacity:0.65, fontSize:'18px', margin:0, lineHeight:1.65 }">{{ subheadline }}</p>
+        <div v-if="primaryButtonText" :style="{ marginTop:'24px' }">
+          <a :href="primaryButtonUrl||'#'" :style="{ display:'inline-block', backgroundColor:accent, color:'#fff', padding:'14px 40px', borderRadius:'8px', textDecoration:'none', fontWeight:700, fontSize:'16px' }">{{ primaryButtonText }}</a>
+        </div>
+      </div>
+      <div :style="{ flex:'0 0 auto', marginTop: `${props.digitsOffsetY || 0}px` }">
+        <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">
+          <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
+        </div>
+        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:`${px(12)}px`, flexWrap:'wrap' }">
+          <template v-for="(u, i) in units" :key="u.key">
+            <div :style="{ display:'flex', flexDirection:'column', alignItems:'center', gap:`${px(8)}px` }">
+              <div :style="unitStyle()">
+                <div :style="{ fontSize:`${px(52)}px`, fontWeight:800, lineHeight:1, color:numColor(), fontVariantNumeric:'tabular-nums', textShadow:numShadow(), letterSpacing:'-2px' }">
+                  {{ pad(time[u.key]) }}
+                </div>
+              </div>
+              <span :style="{ fontSize:`${px(12)}px`, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:label }">{{ u.lbl }}</span>
+            </div>
+            <div v-if="separators && i < units.length - 1" :style="{ display:'flex', flexDirection:'column', gap:`${px(12)}px`, paddingBottom:`${px(28)}px`, color:text, opacity:0.5, fontSize:`${px(32)}px`, fontWeight:800 }">:</div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div v-else :style="{ position:'relative', zIndex:1, maxWidth:'800px', margin:stackMargin }">
       <!-- sb-text-fluid-md (assets/css/responsive.css) scales this down on
            narrow screens instead of staying fixed at 36px — the countdown
            digits/separator below stay fixed, they're short and narrow
@@ -131,7 +172,7 @@ const barUnits = computed(() => [
           <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
         </div>
 
-        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:'center', gap:`${px(12)}px`, flexWrap:'wrap' }">
+        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:stackJustify, gap:`${px(12)}px`, flexWrap:'wrap' }">
           <template v-for="(u, i) in units" :key="u.key">
             <div :style="{ display:'flex', flexDirection:'column', alignItems:'center', gap:`${px(8)}px` }">
               <div :style="unitStyle()">
@@ -141,7 +182,7 @@ const barUnits = computed(() => [
               </div>
               <span :style="{ fontSize:`${px(12)}px`, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:label }">{{ u.lbl }}</span>
             </div>
-            <div v-if="i < units.length - 1" :style="{ display:'flex', flexDirection:'column', gap:`${px(12)}px`, paddingBottom:`${px(28)}px`, color:text, opacity:0.5, fontSize:`${px(32)}px`, fontWeight:800 }">:</div>
+            <div v-if="separators && i < units.length - 1" :style="{ display:'flex', flexDirection:'column', gap:`${px(12)}px`, paddingBottom:`${px(28)}px`, color:text, opacity:0.5, fontSize:`${px(32)}px`, fontWeight:800 }">:</div>
           </template>
         </div>
       </div>
