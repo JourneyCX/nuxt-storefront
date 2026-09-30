@@ -47,6 +47,8 @@ const props = withDefaults(defineProps<{
   // Layout extras
   countdownPosition?: 'left' | 'center' | 'right' | 'split'
   headlinePosition?: 'left' | 'center' | 'right'
+  headlineVertical?: 'top' | 'center' | 'bottom'
+  timerVertical?: 'top' | 'center' | 'bottom'
   showSeparators?: boolean
   backgroundFit?: 'cover' | 'contain'
   sectionBackgroundColor?: string
@@ -60,6 +62,10 @@ const props = withDefaults(defineProps<{
 // headline follows the timer when unset; different sides → full-width row.
 const timerPos = computed(() => props.countdownPosition === 'split' ? 'right' : (props.countdownPosition || 'center'))
 const headlinePos = computed(() => props.headlinePosition ?? (props.countdownPosition === 'split' ? 'left' : timerPos.value))
+// Unset (older blocks) = the section-wide contentAlign, as before.
+const headlineV = computed(() => props.headlineVertical ?? props.contentAlign ?? 'center')
+const timerV = computed(() => props.timerVertical ?? props.contentAlign ?? 'center')
+const gridMode = computed(() => headlinePos.value !== timerPos.value || headlineV.value !== timerV.value)
 
 const parallaxProps = computed(() => ({
   scrollMode: props.scrollMode,
@@ -76,7 +82,7 @@ const parallaxProps = computed(() => ({
   contentAlign: props.contentAlign,
   contentMaxWidth: props.contentMaxWidth,
   forceAnimation: props.forceAnimation,
-  contentHorizontalAlign: headlinePos.value === timerPos.value ? timerPos.value : 'split',
+  contentHorizontalAlign: gridMode.value ? 'split' : timerPos.value,
   backgroundFit: props.backgroundFit || 'cover',
   sectionBackgroundColor: props.sectionBackgroundColor,
 }))
@@ -105,6 +111,8 @@ const timerProps = computed(() => ({
   embedded: true,
   align: timerPos.value,
   headlineAlign: headlinePos.value,
+  headlineVAlign: headlineV.value,
+  timerVAlign: timerV.value,
   showSeparators: props.showSeparators,
 }))
 </script>

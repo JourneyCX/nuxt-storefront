@@ -70,6 +70,9 @@ const contentBoxStyle = computed(() => {
     zIndex: 2,
     width: '100%',
     maxWidth: align === 'split' ? 'none' : `${props.contentMaxWidth ?? 800}px`,
+    // Split also stretches to the full section height so a child can place
+    // things top/bottom (parent is a single-line flex container).
+    ...(align === 'split' ? { alignSelf: 'stretch', display: 'flex', flexDirection: 'column' as const } : {}),
     margin: align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto',
     padding: align === 'center' ? '64px 24px' : '64px clamp(24px, 6vw, 96px)',
   }

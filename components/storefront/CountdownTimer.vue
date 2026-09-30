@@ -30,6 +30,10 @@ const props = defineProps<{
   align?: 'left' | 'center' | 'right' | 'split'
   // Internal only (ParallaxCountdown): Headline Position. Undefined = follow.
   headlineAlign?: 'left' | 'center' | 'right'
+  // Internal only (ParallaxCountdown): vertical positions, undefined = centre.
+  // Any difference from the timer switches to the full-section 3×3 grid.
+  headlineVAlign?: 'top' | 'center' | 'bottom'
+  timerVAlign?: 'top' | 'center' | 'bottom'
   // Internal only (ParallaxCountdown): false hides the ":" between boxes.
   showSeparators?: boolean
 }>()
@@ -51,6 +55,12 @@ const H_SELF: Record<HAlign, string> = { left: 'flex-start', center: 'center', r
 const align = computed(() => props.align || 'center')
 const digitsPos = computed<HAlign>(() => align.value === 'split' ? 'right' : align.value)
 const textPos = computed<HAlign>(() => props.headlineAlign ?? (align.value === 'split' ? 'left' : align.value))
+type VAlign = 'top' | 'center' | 'bottom'
+const V_ROW: Record<VAlign, number> = { top: 1, center: 2, bottom: 3 }
+const V_SELF: Record<VAlign, string> = { top: 'start', center: 'center', bottom: 'end' }
+const textV = computed<VAlign>(() => props.headlineVAlign || 'center')
+const digitsV = computed<VAlign>(() => props.timerVAlign || 'center')
+const gridMode = computed(() => textPos.value !== digitsPos.value || textV.value !== digitsV.value)
 // Boolean props are cast to false when absent, so the plain Countdown Timer
 // (which never passes this) is told explicitly via the embedded flag.
 const separators = computed(() => !props.embedded || props.showSeparators !== false)
@@ -133,22 +143,24 @@ const barUnits = computed(() => [
       backgroundPosition: 'center',
       padding: props.embedded ? 0 : '72px 24px',
       textAlign: textPos,
+      ...(gridMode ? { display: 'flex', flexDirection: 'column', flex: '1 1 auto' } : {}),
     }"
   >
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlay})` }" />
     <!-- Headline and digits on different sides: one row, three columns
          (left / centre / right) so each sits in its own column and the unused
          middle stays clear for a midground image. Stacks on narrow screens
-         (.cd-row media query below), each keeping its alignment. -->
-    <div v-if="textPos !== digitsPos" class="cd-row" :style="{ position:'relative', zIndex:1, display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', alignItems:'center', gap:'24px 32px' }">
-      <div :style="{ gridColumn:H_COLUMN[textPos], gridRow:1, justifySelf:H_SELF[textPos], textAlign:textPos, maxWidth:'520px' }">
+         (.cd-row media query below), each keeping its alignment. Mirrors
+         CountdownTimer.tsx: columns left/centre/right, rows top/centre/bottom. -->
+    <div v-if="gridMode" class="cd-row" :style="{ position:'relative', zIndex:1, flex:'1 1 auto', display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', gridTemplateRows:'auto 1fr auto', gap:'24px 32px' }">
+      <div :style="{ gridColumn:H_COLUMN[textPos], gridRow:V_ROW[textV], justifySelf:H_SELF[textPos], alignSelf:V_SELF[textV], textAlign:textPos, maxWidth:'520px' }">
         <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:heading, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color:heading, opacity:0.65, fontSize:'18px', margin:0, lineHeight:1.65 }">{{ subheadline }}</p>
         <div v-if="primaryButtonText" :style="{ marginTop:'24px' }">
           <a :href="primaryButtonUrl||'#'" :style="{ display:'inline-block', backgroundColor:accent, color:'#fff', padding:'14px 40px', borderRadius:'8px', textDecoration:'none', fontWeight:700, fontSize:'16px' }">{{ primaryButtonText }}</a>
         </div>
       </div>
-      <div :style="{ gridColumn:H_COLUMN[digitsPos], gridRow:1, justifySelf:H_SELF[digitsPos], marginTop: `${props.digitsOffsetY || 0}px` }">
+      <div :style="{ gridColumn:H_COLUMN[digitsPos], gridRow:V_ROW[digitsV], justifySelf:H_SELF[digitsPos], alignSelf:V_SELF[digitsV], marginTop: `${props.digitsOffsetY || 0}px` }">
         <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">
           <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
         </div>
@@ -205,7 +217,7 @@ const barUnits = computed(() => [
 
 <style>
 @media (max-width: 767px) {
-  .cd-row { grid-template-columns: 1fr !important; }
+  .cd-row { grid-template-columns: 1fr !important; grid-template-rows: auto !important; flex: none !important; }
   .cd-row > * { grid-column: 1 !important; grid-row: auto !important; }
 }
 </style>
