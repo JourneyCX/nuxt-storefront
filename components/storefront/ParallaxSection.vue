@@ -61,15 +61,15 @@ function backgroundFillStyle(image?: string) {
 }
 
 // Mirrors ParallaxSection.tsx contentBoxStyle(): centre keeps the original
-// column; left/right push it to that side, split spans the full max width,
-// both with a wider viewport-scaled gutter.
+// column; left/right push it to that side, split spans the full section
+// (ignores maxWidth), both with a wider viewport-scaled gutter.
 const contentBoxStyle = computed(() => {
   const align = props.contentHorizontalAlign || 'center'
   return {
     position: 'relative' as const,
     zIndex: 2,
     width: '100%',
-    maxWidth: `${props.contentMaxWidth ?? 800}px`,
+    maxWidth: align === 'split' ? 'none' : `${props.contentMaxWidth ?? 800}px`,
     margin: align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto',
     padding: align === 'center' ? '64px 24px' : '64px clamp(24px, 6vw, 96px)',
   }
