@@ -46,6 +46,7 @@ const props = withDefaults(defineProps<{
   forceAnimation?: boolean
   // Layout extras
   countdownPosition?: 'left' | 'center' | 'right' | 'split'
+  headlinePosition?: 'left' | 'center' | 'right'
   showSeparators?: boolean
   backgroundFit?: 'cover' | 'contain'
   sectionBackgroundColor?: string
@@ -54,6 +55,11 @@ const props = withDefaults(defineProps<{
   // existed must keep their separators.
   showSeparators: true,
 })
+
+// Mirrors ParallaxCountdown.tsx: legacy 'split' = headline left, timer right;
+// headline follows the timer when unset; different sides → full-width row.
+const timerPos = computed(() => props.countdownPosition === 'split' ? 'right' : (props.countdownPosition || 'center'))
+const headlinePos = computed(() => props.headlinePosition ?? (props.countdownPosition === 'split' ? 'left' : timerPos.value))
 
 const parallaxProps = computed(() => ({
   scrollMode: props.scrollMode,
@@ -70,7 +76,7 @@ const parallaxProps = computed(() => ({
   contentAlign: props.contentAlign,
   contentMaxWidth: props.contentMaxWidth,
   forceAnimation: props.forceAnimation,
-  contentHorizontalAlign: props.countdownPosition || 'center',
+  contentHorizontalAlign: headlinePos.value === timerPos.value ? timerPos.value : 'split',
   backgroundFit: props.backgroundFit || 'cover',
   sectionBackgroundColor: props.sectionBackgroundColor,
 }))
@@ -97,7 +103,8 @@ const timerProps = computed(() => ({
   backgroundColor: 'transparent',
   backgroundImage: '',
   embedded: true,
-  align: props.countdownPosition || 'center',
+  align: timerPos.value,
+  headlineAlign: headlinePos.value,
   showSeparators: props.showSeparators,
 }))
 </script>

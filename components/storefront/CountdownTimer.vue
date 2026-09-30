@@ -24,9 +24,12 @@ const props = defineProps<{
   // Internal only: set by ParallaxCountdown.vue, which supplies its own
   // section padding/background, so the timer drops its 72px padding.
   embedded?: boolean
-  // Internal only (ParallaxCountdown): 'left'/'right' align the stack,
-  // 'split' puts text left and digits right of one row.
+  // Internal only (ParallaxCountdown): Timer Position — aligns the digits
+  // (and the headline too unless headlineAlign differs). 'split' is the
+  // legacy value = headline left, digits right. Mirrors CountdownTimer.tsx.
   align?: 'left' | 'center' | 'right' | 'split'
+  // Internal only (ParallaxCountdown): Headline Position. Undefined = follow.
+  headlineAlign?: 'left' | 'center' | 'right'
   // Internal only (ParallaxCountdown): false hides the ":" between boxes.
   showSeparators?: boolean
 }>()
@@ -42,12 +45,16 @@ const hasImage = computed(() => !!props.backgroundImage)
 const overlay = computed(() => (props.overlayOpacity ?? 55) / 100)
 const scale = computed(() => (props.digitScale || 100) / 100)
 const px = (base: number) => Math.round(base * scale.value)
+type HAlign = 'left' | 'center' | 'right'
+const H_COLUMN: Record<HAlign, number> = { left: 1, center: 2, right: 3 }
+const H_SELF: Record<HAlign, string> = { left: 'flex-start', center: 'center', right: 'flex-end' }
 const align = computed(() => props.align || 'center')
+const digitsPos = computed<HAlign>(() => align.value === 'split' ? 'right' : align.value)
+const textPos = computed<HAlign>(() => props.headlineAlign ?? (align.value === 'split' ? 'left' : align.value))
 // Boolean props are cast to false when absent, so the plain Countdown Timer
 // (which never passes this) is told explicitly via the embedded flag.
 const separators = computed(() => !props.embedded || props.showSeparators !== false)
-const stackJustify = computed(() => align.value === 'left' ? 'flex-start' : align.value === 'right' ? 'flex-end' : 'center')
-const stackMargin = computed(() => align.value === 'left' ? '0 auto 0 0' : align.value === 'right' ? '0 0 0 auto' : '0 auto')
+const stackMargin = computed(() => digitsPos.value === 'left' ? '0 auto 0 0' : digitsPos.value === 'right' ? '0 0 0 auto' : '0 auto')
 
 function getTimeLeft() {
   const diff = new Date(props.targetDate || '').getTime() - Date.now()
@@ -125,25 +132,27 @@ const barUnits = computed(() => [
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       padding: props.embedded ? 0 : '72px 24px',
-      textAlign: align === 'split' ? 'left' : align,
+      textAlign: textPos,
     }"
   >
     <div v-if="hasImage" :style="{ position:'absolute', inset:0, backgroundColor:`rgba(0,0,0,${overlay})` }" />
-    <!-- Split row: text left, digits right, space between for a midground
-         image to pass through. Wraps to a stacked column on narrow screens. -->
-    <div v-if="align === 'split'" :style="{ position:'relative', zIndex:1, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'24px' }">
-      <div :style="{ flex:'0 1 auto', maxWidth:'520px' }">
+    <!-- Headline and digits on different sides: one row, three columns
+         (left / centre / right) so each sits in its own column and the unused
+         middle stays clear for a midground image. Stacks on narrow screens
+         (.cd-row media query below), each keeping its alignment. -->
+    <div v-if="textPos !== digitsPos" class="cd-row" :style="{ position:'relative', zIndex:1, display:'grid', gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)', alignItems:'center', gap:'24px 32px' }">
+      <div :style="{ gridColumn:H_COLUMN[textPos], gridRow:1, justifySelf:H_SELF[textPos], textAlign:textPos, maxWidth:'520px' }">
         <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color:heading, fontWeight:800, margin:'0 0 14px' }">{{ headline }}</h2>
         <p v-if="subheadline" :style="{ color:heading, opacity:0.65, fontSize:'18px', margin:0, lineHeight:1.65 }">{{ subheadline }}</p>
         <div v-if="primaryButtonText" :style="{ marginTop:'24px' }">
           <a :href="primaryButtonUrl||'#'" :style="{ display:'inline-block', backgroundColor:accent, color:'#fff', padding:'14px 40px', borderRadius:'8px', textDecoration:'none', fontWeight:700, fontSize:'16px' }">{{ primaryButtonText }}</a>
         </div>
       </div>
-      <div :style="{ flex:'0 0 auto', marginTop: `${props.digitsOffsetY || 0}px` }">
+      <div :style="{ gridColumn:H_COLUMN[digitsPos], gridRow:1, justifySelf:H_SELF[digitsPos], marginTop: `${props.digitsOffsetY || 0}px` }">
         <div v-if="done && endMessage" :style="{ padding:'32px 48px', backgroundColor:accent, borderRadius:'16px', display:'inline-block' }">
           <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
         </div>
-        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:`${px(12)}px`, flexWrap:'wrap' }">
+        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:H_SELF[digitsPos], gap:`${px(12)}px`, flexWrap:'wrap' }">
           <template v-for="(u, i) in units" :key="u.key">
             <div :style="{ display:'flex', flexDirection:'column', alignItems:'center', gap:`${px(8)}px` }">
               <div :style="unitStyle()">
@@ -172,7 +181,7 @@ const barUnits = computed(() => [
           <p :style="{ color:'#fff', fontSize:'26px', fontWeight:800, margin:0 }">{{ endMessage }}</p>
         </div>
 
-        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:stackJustify, gap:`${px(12)}px`, flexWrap:'wrap' }">
+        <div v-else :style="{ display:'flex', alignItems:'center', justifyContent:H_SELF[digitsPos], gap:`${px(12)}px`, flexWrap:'wrap' }">
           <template v-for="(u, i) in units" :key="u.key">
             <div :style="{ display:'flex', flexDirection:'column', alignItems:'center', gap:`${px(8)}px` }">
               <div :style="unitStyle()">
@@ -193,3 +202,10 @@ const barUnits = computed(() => [
     </div>
   </section>
 </template>
+
+<style>
+@media (max-width: 767px) {
+  .cd-row { grid-template-columns: 1fr !important; }
+  .cd-row > * { grid-column: 1 !important; grid-row: auto !important; }
+}
+</style>
