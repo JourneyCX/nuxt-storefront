@@ -64,6 +64,20 @@ const priceVal  = ref(maxP.value)
 
 watch(maxP, v => { priceVal.value = v })
 
+// Pushes the current selection into the URL's `category`/`max_price`/`sort` query
+// params, which is how ProductGrid (an independent sibling Puck block, with no
+// direct prop/event channel to this one) picks up the filter -- see
+// ProductGrid.vue's effectiveCategory/effectiveMaxPrice/effectiveSort. router.replace,
+// not push, so dragging the price slider doesn't spam browser history.
+const router = useRouter()
+const route  = useRoute()
+
+// Sort value is "<orderby>-<order>" (matches WooCommerce REST's own orderby/order
+// params, see ProductGrid.vue's effectiveOrderby/effectiveOrder) or '' for the
+// default/Featured ordering. Initialised from the URL so a page reload or a
+// shared link keeps the shopper's chosen sort.
+const sortVal = ref((route.query.sort as string) || '')
+
 function toggleCat(i: number) {
   if (checkedCats.value.includes(i)) {
     checkedCats.value = checkedCats.value.filter(c => c !== i)
@@ -71,14 +85,6 @@ function toggleCat(i: number) {
     checkedCats.value = [...checkedCats.value, i]
   }
 }
-
-// Pushes the current selection into the URL's `category`/`max_price` query
-// params, which is how ProductGrid (an independent sibling Puck block, with no
-// direct prop/event channel to this one) picks up the filter -- see
-// ProductGrid.vue's effectiveCategory/effectiveMaxPrice. router.replace, not
-// push, so dragging the price slider doesn't spam browser history.
-const router = useRouter()
-const route  = useRoute()
 
 function syncQuery() {
   const q: Record<string, any> = { ...route.query }
@@ -94,6 +100,11 @@ function syncQuery() {
   } else {
     delete q.max_price
   }
+  if (props.showSortBy !== false && sortVal.value) {
+    q.sort = sortVal.value
+  } else {
+    delete q.sort
+  }
   router.replace({ query: q })
 }
 
@@ -105,6 +116,7 @@ function syncQueryDebounced() {
 
 watch(checkedCats, syncQuery)
 watch(priceVal, syncQueryDebounced)
+watch(sortVal, syncQuery)
 
 const inputBase = computed(() => ({
   width: '100%',
@@ -154,12 +166,12 @@ const inputBase = computed(() => ({
 
     <!-- Sort by -->
     <div v-if="showSortBy !== false" :style="{ marginBottom:'16px' }">
-      <select :style="inputBase">
-        <option>Sort: Featured</option>
-        <option>Price: Low to High</option>
-        <option>Price: High to Low</option>
-        <option>Newest Arrivals</option>
-        <option>Best Selling</option>
+      <select v-model="sortVal" :style="inputBase">
+        <option value="">Sort: Featured</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+        <option value="date-desc">Newest Arrivals</option>
+        <option value="popularity-desc">Best Selling</option>
       </select>
     </div>
 
@@ -239,10 +251,10 @@ const inputBase = computed(() => ({
         <span :style="{ color:text, fontSize:'13px', fontWeight:600, whiteSpace:'nowrap' }">Up to {{ cur }}{{ priceVal }}</span>
         <input type="range" :min="minP" :max="maxP" v-model.number="priceVal" :style="{ width:'100px', accentColor: accent, cursor:'pointer' }" />
       </div>
-      <select v-if="showSortBy !== false" :style="{ ...inputBase, width:'auto', paddingRight:'32px' }">
-        <option>Sort: Featured</option>
-        <option>Price: Low to High</option>
-        <option>Newest</option>
+      <select v-if="showSortBy !== false" v-model="sortVal" :style="{ ...inputBase, width:'auto', paddingRight:'32px' }">
+        <option value="">Sort: Featured</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="date-desc">Newest</option>
       </select>
     </div>
   </div>

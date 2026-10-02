@@ -7,6 +7,10 @@ type LogoItem = {
 
 const props = defineProps<{
   headline?: string
+  headlineFont?: string
+  headlineColor?: string
+  headlineSize?: number
+  headlineAlign?: string
   logos?: LogoItem[]
   logoHeight?: number
   logoSpacing?: number
@@ -40,7 +44,7 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
     <div :style="{ maxWidth:'1200px', margin:'0 auto' }">
       <p
         v-if="headline"
-        :style="{ textAlign:'center', fontSize:'13px', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color:'#94a3b8', margin:'0 0 24px' }"
+        :style="{ textAlign: headlineAlign || 'center', fontFamily: headlineFont || undefined, fontSize:`${headlineSize || 13}px`, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color: headlineColor || '#94a3b8', margin:'0 0 24px' }"
       >{{ headline }}</p>
 
       <div :style="{

@@ -21,11 +21,19 @@ const props = withDefaults(defineProps<{
   readMoreText?: string
   ctaText?: string
   ctaUrl?: string
+  // Legacy raw count — no longer set by the studio-app panel (superseded by rowsToShow),
+  // kept only as a fallback for pages saved while it was the only control.
   postCount?: number
+  // Number of grid rows to display (each row holding `columns` posts), or 0 for "All" —
+  // see effectiveCount below. Matches studio-app's BlogPostList.tsx rowsToShow field.
+  rowsToShow?: number
   // Additive — a page saved before this existed has no postsSource key at all
   // and must keep rendering its hand-typed `posts` prop exactly as before
   // (see the `?? 'manual'` fallback below), matching studio-app's own note.
   postsSource?: 'manual' | 'auto'
+  // Restricts Auto mode to one Store Blog category slug — '' or absent means
+  // "all categories". Matches studio-app's BlogPostList.tsx categorySlug field.
+  categorySlug?: string
   backgroundColor?: string
   textColor?: string
   accentColor?: string
@@ -59,16 +67,34 @@ function formatPostDate(published_at: string | null): string {
 
 const isAuto = computed(() => (props.postsSource ?? 'manual') === 'auto')
 
+// rowsToShow (0 = "All") drives the count as `rows * columns`; a page saved before
+// rowsToShow existed falls back to its own postCount, then to showing everything.
+const effectiveCount = computed(() => props.rowsToShow
+  ? props.rowsToShow * (props.columns || 3)
+  : (typeof props.postCount === 'number' ? props.postCount : undefined))
+
 // Server-side relative $fetch does not carry the original request's Host
 // header, so the tenant-resolution middleware can't identify the store on
 // this internal call — same fix already applied to pages/blog/[slug].vue
 // and pages/product/[slug].vue.
 const requestFetch = useRequestFetch()
+// No effectiveCount -> omit the limit param entirely so the backend's own default
+// (20, see Store_builder_api::blog_posts()) applies instead of an artificial cap.
+// No categorySlug -> omit the category param entirely, returning all categories.
 const { data: liveData, pending: liveLoading, error: liveError } = await useAsyncData<import('~/server/utils/stratum').BlogPostSummary[]>(
   `blog-posts-auto-${useId()}`,
-  () => requestFetch(`/api/blog?limit=${props.postCount ?? 3}`),
-  { server: true, immediate: isAuto.value }
+  () => requestFetch('/api/blog', {
+    query: {
+      limit: typeof effectiveCount.value === 'number' ? effectiveCount.value : undefined,
+      category: props.categorySlug || undefined,
+    },
+  }),
+  { server: true, immediate: isAuto.value, watch: [() => props.categorySlug] }
 )
+
+// Keeps theme-preview context flowing into individual post links -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
 
 const livePosts = computed<Post[]>(() => (liveData.value ?? []).map(p => ({
   title: p.title,
@@ -77,15 +103,15 @@ const livePosts = computed<Post[]>(() => (liveData.value ?? []).map(p => ({
   date: formatPostDate(p.published_at),
   category: p.categories[0]?.name ?? '',
   author: p.author,
-  url: p.url,
+  url: `${p.url}${previewSuffix.value}`,
 })))
 
 const displayPosts = computed(() => {
   if (isAuto.value) {
-    return typeof props.postCount === 'number' ? livePosts.value.slice(0, props.postCount) : livePosts.value
+    return typeof effectiveCount.value === 'number' ? livePosts.value.slice(0, effectiveCount.value) : livePosts.value
   }
   const base = props.posts?.length ? props.posts : FALLBACK_POSTS
-  return typeof props.postCount === 'number' ? base.slice(0, props.postCount) : base
+  return typeof effectiveCount.value === 'number' ? base.slice(0, effectiveCount.value) : base
 })
 
 const isList = computed(() => props.layout === 'list')
@@ -140,7 +166,9 @@ const isFeatured = computed(() => props.layout === 'featured')
           </div>
         </article>
         <div v-if="displayPosts.length > 1" style="display:flex;flex-direction:column;gap:16px;">
-          <article v-for="(post, i) in displayPosts.slice(1, 4)" :key="i" :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', border: '1px solid #f1f5f9' }">
+          <!-- Grid Columns doubles as "how many posts in the featured sidebar" here —
+               the featured layout has no other use for that field. -->
+          <article v-for="(post, i) in displayPosts.slice(1, 1 + (columns || 3))" :key="i" :style="{ backgroundColor: cardColor || '#fff', borderRadius: `${borderRadius ?? 12}px`, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', border: '1px solid #f1f5f9' }">
             <!-- min(200px, 30vw) keeps this thumbnail from forcing horizontal
                  overflow in the flex row on a narrow phone -->
             <div style="width:min(200px, 30vw);flex-shrink:0;">

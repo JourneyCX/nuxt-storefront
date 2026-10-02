@@ -28,6 +28,11 @@ function cardStyle(i: number) {
     boxShadow: isBoxed ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
   }
 }
+
+const ICON_IMAGE_PATTERN = /^(https?:\/\/|\/|data:image)/
+function isIconImage(icon: string) {
+  return ICON_IMAGE_PATTERN.test(icon)
+}
 </script>
 
 <template>
@@ -40,7 +45,8 @@ function cardStyle(i: number) {
       <!-- sb-grid collapses this to 1 column on mobile / 2 on tablet regardless of the merchant's chosen column count -->
       <div class="sb-grid" :style="{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '24px' }">
         <div v-for="(item, i) in (items || [])" :key="i" :style="cardStyle(i)">
-          <div v-if="item.icon" :style="{ fontSize: '36px', marginBottom: '16px', color: accent }">{{ item.icon }}</div>
+          <img v-if="item.icon && isIconImage(item.icon)" :src="item.icon" alt="" :style="{ width: '36px', height: '36px', marginBottom: '16px', objectFit: 'contain' }" />
+          <div v-else-if="item.icon" :style="{ fontSize: '36px', marginBottom: '16px', color: accent }">{{ item.icon }}</div>
           <h3 :style="{ color: text, fontSize: '20px', fontWeight: 700, margin: '0 0 10px' }">{{ item.title }}</h3>
           <p :style="{ color: text, opacity: 0.7, fontSize: '15px', margin: 0, lineHeight: 1.65 }">{{ item.description }}</p>
         </div>

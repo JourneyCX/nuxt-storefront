@@ -1,81 +1,92 @@
 <script setup lang="ts">
-import type { BlogPost } from '~/server/utils/stratum'
+// Renders the tenant's theme-driven "blog_post" template (via
+// StorefrontRenderer + storefront/BlogPostDetail.vue, which reads the real
+// post from this same route's slug) when one is configured, falling back to
+// the standard, unchanged DefaultBlogPostDetail.vue otherwise. v-if means
+// only one of the two ever actually runs its own data-fetching script setup —
+// not both.
+//
+// ?previewTheme=X (Store Theme Manager "View Demo") — same override pattern
+// as pages/product/[slug].vue; see that file's own comment for why this
+// route (not /preview/[themeId]) handles blog_post-type previews.
+import type { PuckPageData, PreviewPageData, ThemeCss } from '~/server/utils/stratum'
 
-const route = useRoute()
-const slug  = route.params.slug as string
+const tenantId = useState<number>('sb_tenantId', () => {
+  const ev = useRequestEvent()
+  return (ev?.context?.tenantId as number) ?? 0
+})
 
-// Server-side relative $fetch does not carry the original request's Host
-// header, so the tenant-resolution middleware (server/middleware/tenant.ts)
-// can't identify the store on this internal call and the post silently
-// 404s for every tenant. useRequestFetch() forwards the incoming request's
-// headers to internal SSR fetches; plain $fetch does not. Same fix already
-// applied to pages/product/[slug].vue.
+const route  = useRoute()
+// Same-origin fetch to this app's own /api/** -- see
+// pages/product/[slug].vue's identical comment; config.stratumInternalUrl is
+// server-only and resolves to undefined if this code runs client-side.
 const requestFetch = useRequestFetch()
 
-const { data: post, error } = await useAsyncData<BlogPost>(
-  `blog-post-${slug}`,
-  () => requestFetch(`/api/blog/${slug}`),
+// ?previewTheme= carries EITHER a theme's numeric id (older/internal links)
+// OR its public slug (links built from the public "/themes" gallery, or
+// forwarded here by ThemePreviewBar from a slug-addressed /preview/{slug}
+// session) -- same dual-identifier contract as pages/preview/[theme].vue.
+const previewThemeRaw  = computed(() => (route.query.previewTheme as string) || '')
+const previewThemeIsOn = computed(() => !!previewThemeRaw.value)
+const previewThemeId   = computed(() => (/^\d+$/.test(previewThemeRaw.value) ? Number(previewThemeRaw.value) : 0))
+const previewThemeRef  = computed(() => (previewThemeId.value ? { themeId: previewThemeId.value } : { slug: previewThemeRaw.value }))
+
+const { data: normalPage } = await useAsyncData<PuckPageData | null>(
+  `blog-post-theme-${tenantId.value}`,
+  () => previewThemeIsOn.value ? Promise.resolve(null) : requestFetch('/api/published-page', { query: { tenantId: tenantId.value, slug: 'blog_post' } }).catch(() => null),
   { server: true }
 )
 
-if (error.value || !post.value) {
-  throw createError({ statusCode: 404, statusMessage: `Post "${slug}" not found.` })
-}
+const { data: previewData } = await useAsyncData<PreviewPageData | null>(
+  `blog-post-preview-${previewThemeRaw.value}`,
+  () => previewThemeIsOn.value ? requestFetch('/api/preview/page', { query: { ...previewThemeRef.value, pageType: 'blog_post' } }).catch(() => null) : Promise.resolve(null),
+  { server: true }
+)
 
-useHead({
-  title: post.value.seo.title,
-  meta: [
-    { name: 'description', content: post.value.seo.meta_description },
-    ...(post.value.seo.og_image ? [{ property: 'og:image', content: post.value.seo.og_image }] : []),
-  ],
-})
+const { data: themeCss } = await useAsyncData<ThemeCss | null>(
+  `blog-post-preview-css-${previewThemeRaw.value}`,
+  () => previewThemeIsOn.value ? requestFetch('/api/preview/css', { query: { ...previewThemeRef.value } }).catch(() => null) : Promise.resolve(null),
+  { server: true }
+)
 
-const formattedDate = computed(() => {
-  if (!post.value?.published_at) return null
-  return new Date(post.value.published_at.replace(' ', 'T')).toLocaleDateString('en-ZA', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  })
+useHead(() => ({
+  link: themeCss.value?.google_fonts_url ? [{ rel: 'stylesheet', href: themeCss.value.google_fonts_url }] : [],
+  style: themeCss.value?.css ? [{ innerHTML: themeCss.value.css, key: 'sb-theme-tokens' }] : [],
+  meta: previewThemeIsOn.value ? [{ name: 'robots', content: 'noindex, nofollow' }] : [],
+}))
+
+const puckJson = computed(() => {
+  if (previewThemeIsOn.value) {
+    return previewData.value?.success ? previewData.value.puckJson : null
+  }
+  return normalPage.value?.puckJson ?? null
 })
 </script>
 
 <template>
-  <div style="max-width:840px;margin:0 auto;padding:48px 24px">
-    <!-- Breadcrumb -->
-    <nav style="font-size:13px;color:#718096;margin-bottom:32px">
-      <a href="/" style="color:#3182ce;text-decoration:none">Home</a>
-      <span style="margin:0 8px">›</span>
-      <a href="/blog" style="color:#3182ce;text-decoration:none">Blog</a>
-      <span style="margin:0 8px">›</span>
-      <span>{{ post!.title }}</span>
-    </nav>
-
-    <span
-      v-if="post!.categories.length"
-      style="display:inline-block;background-color:#2563eb18;color:#2563eb;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px"
-    >
-      {{ post!.categories[0].name }}
-    </span>
-
-    <h1 style="margin:0 0 16px;font-size:32px;font-weight:800;color:#1a202c;line-height:1.25">
-      {{ post!.title }}
-    </h1>
-
-    <div style="display:flex;gap:14px;flex-wrap:wrap;color:#718096;font-size:13px;margin-bottom:32px">
-      <span v-if="formattedDate">{{ formattedDate }}</span>
-      <span v-if="post!.author">{{ post!.author }}</span>
-    </div>
-
-    <div v-if="post!.featured_image" style="border-radius:12px;overflow:hidden;background:#f7f8fa;margin-bottom:32px">
-      <img :src="post!.featured_image" :alt="post!.title" style="width:100%;height:auto;display:block" />
-    </div>
-
-    <div
-      style="font-size:16px;color:#2d3748;line-height:1.75"
-      v-html="post!.body"
+  <div>
+    <ThemePreviewBar
+      v-if="previewThemeIsOn && previewData"
+      :theme-id="previewThemeId"
+      :theme-slug="previewData.themeSlug"
+      :theme-name="previewData.themeName"
+      :slots="previewData.slots"
+      current-page-type="blog_post"
+      :demo-blog-slug="(route.params.slug as string)"
     />
-
-    <nav style="margin-top:48px;padding-top:24px;border-top:1px solid #e2e8f0">
-      <a href="/blog" style="color:#3182ce;text-decoration:none;font-size:14px;font-weight:600">← Back to Blog</a>
-    </nav>
+    <StorefrontRenderer v-if="puckJson" :puck-json="puckJson" />
+    <DefaultBlogPostDetail v-else-if="!previewThemeIsOn" />
+    <div v-else class="sb-preview-empty">
+      <p>No page has been assigned to the "blog_post" slot for this theme yet.</p>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.sb-preview-empty {
+  padding: 80px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+</style>

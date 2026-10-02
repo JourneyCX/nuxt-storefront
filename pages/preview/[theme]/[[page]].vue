@@ -1,0 +1,167 @@
+<script setup lang="ts">
+// Store Theme Manager "View Demo" — renders a theme's own slot content
+// directly (via Store_builder_api::preview_page(), bypassing sb_tenant_pages/
+// any real tenant page entirely), served from a real tenant's live domain so
+// dynamic blocks (ProductGrid, CollectionList, ...) still resolve against a
+// real WooCommerce catalog. Deliberately NOT used for the "product"/
+// "blog_post" slot types -- those render through the real /product/[slug] and
+// /blog/[slug] routes instead (?previewTheme= override), since the Puck
+// blocks assigned to those slots (ProductDetail.vue/BlogPostDetail.vue) read
+// route.params.slug directly and have no meaning without a real item's own
+// URL. See ThemePreviewBar.vue for how the nav between all of these stays
+// consistent.
+//
+// The [theme] segment accepts EITHER a theme's numeric id (internal nav,
+// admin-panel links predating the public gallery) OR its public slug (the
+// public "/themes" gallery links to these, and they're what a merchant would
+// hand-paste into WordPress or anywhere else) -- Store_builder_api's
+// preview_page()/theme_css() accept both, so no lookup is needed here beyond
+// telling a plain digit string apart from a slug.
+import type { PreviewPageData, ThemeCss } from '~/server/utils/stratum'
+import type { WcProduct } from '~/server/utils/woocommerce'
+// Explicit import, not Nuxt's directory-based auto-import (matches
+// layouts/default.vue's own reasoning for the same components).
+import SiteHeader from '~/components/storefront/SiteHeader.vue'
+import SiteFooter from '~/components/storefront/SiteFooter.vue'
+import AnnouncementBar from '~/components/storefront/AnnouncementBar.vue'
+import WhatsAppWidget from '~/components/storefront/WhatsAppWidget.vue'
+import ShopAssistantBubble from '~/components/storefront/ShopAssistantBubble.vue'
+
+// Opts out of layouts/default.vue itself (rather than just using it) because
+// that layout fetches the TENANT's currently-applied theme's CSS -- this page
+// fetches the PREVIEWED theme's CSS instead (below), and both would fight
+// over the same 'sb-theme-tokens' useHead() key. Renders the real
+// SiteHeader/SiteFooter/AnnouncementBar directly instead (same components).
+//
+// Chrome source: THEME-owned (usePreviewSiteSettings), not the tenant's own
+// (useSiteSettings) -- reversed from the 2026-09-22 "show the real tenant's
+// nav/footer during preview" decision, now that a theme can genuinely own its
+// own menu/branding (Full Theme Ownership work). Preview now shows exactly
+// what Apply Theme would actually produce for a brand-new tenant, rather than
+// a borrowed live tenant's own content, which could silently differ from the
+// theme itself. The demo tenant (80) is still used below for catalog data
+// only (real products/blog posts for ProductGrid-type blocks and the
+// Product/Blog Post nav entries) -- there's no per-theme WooCommerce store,
+// so dynamic blocks still need a real catalog behind them.
+definePageMeta({ layout: false })
+
+const route  = useRoute()
+
+// Server-side fetch to this same app's own /api/** -- NOT a direct call to
+// config.stratumInternalUrl from this page component. That value is
+// deliberately server-only (nuxt.config.ts), so it resolved during SSR but
+// came back undefined the moment this exact code re-ran client-side (a
+// ThemePreviewBar pill click triggers useAsyncData's `watch: [pageType]`
+// refetch, which runs in the browser) -- confirmed live 2026-09-23: the
+// resulting fetch to "undefined/admin/..." 404'd, which the 404 guard below
+// then threw as an uncaught client error, blanking the page. Routing
+// through /api/preview/* (server/api/preview/*.get.ts) keeps every browser
+// call same-origin, exactly like demoProduct/demoBlogPosts below already do
+// for /api/products and /api/blog.
+const requestFetch = useRequestFetch()
+
+// Still needed for catalog-only data below (real products/blog posts) --
+// dynamic blocks have no per-theme WooCommerce store, so they resolve
+// against the demo tenant's real catalog regardless of chrome source.
+const tenantId = useState<number>('sb_tenantId', () => {
+  const ev = useRequestEvent()
+  return (ev?.context?.tenantId as number) ?? 0
+})
+
+const rawTheme = computed(() => (route.params.theme as string) || '')
+const isNumeric = computed(() => /^\d+$/.test(rawTheme.value))
+const themeRef  = computed(() => (isNumeric.value ? { themeId: Number(rawTheme.value) } : { slug: rawTheme.value }))
+
+const { s } = await usePreviewSiteSettings(themeRef.value)
+// [[page]] optional catch segment (Nuxt 3 array-or-undefined shape for a
+// single optional param) is the URL-friendly form -- /preview/{slug}/collection
+// instead of /preview/{slug}?page=collection. ?page= is still read as a
+// fallback so any link built against the old shape (this shipped 2026-09-22,
+// so there may already be a handful out in the wild) keeps working rather
+// than silently 404ing or falling back to "home".
+const pageType = computed(() => {
+  const seg = route.params.page
+  const fromPath = Array.isArray(seg) ? seg[0] : seg
+  return fromPath || (route.query.page as string) || 'home'
+})
+
+if (!rawTheme.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Theme not found' })
+}
+
+const { data: page, error } = await useAsyncData<PreviewPageData | null>(
+  `preview-page-${rawTheme.value}-${pageType.value}`,
+  () => requestFetch('/api/preview/page', { query: { ...themeRef.value, pageType: pageType.value } }).catch(() => null),
+  { server: true, watch: [pageType] }
+)
+
+// A genuine 404 here means the theme reference itself doesn't resolve to a
+// real, published theme at all (the .catch(() => null) above) -- a slot that
+// simply has no template assigned still returns page.value with
+// success:false + a real slots list, handled in the template below, not here.
+if (error.value || !page.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Theme not found or not published' })
+}
+
+const { data: themeCss } = await useAsyncData<ThemeCss | null>(
+  `preview-css-${rawTheme.value}`,
+  () => requestFetch('/api/preview/css', { query: { ...themeRef.value } }).catch(() => null),
+  { server: true }
+)
+
+// Real demo item slugs for the Product/Blog Post nav entries -- see
+// ThemePreviewBar.vue.
+const { data: demoProduct } = await useAsyncData<WcProduct[]>(
+  'preview-demo-product',
+  () => requestFetch('/api/products', { query: { per_page: 1 } }),
+  { server: true }
+)
+const demoProductSlug = computed(() => demoProduct.value?.[0]?.slug ?? null)
+
+const { data: demoBlogPosts } = await useAsyncData<{ slug: string }[]>(
+  'preview-demo-blog',
+  () => requestFetch('/api/blog', { query: { limit: 1 } }).catch(() => []),
+  { server: true }
+)
+const demoBlogSlug = computed(() => demoBlogPosts.value?.[0]?.slug ?? null)
+
+useHead(() => ({
+  title: `${page.value?.themeName ?? 'Theme'} — Preview`,
+  meta: [{ name: 'robots', content: 'noindex, nofollow' }],
+  link: themeCss.value?.google_fonts_url ? [{ rel: 'stylesheet', href: themeCss.value.google_fonts_url }] : [],
+  style: themeCss.value?.css ? [{ innerHTML: themeCss.value.css, key: 'sb-theme-tokens' }] : [],
+}))
+</script>
+
+<template>
+  <div v-if="page">
+    <AnnouncementBar :settings="s" />
+    <SiteHeader :settings="s" />
+    <ThemePreviewBar
+      :theme-id="isNumeric ? Number(rawTheme) : 0"
+      :theme-slug="page.themeSlug"
+      :theme-name="page.themeName"
+      :slots="page.slots"
+      :current-page-type="pageType"
+      :demo-product-slug="demoProductSlug"
+      :demo-blog-slug="demoBlogSlug"
+      :product-blog-preview-live="true"
+    />
+    <StorefrontRenderer v-if="page.success" :puck-json="page.puckJson" />
+    <div v-else class="sb-preview-empty">
+      <p>No page has been assigned to the "{{ pageType }}" slot for this theme yet.</p>
+    </div>
+    <SiteFooter :settings="s" />
+    <WhatsAppWidget :settings="s" />
+    <ShopAssistantBubble :settings="s" />
+  </div>
+</template>
+
+<style scoped>
+.sb-preview-empty {
+  padding: 80px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+</style>

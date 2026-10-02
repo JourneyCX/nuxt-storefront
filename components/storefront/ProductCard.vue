@@ -48,6 +48,10 @@ const image = computed(() => wcProduct.value?.images?.[0]?.src ?? props.productI
 const slug  = computed(() => wcProduct.value?.slug ?? props.productSlug ?? '')
 const inStock = computed(() => wcProduct.value ? wcProduct.value.stock_status === 'instock' : true)
 
+// Keeps theme-preview context flowing into this card's product link -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
+
 async function handleAddToCart() {
   if (wcProduct.value) {
     const { addToCart } = useCart()
@@ -58,14 +62,14 @@ async function handleAddToCart() {
 
 <template>
   <div :style="{ border:'1px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', background:'#fff', maxWidth:'320px', display:'flex', flexDirection:'column' }">
-    <a :href="slug ? `/product/${slug}` : '#'" :style="{ display:'block' }">
+    <a :href="slug ? `/product/${slug}${previewSuffix}` : '#'" :style="{ display:'block' }">
       <div :style="{ aspectRatio:'1/1', overflow:'hidden', background:'#f7f8fa', display:'flex', alignItems:'center', justifyContent:'center' }">
         <img v-if="image" :src="image" :alt="name" :style="{ width:'100%', height:'100%', objectFit:'contain' }" />
         <span v-else :style="{ color:'#a0aec0', fontSize:'13px' }">Product Image</span>
       </div>
     </a>
     <div :style="{ padding:'16px', flex:1, display:'flex', flexDirection:'column' }">
-      <a :href="slug ? `/product/${slug}` : '#'" :style="{ textDecoration:'none' }">
+      <a :href="slug ? `/product/${slug}${previewSuffix}` : '#'" :style="{ textDecoration:'none' }">
         <p :style="{ margin:'0 0 6px', fontWeight:600, fontSize:'15px', color:'#2d3748' }">{{ name }}</p>
       </a>
       <p v-if="showPrice !== false" :style="{ margin:'0 0 14px', fontWeight:700, fontSize:'17px', color:'#2d3748', flex:1 }">

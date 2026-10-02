@@ -21,19 +21,29 @@ import { defineComponent, h, Suspense, type PropType } from 'vue'
 // warning box.
 import ContainerSF       from './storefront/Container.vue'
 import ColumnsSF         from './storefront/Columns.vue'
+import ParallaxSectionSF from './storefront/ParallaxSection.vue'
 import TextBlockSF       from './storefront/TextBlock.vue'
 import ImageBlockSF      from './storefront/ImageBlock.vue'
+import IconBoxSF         from './storefront/IconBox.vue'
 import SpacerSF          from './storefront/Spacer.vue'
 import DividerSF         from './storefront/Divider.vue'
 import HeroBannerSF      from './storefront/HeroBanner.vue'
 import HeroSliderSF      from './storefront/HeroSlider.vue'
 import PromoBannerGridSF from './storefront/PromoBannerGrid.vue'
 import LogoStripSF       from './storefront/LogoStrip.vue'
+import CircleCategoryListSF from './storefront/CircleCategoryList.vue'
 import HeroSectionSF     from './storefront/HeroSection.vue'
 import ProductGridSF     from './storefront/ProductGrid.vue'
 import ProductCardSF     from './storefront/ProductCard.vue'
+import ProductDetailSF   from './storefront/ProductDetail.vue'
+import ProductTabsSF     from './storefront/ProductTabs.vue'
+import ProductAccordionSF from './storefront/ProductAccordion.vue'
+import RelatedProductsSF from './storefront/RelatedProducts.vue'
 import ProductCarouselSF from './storefront/ProductCarousel.vue'
+import CollectionCarouselSF from './storefront/CollectionCarousel.vue'
+import CollectionsCarouselSF from './storefront/CollectionsCarousel.vue'
 import CollectionListSF  from './storefront/CollectionList.vue'
+import CollectionDetailSF from './storefront/CollectionDetail.vue'
 import FeatureGridSF     from './storefront/FeatureGrid.vue'
 import ProductShowcaseSF from './storefront/ProductShowcase.vue'
 import CallToActionSF    from './storefront/CallToAction.vue'
@@ -43,6 +53,8 @@ import NewsletterSignupSF  from './storefront/NewsletterSignup.vue'
 import TeamSectionSF       from './storefront/TeamSection.vue'
 import BeforeAfterSliderSF from './storefront/BeforeAfterSlider.vue'
 import CountdownTimerSF    from './storefront/CountdownTimer.vue'
+import ParallaxCountdownSF from './storefront/ParallaxCountdown.vue'
+import ScrollingTextSF     from './storefront/ScrollingText.vue'
 import PricingTableSF    from './storefront/PricingTable.vue'
 import VideoBackgroundSF from './storefront/VideoBackground.vue'
 import ImageGallerySF    from './storefront/ImageGallery.vue'
@@ -50,6 +62,7 @@ import ContactFormSF     from './storefront/ContactForm.vue'
 import CartWidgetSF      from './storefront/CartWidget.vue'
 import ProductFilterSF   from './storefront/ProductFilter.vue'
 import BlogPostListSF    from './storefront/BlogPostList.vue'
+import BlogPostDetailSF  from './storefront/BlogPostDetail.vue'
 import GoogleMapSF       from './storefront/GoogleMap.vue'
 import ProgressBarsSF    from './storefront/ProgressBars.vue'
 import AnimatedTimelineSF   from './storefront/AnimatedTimeline.vue'
@@ -75,19 +88,29 @@ const SKIP_TYPES = new Set(['SiteHeader', 'SiteFooter'])
 const componentMap: Record<string, unknown> = {
   Container:        ContainerSF,
   Columns:          ColumnsSF,
+  ParallaxSection:  ParallaxSectionSF,
   TextBlock:        TextBlockSF,
   ImageBlock:       ImageBlockSF,
+  IconBox:          IconBoxSF,
   Spacer:           SpacerSF,
   Divider:          DividerSF,
   HeroBanner:       HeroBannerSF,
   HeroSlider:       HeroSliderSF,
   PromoBannerGrid:  PromoBannerGridSF,
   LogoStrip:        LogoStripSF,
+  CircleCategoryList: CircleCategoryListSF,
   HeroSection:      HeroSectionSF,
   ProductGrid:      ProductGridSF,
   ProductCard:      ProductCardSF,
+  ProductDetail:    ProductDetailSF,
+  ProductTabs:      ProductTabsSF,
+  ProductAccordion: ProductAccordionSF,
+  RelatedProducts:  RelatedProductsSF,
   ProductCarousel:  ProductCarouselSF,
+  CollectionCarousel: CollectionCarouselSF,
+  CollectionsCarousel: CollectionsCarouselSF,
   CollectionList:   CollectionListSF,
+  CollectionDetail: CollectionDetailSF,
   FeatureGrid:      FeatureGridSF,
   ProductShowcase:  ProductShowcaseSF,
   CallToAction:     CallToActionSF,
@@ -97,6 +120,8 @@ const componentMap: Record<string, unknown> = {
   TeamSection:      TeamSectionSF,
   BeforeAfterSlider: BeforeAfterSliderSF,
   CountdownTimer:   CountdownTimerSF,
+  ParallaxCountdown: ParallaxCountdownSF,
+  ScrollingText:    ScrollingTextSF,
   PricingTable:     PricingTableSF,
   VideoBackground:  VideoBackgroundSF,
   ImageGallery:     ImageGallerySF,
@@ -104,6 +129,7 @@ const componentMap: Record<string, unknown> = {
   CartWidget:       CartWidgetSF,
   ProductFilter:    ProductFilterSF,
   BlogPostList:     BlogPostListSF,
+  BlogPostDetail:   BlogPostDetailSF,
   GoogleMap:        GoogleMapSF,
   ProgressBars:     ProgressBarsSF,
   AnimatedTimeline:   AnimatedTimelineSF,
@@ -145,8 +171,8 @@ function renderBlock(item: PuckItem, zones: Record<string, PuckItem[]>): ReturnT
   const itemId = item.props.id as string | undefined
   let slots: Record<string, () => ReturnType<typeof h>[]> | undefined
 
-  if (item.type === 'Container' && itemId) {
-    // DropZone name in Container.tsx is "content"
+  if ((item.type === 'Container' || item.type === 'ParallaxSection') && itemId) {
+    // DropZone name in Container.tsx / ParallaxSection.tsx is "content"
     const zoneItems = zones[`${itemId}:content`] ?? []
     slots = { default: () => zoneItems.map(child => renderBlock(child, zones)) }
   } else if (item.type === 'Columns' && itemId) {

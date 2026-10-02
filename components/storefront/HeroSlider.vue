@@ -15,6 +15,23 @@ type Slide = {
   overlayOpacity?: number
   backgroundSize?: string
   backgroundPosition?: string
+  headlineFontSize?: number
+  subheadlineFontSize?: number
+  // Empty/absent keeps the theme's default body font — see the matching
+  // comment in studio-app's HeroSlider.tsx.
+  fontFamily?: string
+  headlineColor?: string
+  subheadlineColor?: string
+  // Caps the text column's width so headlines wrap sooner instead of
+  // running out over an image — see the matching comment in studio-app's
+  // HeroSlider.tsx.
+  textMaxWidth?: number
+  // Narrows just the subheadline's wrap width — see the matching comment in
+  // studio-app's HeroSlider.tsx.
+  subheadlineMaxWidth?: number
+  // Distance (px) between the text block and the button — see the matching
+  // comment in studio-app's HeroSlider.tsx.
+  buttonGap?: number
 }
 
 const props = defineProps<{
@@ -48,15 +65,21 @@ const justify = computed(() => align.value === 'center' ? 'center' : align.value
 const btnPos = computed<ButtonPosition>(() => (slide.value.buttonPosition || 'inline') as ButtonPosition)
 const isPositioned = computed(() => btnPos.value !== 'inline')
 
+const buttonGap = computed(() => slide.value.buttonGap ?? 20)
+
+// Anchored relative to the text block's own box (a `position: relative`
+// ancestor), not the slide — so the gap always reflects the actual distance
+// from the headline/subheadline, regardless of slide height.
 const absoluteBtnStyle = computed(() => {
+  const gap = `${buttonGap.value}px`
   const map: Record<ButtonPosition, object> = {
     'inline':        {},
-    'bottom-left':   { position: 'absolute', bottom: '40px', left: '48px', zIndex: 3 },
-    'bottom-center': { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 3 },
-    'bottom-right':  { position: 'absolute', bottom: '40px', right: '48px', zIndex: 3 },
-    'top-left':      { position: 'absolute', top: '40px', left: '48px', zIndex: 3 },
-    'top-center':    { position: 'absolute', top: '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 3 },
-    'top-right':     { position: 'absolute', top: '40px', right: '48px', zIndex: 3 },
+    'bottom-left':   { position: 'absolute', top: '100%', marginTop: gap, left: 0, zIndex: 3 },
+    'bottom-center': { position: 'absolute', top: '100%', marginTop: gap, left: '50%', transform: 'translateX(-50%)', zIndex: 3 },
+    'bottom-right':  { position: 'absolute', top: '100%', marginTop: gap, right: 0, zIndex: 3 },
+    'top-left':      { position: 'absolute', bottom: '100%', marginBottom: gap, left: 0, zIndex: 3 },
+    'top-center':    { position: 'absolute', bottom: '100%', marginBottom: gap, left: '50%', transform: 'translateX(-50%)', zIndex: 3 },
+    'top-right':     { position: 'absolute', bottom: '100%', marginBottom: gap, right: 0, zIndex: 3 },
   }
   return map[btnPos.value] ?? {}
 })
@@ -115,35 +138,30 @@ function stopProp(e: Event) { e.stopPropagation() }
       padding:'60px 48px',
       textAlign: align as any,
     }">
-      <div style="max-width:700px">
+      <div :style="{ maxWidth: `${slide.textMaxWidth || 700}px`, minWidth: 0, position: 'relative' }">
         <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
              narrow screens instead of staying fixed at 52px. -->
         <h1
           v-if="slide.headline"
           class="sb-text-fluid-lg"
           style="color:#fff;font-weight:800;margin:0 0 18px;line-height:1.12;text-shadow:0 2px 8px rgba(0,0,0,0.4)"
+          :style="{ ...(slide.headlineColor ? { color: slide.headlineColor } : {}), ...(slide.fontFamily ? { fontFamily: slide.fontFamily } : {}), ...(slide.headlineFontSize ? { fontSize: `${slide.headlineFontSize}px` } : {}) }"
         >{{ slide.headline }}</h1>
         <p
           v-if="slide.subheadline"
-          :style="{ color:'rgba(255,255,255,0.88)', fontSize:'20px', margin: isPositioned ? '0' : '0 0 36px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)' }"
+          :style="{ color: slide.subheadlineColor || 'rgba(255,255,255,0.88)', fontSize: `${slide.subheadlineFontSize || 20}px`, margin: isPositioned ? '0' : `0 0 ${buttonGap}px`, lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.35)', ...(slide.fontFamily ? { fontFamily: slide.fontFamily } : {}), ...(slide.subheadlineMaxWidth ? { maxWidth: `${slide.subheadlineMaxWidth}px` } : {}) }"
         >{{ slide.subheadline }}</p>
 
-        <!-- Inline button -->
+        <!-- Positioned buttons (top/bottom-*) are absolute against this div,
+             so they anchor to the text block itself, not the slide. -->
         <a
-          v-if="slide.buttonText && !slide.slideClickable && !isPositioned"
+          v-if="slide.buttonText && !slide.slideClickable"
           :href="slide.buttonUrl || '#'"
-          :style="btnStyle(slide)"
+          :style="{ ...btnStyle(slide), ...absoluteBtnStyle }"
+          @click.stop
         >{{ slide.buttonText }}</a>
       </div>
     </div>
-
-    <!-- Absolutely positioned button -->
-    <a
-      v-if="slide.buttonText && !slide.slideClickable && isPositioned"
-      :href="slide.buttonUrl || '#'"
-      :style="{ ...btnStyle(slide), ...absoluteBtnStyle }"
-      @click.stop
-    >{{ slide.buttonText }}</a>
 
     <!-- Arrows -->
     <template v-if="showArrows !== false && total > 1">

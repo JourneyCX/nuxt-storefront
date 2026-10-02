@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
   const tenantId = event.context.tenantId as number
   const q        = getRawQuery(event)
   const limit    = q.limit ? Number(q.limit) : undefined
+  const category = q.category || undefined
 
-  return fetchBlogPosts(config.stratumInternalUrl, tenantId, limit)
+  return fetchBlogPosts(config.stratumInternalUrl, tenantId, limit, category)
 })

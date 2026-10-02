@@ -46,31 +46,54 @@ function closeMobileMenu() {
 }
 
 const navLinks = computed(() => props.settings.navLinks || [])
+const navFontFamily = computed(() => props.settings.headerNavFontFamily || "'Montserrat', sans-serif")
+const navFontSize = computed(() => props.settings.headerNavFontSize || 15)
+const navChildFontSize = computed(() => Math.max(11, navFontSize.value - 1))
+const navLeft = computed(() => props.settings.headerMenuPosition === 'nav-left')
+const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
 </script>
 
 <template>
   <header :style="{ backgroundColor: settings.headerBackgroundColor || '#fff', color: settings.headerTextColor || '#1a202c', position: settings.headerSticky ? 'sticky' : 'relative', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }">
-    <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between">
-      <a href="/" style="text-decoration:none">
+    <!-- Not CSS Grid with minmax(0,1fr) flanking columns — tried that, but
+         capping the nav column's minimum at 0 meant a nav too wide for its
+         "fair share" got squeezed hard enough to visually break onto its own
+         line instead of just centering imperfectly. Absolute-positioning the
+         centered element instead sidesteps the whole problem: whichever of
+         logo/nav stays in normal flow keeps its natural, unconstrained width
+         (plain 2-item flex space-between with the icon cluster), while the
+         other one is taken out of flow entirely and centered at the row's true
+         midpoint — its own width can't push or squeeze anything else. Same
+         pattern real storefront themes use for a centered-logo header. -->
+    <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:relative">
+      <!-- Logo and desktop nav swap between "in flow" and "absolutely centered"
+           depending on headerMenuPosition — DOM order is unchanged, since
+           flexbox skips absolutely-positioned children when laying out the
+           remaining flow items, so whichever of the two stays in flow always
+           lands at the start (left), same as always being first among the
+           (now effectively 2-item) flow children ahead of the icon cluster. -->
+      <a href="/" :style="navLeft ? { textDecoration:'none', position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)' } : { textDecoration:'none' }">
         <img v-if="settings.logoUrl" :src="settings.logoUrl" :alt="settings.logoAlt || 'Store logo'" :style="{ height: (settings.headerLogoHeight || 40) + 'px', objectFit: 'contain' }" />
         <span v-else :style="{ fontSize:'20px',fontWeight:700,color:settings.headerTextColor||'#1a202c' }">{{ settings.logoText || settings.businessName || 'Your Store' }}</span>
       </a>
 
       <!-- Desktop nav — unchanged hover-dropdown behavior, hidden below the
-           mobile breakpoint (assets/css/responsive.css). Wrapped in a plain
-           div with no inline style of its own so .sb-nav-desktop-only's
-           block/none toggle isn't fighting the nav's own display:flex. -->
-      <div class="sb-nav-desktop-only">
-        <nav style="display:flex;gap:28px">
-          <div v-for="link in navLinks" :key="link.url" class="sb-nav-item" style="position:relative">
-            <a :href="link.url"
-               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:'15px',fontWeight:'500',fontFamily:'\'Montserrat\',sans-serif',display:'flex',alignItems:'center',gap:'4px' }">
+           mobile breakpoint (assets/css/responsive.css). -->
+      <div class="sb-nav-desktop-only" :style="navLeft ? {} : { position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)' }">
+        <nav :style="{ display:'flex', gap: navItemSpacing+'px' }">
+          <div v-for="(link, i) in navLinks" :key="i" class="sb-nav-item" style="position:relative">
+            <!-- menu_group pages have no url — a dropdown label that isn't itself
+                 clickable. Rendered as a plain span instead of <a href> so there's
+                 nothing to navigate to; hover-dropdown still works since that's
+                 keyed off the wrapping .sb-nav-item div, not this element. -->
+            <component :is="link.url ? 'a' : 'span'" v-bind="link.url ? { href: link.url } : {}"
+               :style="{ color:settings.headerTextColor||'#1a202c',textDecoration:'none',fontSize:navFontSize+'px',fontWeight:'500',fontFamily:navFontFamily,display:'flex',alignItems:'center',gap:'4px',cursor:link.url?'pointer':'default' }">
               {{ link.label }}
               <span v-if="(link.children?.length ?? 0) > 0" style="font-size:10px">▾</span>
-            </a>
+            </component>
             <div v-if="(link.children?.length ?? 0) > 0" class="sb-nav-dropdown" style="position:absolute;top:100%;left:0;padding-top:8px;z-index:200">
               <div style="background-color:#fff;color:#1a202c;min-width:160px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.16);padding:6px 0">
-                <a v-for="child in link.children" :key="child.url" :href="child.url" style="display:block;padding:8px 14px;color:#1a202c;text-decoration:none;font-size:14px">
+                <a v-for="(child, ci) in link.children" :key="ci" :href="child.url" :style="{ display:'block',padding:'8px 14px',color:'#1a202c',textDecoration:'none',fontSize:navChildFontSize+'px',fontFamily:navFontFamily }">
                   {{ child.label }}
                 </a>
               </div>
@@ -88,15 +111,32 @@ const navLinks = computed(() => props.settings.navLinks || [])
         >{{ settings.headerCtaText }}</a>
         <a
           :href="account ? '/account' : '/login'"
-          :style="{ background:'none', border:'none', cursor:'pointer', fontSize:'22px', padding:'4px', lineHeight:1, textDecoration:'none' }"
+          :style="{ display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', lineHeight:1, textDecoration:'none', color: settings.headerTextColor || '#1a202c' }"
           :aria-label="account ? 'My Account' : 'Log In'"
-        >👤</a>
+        >
+          <!-- Thin-line user icon (FA Classic Thin "user" style — no FA Pro
+               license in this project, so hand-built to match its weight).
+               stroke="currentColor" reads the `color` set above, which is
+               explicit (not just inherited) because <a> and <button> get a
+               UA-stylesheet default color (link blue, ButtonText) that beats
+               plain inheritance — confirmed live on a dark header banner
+               (Burnstein/tenant 82), where the icons rendered link-blue /
+               near-black instead of following headerTextColor. -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+          </svg>
+        </a>
         <button
           @click="openCart"
-          :style="{ position:'relative', background:'none', border:'none', cursor:'pointer', fontSize:'22px', padding:'4px' }"
+          :style="{ position:'relative', display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', color: settings.headerTextColor || '#1a202c' }"
           aria-label="Open cart"
         >
-          🛒
+          <!-- Thin-line cart icon (FA Classic Thin "cart-shopping" style, hand-built for the same reason). -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
           <span
             v-if="itemCount > 0"
             :style="{ position:'absolute', top:'-2px', right:'-4px', background:'#e53e3e', color:'#fff', borderRadius:'50%', fontSize:'11px', fontWeight:700, minWidth:'18px', height:'18px', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }"
@@ -118,13 +158,18 @@ const navLinks = computed(() => props.settings.navLinks || [])
          multi-level links use tap-to-expand instead of a :hover pattern
          that has no equivalent on touch. -->
     <nav v-if="mobileOpen" class="sb-nav-mobile-only" style="border-top:1px solid rgba(0,0,0,0.08)">
-      <div v-for="(link, i) in navLinks" :key="link.url" style="border-bottom:1px solid rgba(0,0,0,0.06)">
+      <div v-for="(link, i) in navLinks" :key="i" style="border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="display:flex;align-items:center">
           <a
+            v-if="link.url"
             :href="link.url"
             @click="closeMobileMenu"
-            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', textDecoration:'none', fontSize:'16px', fontWeight:'500', fontFamily:'\'Montserrat\',sans-serif' }"
+            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', textDecoration:'none', fontSize:navFontSize+'px', fontWeight:'500', fontFamily:navFontFamily }"
           >{{ link.label }}</a>
+          <span
+            v-else
+            :style="{ flex:1, padding:'14px 24px', color:settings.headerTextColor||'#1a202c', fontSize:navFontSize+'px', fontWeight:'500', fontFamily:navFontFamily }"
+          >{{ link.label }}</span>
           <button
             v-if="(link.children?.length ?? 0) > 0"
             type="button"
@@ -136,11 +181,11 @@ const navLinks = computed(() => props.settings.navLinks || [])
         </div>
         <div v-if="(link.children?.length ?? 0) > 0 && expanded.has(i)" style="padding-bottom:8px">
           <a
-            v-for="child in link.children"
-            :key="child.url"
+            v-for="(child, ci) in link.children"
+            :key="ci"
             :href="child.url"
             @click="closeMobileMenu"
-            :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:'15px' }"
+            :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:navChildFontSize+'px', fontFamily:navFontFamily }"
           >{{ child.label }}</a>
         </div>
       </div>

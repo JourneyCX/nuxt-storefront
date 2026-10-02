@@ -52,7 +52,13 @@ const error    = ref('')
 const bottomEl = ref<HTMLElement | null>(null)
 
 watch([messages, loading], () => {
-  nextTick(() => bottomEl.value?.scrollIntoView({ behavior: 'smooth' }))
+  // block:'start' (the scrollIntoView default) aligns this empty marker to the
+  // TOP of the viewport, which scrolls right past the answer above it and can
+  // drag the outer page scroll along too -- confirmed live 2026-09-07 as the
+  // "answer is hidden above the fold, have to scroll back up" bug.
+  // block:'nearest' scrolls only as far as needed and stays within the
+  // nearest scrollable ancestor (the messages div itself).
+  nextTick(() => bottomEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 }, { deep: true })
 
 function bubbleCorners(role: Msg['role']) {
@@ -60,6 +66,30 @@ function bubbleCorners(role: Msg['role']) {
   return role === 'user'
     ? `${r}px ${r}px 4px ${r}px`
     : `${r}px ${r}px ${r}px 4px`
+}
+
+// Message bubbles used to render via plain {{ }} interpolation, so a real
+// product URL the assistant returns (e.g. "🔗 https://.../product/x") sat
+// there as inert text -- confirmed live 2026-09-07. The system prompt
+// deliberately has the backend emit bare URLs, never markdown [text](url)
+// syntax (an earlier fix found the model fabricating placeholder links when
+// asked to produce markdown), so linkification has to happen here on the
+// frontend instead. Escaping happens BEFORE any markup is inserted, so this
+// stays XSS-safe even though the input includes a real shopper's own typed
+// message (rendered through this same function).
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function formatMessage(content: string): string {
+  let html = escapeHtml(content)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+    const trailing = url.match(/[.,;:!?)\]]+$/)?.[0] ?? ''
+    const clean = trailing ? url.slice(0, -trailing.length) : url
+    return `<a href="${clean}" target="_blank" rel="noopener noreferrer" style="color:${accentColor.value};text-decoration:underline;">${clean}</a>${trailing}`
+  })
+  return html
 }
 
 async function send(text: string) {
@@ -167,7 +197,7 @@ function onKeydown(e: KeyboardEvent) {
             :style="{ display: 'flex', gap: '10px', alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }"
           >
             <div v-if="msg.role === 'assistant'" :style="{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: accentColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }">{{ meta.icon }}</div>
-            <div :style="{ maxWidth: '75%', backgroundColor: msg.role === 'user' ? accentColor : textColor + '0c', color: msg.role === 'user' ? '#fff' : textColor, borderRadius: bubbleCorners(msg.role), padding: '10px 14px', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }">{{ msg.content }}</div>
+            <div :style="{ maxWidth: '75%', backgroundColor: msg.role === 'user' ? accentColor : textColor + '0c', color: msg.role === 'user' ? '#fff' : textColor, borderRadius: bubbleCorners(msg.role), padding: '10px 14px', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }" v-html="formatMessage(msg.content)" />
           </div>
 
           <div v-if="loading" style="display:flex;gap:10px;align-items:flex-start;">

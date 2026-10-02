@@ -1,7 +1,7 @@
 export default defineNuxtConfig({
   devtools: { enabled: false },
 
-  css: ['~/assets/css/responsive.css'],
+  css: ['~/assets/css/responsive.css', '~/assets/css/theme-tokens.css'],
 
   runtimeConfig: {
     // Server-only — never exposed to the browser
@@ -11,6 +11,13 @@ export default defineNuxtConfig({
     // in .env before deploy -- accountSession.ts fails closed (500) if empty,
     // deliberately, rather than falling back to a guessable default.
     accountSessionSecret: process.env.ACCOUNT_SESSION_SECRET || '',
+    // Supplier Network checkout-time stock reservation API (Laravel) — a
+    // static shared secret, not per-tenant, since the Laravel endpoint
+    // identifies the tenant from the request body (tenant slug), not from a
+    // credential. Same "fails closed if unset" posture as accountSessionSecret
+    // above — see server/utils/supplierNetwork.ts.
+    supplierNetworkCheckoutUrl: process.env.SUPPLIER_NETWORK_CHECKOUT_URL || '',
+    supplierNetworkCheckoutSecret: process.env.SUPPLIER_NETWORK_CHECKOUT_SECRET || '',
   },
 
   routeRules: {
@@ -28,6 +35,12 @@ export default defineNuxtConfig({
       '/product/**': { isr: 120 },
       // API routes: no cache
       '/api/**':  { cache: false },
+      // Theme "View Demo" preview pages: no cache. Content here is keyed by
+      // whichever themeId/pageType is in the query string, not by the URL
+      // path alone — ISR's cache key is path-based, so caching this route
+      // would risk serving one theme's preview content under a cache entry
+      // that a DIFFERENT theme's preview request then reuses.
+      '/preview/**': { cache: false },
     },
   },
 
@@ -41,8 +54,13 @@ export default defineNuxtConfig({
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        // Montserrat — used for the header nav menu links (SiteHeader.vue).
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap' },
+        // Main Menu / Footer Menus font choices (studio-app's FontsSection.tsx FONT_OPTIONS) —
+        // used for the header/footer nav (SiteHeader.vue, SiteFooter.vue). Arial/Georgia are
+        // system fonts, not loaded here. Matches studio-app's index.html.
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=Roboto:wght@400;500;600&family=Nunito:wght@400;500;600&family=Oswald:wght@400;500;600&family=Playfair+Display:wght@400;500;600&family=Lora:wght@400;500;600&display=swap' },
+        // Display fonts + 700–900 weights for the Scrolling Text Banner (ScrollingText.vue; list lives
+        // in studio-app's Media/ScrollingText.tsx DISPLAY_FONT_OPTIONS). Faces only download when used.
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Archivo+Black&family=Unbounded:wght@400;600;700;800;900&family=Syncopate:wght@400;700&family=Jost:wght@400;600;700;800;900&family=Montserrat:wght@700;800;900&family=Poppins:wght@700;800;900&family=Inter:wght@700;800;900&family=Roboto:wght@700;900&family=Nunito:wght@700;800;900&family=Oswald:wght@700&family=Playfair+Display:wght@700;800;900&family=Lora:wght@700&display=swap' },
       ],
     },
   },

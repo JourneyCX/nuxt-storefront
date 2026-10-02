@@ -1,0 +1,19 @@
+/* Store Theme Manager style tokens — static base rules mapping the CSS
+   custom properties Store_builder_api::theme_css() supplies onto actual page
+   styling. This file is always loaded and defines the STRUCTURE (which
+   elements read which variable); layouts/default.vue injects the per-theme
+   VALUES as a separate <style> block (see its own theme-css fetch) that
+   overrides these variables' defaults. var()'s second argument is the
+   fallback used when no theme CSS block is present at all (a tenant with no
+   theme ever applied) or a specific token was never set — keeps the site
+   looking exactly as it did before this pipeline existed in that case. */
+
+body {
+  font-family: var(--font-body, inherit);
+  color: var(--text-color, inherit);
+  background-color: var(--background-color, inherit);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading, inherit);
+}

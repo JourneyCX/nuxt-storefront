@@ -37,6 +37,11 @@ const perPage = computed(() => Math.max(1, Math.min(props.productCount ?? props.
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
 const requestFetch = useRequestFetch()
+
+// Keeps theme-preview context flowing into individual product links -- see
+// composables/usePreviewThemeQuery.ts.
+const { suffix: previewSuffix } = usePreviewThemeQuery()
+
 const { data: products, pending } = await useAsyncData<WcProduct[]>(
   `psc-${props.categorySlug}-${perPage.value}`,
   () => requestFetch('/api/products', {
@@ -124,7 +129,7 @@ function wcPrice(p: WcProduct) {
                 <span :style="{ fontWeight:700, fontSize:'17px', color:'#fff' }">{{ wcPrice(product) }}</span>
                 <span v-if="showSalePrice && product.regular_price" :style="{ marginLeft:'8px', fontSize:'13px', color:'rgba(255,255,255,0.6)', textDecoration:'line-through' }">R {{ parseFloat(product.regular_price).toFixed(2) }}</span>
               </div>
-              <a :href="`/product/${product.slug}`" :style="{ backgroundColor:accent, color:'#fff', padding:'7px 14px', borderRadius:'6px', textDecoration:'none', fontSize:'12px', fontWeight:700 }">View</a>
+              <a :href="`/product/${product.slug}${previewSuffix}`" :style="{ backgroundColor:accent, color:'#fff', padding:'7px 14px', borderRadius:'6px', textDecoration:'none', fontSize:'12px', fontWeight:700 }">View</a>
             </div>
           </div>
           <!-- minimal / classic text -->
@@ -137,7 +142,7 @@ function wcPrice(p: WcProduct) {
               <span :style="{ fontWeight:700, fontSize:'16px', color:accent }">{{ wcPrice(product) }}</span>
               <span v-if="showSalePrice && product.regular_price" :style="{ fontSize:'13px', color:'#9ca3af', textDecoration:'line-through' }">R {{ parseFloat(product.regular_price).toFixed(2) }}</span>
             </div>
-            <a :href="`/product/${product.slug}`" :style="{ marginTop:'10px', display:'block', textAlign:'center', background:'none', border:`1.5px solid ${accent}`, color:accent, padding:'7px 0', borderRadius:'6px', textDecoration:'none', fontSize:'13px', fontWeight:700, width:'100%' }">View Product</a>
+            <a :href="`/product/${product.slug}${previewSuffix}`" :style="{ marginTop:'10px', display:'block', textAlign:'center', background:'none', border:`1.5px solid ${accent}`, color:accent, padding:'7px 0', borderRadius:'6px', textDecoration:'none', fontSize:'13px', fontWeight:700, width:'100%' }">View Product</a>
           </div>
           <div v-else :style="{ padding:'14px 16px 18px' }">
             <div v-if="showRating" :style="{ display:'flex', gap:'4px', marginBottom:'8px' }">
@@ -148,7 +153,7 @@ function wcPrice(p: WcProduct) {
               <span :style="{ fontWeight:800, fontSize:'17px', color:text }">{{ wcPrice(product) }}</span>
               <span v-if="showSalePrice && product.regular_price" :style="{ fontSize:'13px', color:'#9ca3af', textDecoration:'line-through' }">R {{ parseFloat(product.regular_price).toFixed(2) }}</span>
             </div>
-            <a :href="`/product/${product.slug}`" :style="{ display:'block', textAlign:'center', width:'100%', backgroundColor:accent, color:'#fff', border:'none', padding:'10px 0', borderRadius:'6px', textDecoration:'none', fontSize:'14px', fontWeight:700 }">View Product</a>
+            <a :href="`/product/${product.slug}${previewSuffix}`" :style="{ display:'block', textAlign:'center', width:'100%', backgroundColor:accent, color:'#fff', border:'none', padding:'10px 0', borderRadius:'6px', textDecoration:'none', fontSize:'14px', fontWeight:700 }">View Product</a>
           </div>
         </article>
       </div>
