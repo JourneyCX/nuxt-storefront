@@ -18,6 +18,9 @@ const props = defineProps<{
   textColor?: string
   headlineFont?: string
   textFont?: string
+  headlineSize?: number
+  subheadlineSize?: number
+  buttonTextSize?: number
   minHeight?: number
   particleCount?: number
   particleSize?: number
@@ -126,6 +129,15 @@ onBeforeUnmount(() => {
 })
 
 watch(() => [props.particleCount, props.particleSize, props.speed], setup)
+
+// Headline size: 0/empty keeps the theme's fluid size (sb-text-fluid-lg).
+// A set size is the desktop size and scales down with the viewport (full
+// size at ~1440px wide), never below 28px (or the size itself if smaller).
+// Kept in sync with studio-app's ParticleBackground.tsx.
+function headlineFontSize(px?: number): string | undefined {
+  if (!px || px <= 0) return undefined
+  return `clamp(${Math.min(px, 28)}px, ${(px / 14.4).toFixed(3)}vw, ${px}px)`
+}
 </script>
 
 <template>
@@ -142,9 +154,9 @@ watch(() => [props.particleCount, props.particleSize, props.speed], setup)
     <div v-if="headline || subheadline || primaryButtonText" style="position:relative;z-index:1;text-align:center;padding:64px 32px;max-width:680px;">
       <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
            narrow screens instead of staying fixed at 48px. -->
-      <h2 v-if="headline" class="sb-text-fluid-lg" :style="{ color: textColor || '#fff', fontFamily: headlineFont || undefined, fontWeight: 800, margin: '0 0 20px', lineHeight: 1.15 }">{{ headline }}</h2>
-      <p v-if="subheadline" :style="{ color: textColor || '#fff', fontFamily: textFont || undefined, opacity: 0.75, fontSize: '19px', margin: '0 0 36px', lineHeight: 1.65 }">{{ subheadline }}</p>
-      <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#3b82f6', color: '#fff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontFamily: textFont || undefined, fontWeight: 700, fontSize: '16px' }">
+      <h2 v-if="headline" class="sb-text-fluid-lg" :style="{ color: textColor || '#fff', fontFamily: headlineFont || undefined, fontSize: headlineFontSize(headlineSize), fontWeight: 800, margin: '0 0 20px', lineHeight: 1.15 }">{{ headline }}</h2>
+      <p v-if="subheadline" :style="{ color: textColor || '#fff', fontFamily: textFont || undefined, opacity: 0.75, fontSize: `${subheadlineSize || 19}px`, margin: '0 0 36px', lineHeight: 1.65 }">{{ subheadline }}</p>
+      <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#3b82f6', color: '#fff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontFamily: textFont || undefined, fontWeight: 700, fontSize: `${buttonTextSize || 16}px` }">
         {{ primaryButtonText }}
       </a>
     </div>
