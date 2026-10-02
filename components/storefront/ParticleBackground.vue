@@ -16,6 +16,8 @@ const props = defineProps<{
   backgroundColor?: string
   particleColor?: string
   textColor?: string
+  headlineFont?: string
+  textFont?: string
   minHeight?: number
   particleCount?: number
   particleSize?: number
@@ -140,9 +142,9 @@ watch(() => [props.particleCount, props.particleSize, props.speed], setup)
     <div v-if="headline || subheadline || primaryButtonText" style="position:relative;z-index:1;text-align:center;padding:64px 32px;max-width:680px;">
       <!-- sb-text-fluid-lg (assets/css/responsive.css) scales this down on
            narrow screens instead of staying fixed at 48px. -->
-      <h2 v-if="headline" class="sb-text-fluid-lg" :style="{ color: textColor || '#fff', fontWeight: 800, margin: '0 0 20px', lineHeight: 1.15 }">{{ headline }}</h2>
-      <p v-if="subheadline" :style="{ color: textColor || '#fff', opacity: 0.75, fontSize: '19px', margin: '0 0 36px', lineHeight: 1.65 }">{{ subheadline }}</p>
-      <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#3b82f6', color: '#fff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '16px' }">
+      <h2 v-if="headline" class="sb-text-fluid-lg" :style="{ color: textColor || '#fff', fontFamily: headlineFont || undefined, fontWeight: 800, margin: '0 0 20px', lineHeight: 1.15 }">{{ headline }}</h2>
+      <p v-if="subheadline" :style="{ color: textColor || '#fff', fontFamily: textFont || undefined, opacity: 0.75, fontSize: '19px', margin: '0 0 36px', lineHeight: 1.65 }">{{ subheadline }}</p>
+      <a v-if="primaryButtonText" :href="primaryButtonUrl || '#'" :style="{ display: 'inline-block', backgroundColor: primaryButtonColor || '#3b82f6', color: '#fff', padding: '14px 36px', borderRadius: '8px', textDecoration: 'none', fontFamily: textFont || undefined, fontWeight: 700, fontSize: '16px' }">
         {{ primaryButtonText }}
       </a>
     </div>
