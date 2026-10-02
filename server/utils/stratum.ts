@@ -198,6 +198,26 @@ function _themeContextQuery(previewTheme?: string): Record<string, string> {
   return /^\d+$/.test(previewTheme) ? { themeId: previewTheme } : { slug: previewTheme }
 }
 
+export interface GiftWrapConfig {
+  enabled:   boolean
+  label:     string
+  price:     number
+  productId: number // the hidden WooCommerce "Gift wrapping" product
+}
+
+// Store_builder_api::published_gift_wrap() — the product page's
+// "Gift wrap this" add-on. Any failure reads as "not offered".
+export async function fetchGiftWrap(stratumUrl: string, tenantId: number): Promise<GiftWrapConfig> {
+  const data = await $fetch<{ giftWrap: GiftWrapConfig }>(
+    `${stratumUrl}/admin/store_builder_api/published_gift_wrap`,
+    { query: { tenantId } }
+  ).catch(() => null)
+  const g = data?.giftWrap
+  return g && g.enabled && g.productId > 0
+    ? { enabled: true, label: g.label || 'Gift wrapping', price: Number(g.price) || 0, productId: g.productId }
+    : { enabled: false, label: '', price: 0, productId: 0 }
+}
+
 export async function fetchPublishedCollections(
   stratumUrl: string,
   tenantId: number,

@@ -53,6 +53,9 @@ export interface WcProduct {
   variations:  number[]
   type:        string
   attributes:  WcProductAttribute[]
+  // 'hidden' = not listed in the shop or search (e.g. the gift wrapping
+  // product); still fetchable by id/slug and addable to the cart.
+  catalog_visibility?: 'visible' | 'catalog' | 'search' | 'hidden'
   // The store's actual configured currency symbol (e.g. "$", "R") -- NOT part
   // of WC REST v3's own /products response, fetched separately from
   // /data/currencies/current and merged in by getProduct()/getProducts()
@@ -350,7 +353,10 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
         get<WcProduct[]>('/products', q),
         getCurrencySymbol(),
       ])
-      return products.map(p => rewriteProductImages({ ...p, currency_symbol }))
+      // A fetch by explicit ids (cart lines, collections) keeps hidden
+      // products; every listing/search drops them, as WooCommerce itself does.
+      const listed = opts.include?.length ? products : products.filter(p => p.catalog_visibility !== 'hidden')
+      return listed.map(p => rewriteProductImages({ ...p, currency_symbol }))
     },
 
     async getProduct(idOrSlug: number | string): Promise<WcProduct | null> {

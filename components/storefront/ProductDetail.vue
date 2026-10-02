@@ -8,6 +8,7 @@
 // tested, this just makes it reusable as a Puck-mapped widget instead of the
 // page's only possible rendering.
 import type { WcProduct, WcVariation } from '~/server/utils/woocommerce'
+import GiftWrapOption from './GiftWrapOption.vue'
 
 const props = withDefaults(defineProps<{
   layout?: 'gallery-left' | 'gallery-right'
@@ -54,6 +55,10 @@ const { addToCart, cartLoading } = useCart()
 
 const selectedImage = ref(0)
 const quantity      = ref(1)
+
+// Gift wrapping add-on (Store Builder → Payment): ticked → its hidden WC
+// product goes into the cart too, one per unit.
+const { giftWrapConfig, giftWrapChecked, addGiftWrap } = await useGiftWrap()
 
 // A "variable" product (product.attributes with variation:true) has no
 // price/stock/SKU of its own to sell -- WooCommerce needs the specific
@@ -158,6 +163,7 @@ async function handleAdd() {
   if (!canAddToCart.value) return
   const id = matchedVariation.value?.id ?? product.value!.id
   await addToCart(id, quantity.value)
+  await addGiftWrap(quantity.value)
 }
 
 // Fullscreen image lightbox with prev/next -- opens on the currently
@@ -293,6 +299,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
             {{ effectiveStock === 'instock' ? 'In Stock' : 'Out of Stock' }}
           </span>
         </div>
+
+        <GiftWrapOption v-model="giftWrapChecked" :config="giftWrapConfig" :currency-symbol="product!.currency_symbol" />
 
         <!-- Quantity + Add to Cart -->
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px">
