@@ -145,6 +145,9 @@ export interface WcCartItem {
   // for cart.totals.total_price below.
   prices:    { price: string; currency_symbol: string; currency_minor_unit: number }
   images:    { src: string; alt: string }[]
+  // The chosen attribute values of a variation line, e.g.
+  // [{ attribute: 'Color', value: 'Black' }] -- Store API cart item field.
+  variation?: { attribute: string; value: string }[]
 }
 
 // A single selectable shipping option within a package (e.g. "Flat rate").
@@ -376,7 +379,10 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
     // to the cart. per_page 100 matches the cap _sb_sync_variations() and
     // the omni_sales reconciler both already assume elsewhere in this app.
     async getVariations(productId: number): Promise<WcVariation[]> {
-      const variations = await get<WcVariation[]>(`/products/${productId}/variations`, { per_page: 100 })
+      // menu_order ascending: WooCommerce resolves an "Any …" attribute to the
+      // FIRST matching variation in menu order, and the storefront's matcher
+      // (composables/useVariationMatch.ts) must pick the same one (0b-B11).
+      const variations = await get<WcVariation[]>(`/products/${productId}/variations`, { per_page: 100, orderby: 'menu_order', order: 'asc' })
         .catch(() => [] as WcVariation[])
       return variations.map(v => ({
         ...v,
@@ -556,8 +562,9 @@ export function createWcStoreClient(baseUrl: string) {
     async getCart(wcSession?: string) {
       return storeRequestCart('GET', '/cart', undefined, wcSession, false)
     },
-    async addItem(productId: number, quantity: number, wcSession?: string) {
-      return storeRequestCart('POST', '/cart/add-item', { id: productId, quantity }, wcSession, true)
+    async addItem(productId: number, quantity: number, wcSession?: string, variation?: { attribute: string; value: string }[]) {
+      const body = variation?.length ? { id: productId, quantity, variation } : { id: productId, quantity }
+      return storeRequestCart('POST', '/cart/add-item', body, wcSession, true)
     },
     async removeItem(cartItemKey: string, wcSession?: string) {
       return storeRequestCart('DELETE', `/cart/items/${cartItemKey}`, undefined, wcSession, true)

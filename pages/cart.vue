@@ -251,6 +251,7 @@ useHead({ title: 'Your Cart' })
 
           <div style="flex:1;min-width:0">
             <p style="margin:0 0 4px;font-weight:600;font-size:14px;color:#2d3748">{{ item.name }}</p>
+            <p v-if="item.variation?.length" style="margin:0 0 4px;font-size:13px;color:#4a5568">{{ item.variation.map(v => `${v.attribute}: ${v.value}`).join(', ') }}</p>
             <p style="margin:0;font-size:13px;color:#718096">
               {{ formatPrice(item.prices.price, item.prices.currency_symbol, item.prices.currency_minor_unit) }} each
             </p>

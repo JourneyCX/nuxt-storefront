@@ -451,6 +451,7 @@ useHead({ title: 'Checkout' })
               <p style="margin:0 0 2px;font-size:13px;font-weight:600;color:#2d3748;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                 {{ item.name }}
               </p>
+              <p v-if="item.variation?.length" style="margin:0 0 2px;font-size:12px;color:#4a5568">{{ item.variation.map(v => `${v.attribute}: ${v.value}`).join(', ') }}</p>
               <p style="margin:0;font-size:12px;color:#718096">Qty: {{ item.quantity }}</p>
             </div>
             <span style="font-size:13px;font-weight:700;color:#2d3748;white-space:nowrap;flex-shrink:0">

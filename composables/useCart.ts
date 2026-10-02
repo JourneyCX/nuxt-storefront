@@ -20,12 +20,14 @@ export function useCart() {
     }
   }
 
-  async function addToCart(productId: number, quantity = 1) {
+  // `variation`: the shopper's chosen attribute values for a variable
+  // product (required by WC for an "Any …" attribute -- 0b-B11).
+  async function addToCart(productId: number, quantity = 1, variation?: { attribute: string; value: string }[]) {
     cartLoading.value = true
     try {
       cart.value = await $fetch<WcCart>('/api/cart/items', {
         method: 'POST',
-        body:   { productId, quantity },
+        body:   variation?.length ? { productId, quantity, variation } : { productId, quantity },
       })
       cartOpen.value = true
     } finally {

@@ -52,11 +52,19 @@ const inStock = computed(() => wcProduct.value ? wcProduct.value.stock_status ==
 // composables/usePreviewThemeQuery.ts.
 const { suffix: previewSuffix } = usePreviewThemeQuery()
 
+// A variable product can't be quick-added: the shopper has to choose its
+// options first (WC rejects adding the parent itself), so the card sends
+// them to the product page instead (0b-B11).
+const isVariable = computed(() => wcProduct.value?.type === 'variable')
+
 async function handleAddToCart() {
-  if (wcProduct.value) {
-    const { addToCart } = useCart()
-    await addToCart(wcProduct.value.id)
+  if (!wcProduct.value) return
+  if (isVariable.value) {
+    await navigateTo(slug.value ? `/product/${slug.value}${previewSuffix.value}` : '#')
+    return
   }
+  const { addToCart } = useCart()
+  await addToCart(wcProduct.value.id)
 }
 </script>
 
@@ -81,7 +89,7 @@ async function handleAddToCart() {
         :disabled="!inStock"
         :style="{ width:'100%', background: inStock ? (buttonColor||'#3182ce') : '#a0aec0', color:'#fff', border:'none', padding:'10px 0', borderRadius:'4px', cursor: inStock ? 'pointer' : 'not-allowed', fontWeight:600, fontSize:'14px' }"
       >
-        {{ inStock ? (buttonText || 'Add to Cart') : 'Out of Stock' }}
+        {{ inStock ? (isVariable ? 'Select options' : (buttonText || 'Add to Cart')) : 'Out of Stock' }}
       </button>
       <button
         v-else

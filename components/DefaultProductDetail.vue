@@ -5,6 +5,7 @@
 // v-if in the parent page skips it entirely (including this script's own
 // data fetching) rather than always running both.
 import type { WcProduct, WcVariation } from '~/server/utils/woocommerce'
+import { matchVariation, variationSelection } from '~/composables/useVariationMatch'
 import GiftWrapOption from './storefront/GiftWrapOption.vue'
 
 const route = useRoute()
@@ -119,14 +120,10 @@ const allOptionsSelected = computed(() =>
   variationAttributes.value.length > 0 && variationAttributes.value.every(a => !!selectedOptions[a.name])
 )
 
-const matchedVariation = computed<WcVariation | null>(() => {
-  if (!allOptionsSelected.value || !variations.value) return null
-  return variations.value.find(v =>
-    variationAttributes.value.every(attr =>
-      v.attributes.some(va => va.name === attr.name && va.option === selectedOptions[attr.name])
-    )
-  ) ?? null
-})
+// "Equal or Any, first in menu order" -- WooCommerce's own rule (0b-B11).
+const matchedVariation = computed<WcVariation | null>(() =>
+  matchVariation(variations.value, variationAttributes.value.map(a => a.name), selectedOptions)
+)
 
 function selectOption(attrName: string, option: string) {
   selectedOptions[attrName] = selectedOptions[attrName] === option ? null : option
@@ -199,7 +196,12 @@ const addToCartLabel = computed(() => {
 async function handleAdd() {
   if (!canAddToCart.value) return
   const id = matchedVariation.value?.id ?? product.value!.id
-  await addToCart(id, quantity.value)
+  // The shopper's chosen value for every attribute goes with the add: WC
+  // requires it for an "Any" attribute and stores it on the order line.
+  const selection = isVariable.value
+    ? variationSelection(variationAttributes.value.map(a => a.name), selectedOptions)
+    : undefined
+  await addToCart(id, quantity.value, selection)
   await addGiftWrap(quantity.value)
 }
 

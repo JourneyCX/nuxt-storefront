@@ -75,6 +75,7 @@ const productsSubtotal = computed(() => {
           </div>
           <div :style="{ flex:1, minWidth:0 }">
             <p :style="{ margin:'0 0 4px', fontWeight:600, fontSize:'14px', color:'#2d3748', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }">{{ item.name }}</p>
+            <p v-if="item.variation?.length" :style="{ margin:'0 0 4px', fontSize:'13px', color:'#4a5568' }">{{ item.variation.map(v => `${v.attribute}: ${v.value}`).join(', ') }}</p>
             <p :style="{ margin:'0 0 8px', fontSize:'13px', color:'#718096' }">Qty: {{ item.quantity }}</p>
             <p :style="{ margin:0, fontWeight:700, fontSize:'14px', color:'#2d3748' }">
               {{ formatPrice(item.prices.price, item.prices.currency_symbol, item.prices.currency_minor_unit) }}
