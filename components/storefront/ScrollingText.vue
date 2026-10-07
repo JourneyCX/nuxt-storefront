@@ -33,6 +33,8 @@ const props = withDefaults(defineProps<{
   paddingY?: number
   verticalAlign?: 'top' | 'center' | 'bottom'
   buttonText?: string
+  buttonPosition?: 'below' | 'top' | 'bottom'
+  buttonAlign?: 'left' | 'center' | 'right'
   buttonUrl?: string
   buttonBgColor?: string
   buttonTextColor?: string
@@ -65,6 +67,8 @@ const props = withDefaults(defineProps<{
   verticalAlign: 'center',
   buttonText: '',
   buttonUrl: '',
+  buttonPosition: 'below',
+  buttonAlign: 'center',
   buttonBgColor: '#ffffff',
   buttonTextColor: '#000000',
 })
@@ -97,6 +101,14 @@ function responsiveFontSize(px: number) {
 const isImage = computed(() => !!props.backgroundImage)
 const duration = computed(() => (seqWidth.value > 0 ? seqWidth.value / (props.speed > 0 ? props.speed : 80) : 30))
 
+const btnPos = computed(() => (props.buttonPosition === 'top' || props.buttonPosition === 'bottom' ? props.buttonPosition : 'below'))
+const vJustify = computed(() => (props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center'))
+const textWrapStyle = computed(() => (btnPos.value === 'below' ? {} : { flex: 1, display: 'flex', flexDirection: 'column' as const, justifyContent: vJustify.value }))
+const buttonWrapStyle = computed(() => ({
+  textAlign: (props.buttonAlign || 'center') as 'left' | 'center' | 'right',
+  order: btnPos.value === 'top' ? -1 : 0,
+  ...(btnPos.value === 'top' ? { marginBottom: '24px' } : { marginTop: '24px' }),
+}))
 const outerStyle = computed(() => ({
   position: 'relative' as const,
   overflow: 'hidden',
@@ -104,7 +116,7 @@ const outerStyle = computed(() => ({
   padding: `${props.paddingY ?? 24}px 0`,
   display: 'flex',
   flexDirection: 'column' as const,
-  justifyContent: props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center',
+  justifyContent: btnPos.value !== 'below' ? 'flex-start' : vJustify.value,
   backgroundColor: props.backgroundColor || (isImage.value ? '#1e293b' : 'transparent'),
 }))
 
@@ -167,7 +179,7 @@ onUnmounted(() => { ro?.disconnect() })
       <div :style="{ position: 'absolute', inset: 0, backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined, backgroundSize: 'cover', backgroundPosition: backgroundPosition || 'center' }" />
       <div :style="{ position: 'absolute', inset: 0, backgroundColor: `rgba(${hexToRgb(overlayColor)},${(overlayOpacity ?? 0) / 100})` }" />
     </template>
-    <div style="position: relative; z-index: 1">
+    <div :style="[{ position: 'relative', zIndex: 1 }, textWrapStyle]">
       <div class="sb-marquee-track" :style="trackStyle">
         <div
           v-for="c in copies"
@@ -189,7 +201,7 @@ onUnmounted(() => { ro?.disconnect() })
         </div>
       </div>
     </div>
-    <div v-if="buttonText" style="position: relative; z-index: 1; text-align: center; margin-top: 24px">
+    <div v-if="buttonText" :style="[{ position: 'relative', zIndex: 1 }, buttonWrapStyle]">
       <a
         :href="buttonUrl || '#'"
         :style="{ display: 'inline-block', padding: '14px 28px', borderRadius: '6px', backgroundColor: buttonBgColor || '#ffffff', color: buttonTextColor || '#000000', fontSize: '13px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', textDecoration: 'none' }"
