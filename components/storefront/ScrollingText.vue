@@ -17,6 +17,9 @@ const props = withDefaults(defineProps<{
   letterSpacing?: number
   textStyle?: 'fill' | 'outline'
   textColor?: string
+  outlineWidth?: number
+  outlineFillColor?: string
+  outlineFillOpacity?: number
   direction?: 'left' | 'right'
   speed?: number
   pauseOnHover?: boolean
@@ -45,6 +48,9 @@ const props = withDefaults(defineProps<{
   letterSpacing: 0,
   textStyle: 'fill',
   textColor: '#111111',
+  outlineWidth: 2,
+  outlineFillColor: '#ffffff',
+  outlineFillOpacity: 0,
   direction: 'left',
   speed: 80,
   pauseOnHover: false,
@@ -111,7 +117,10 @@ const trackStyle = computed(() => ({
   lineHeight: 1.05,
   whiteSpace: 'nowrap' as const,
   ...(props.textStyle === 'outline'
-    ? { color: 'transparent', WebkitTextStroke: `2px ${props.textColor || '#000000'}` }
+    ? {
+        color: `rgba(${hexToRgb(props.outlineFillColor || '#ffffff')},${Math.min(100, Math.max(0, props.outlineFillOpacity ?? 0)) / 100})`,
+        WebkitTextStroke: `${props.outlineWidth > 0 ? props.outlineWidth : 2}px ${props.textColor || '#000000'}`,
+      }
     : { color: props.textColor || '#000000' }),
   '--sb-mq-shift': `${seqWidth.value}px`,
   '--sb-mq-duration': `${duration.value}s`,
