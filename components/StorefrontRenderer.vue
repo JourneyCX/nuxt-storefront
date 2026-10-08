@@ -57,6 +57,7 @@ import ParallaxCountdownSF from './storefront/ParallaxCountdown.vue'
 import ScrollingTextSF     from './storefront/ScrollingText.vue'
 import PricingTableSF    from './storefront/PricingTable.vue'
 import VideoBackgroundSF from './storefront/VideoBackground.vue'
+import VideoTextMaskSF   from './storefront/VideoTextMask.vue'
 import ImageGallerySF    from './storefront/ImageGallery.vue'
 import ContactFormSF     from './storefront/ContactForm.vue'
 import CartWidgetSF      from './storefront/CartWidget.vue'
@@ -124,6 +125,7 @@ const componentMap: Record<string, unknown> = {
   ScrollingText:    ScrollingTextSF,
   PricingTable:     PricingTableSF,
   VideoBackground:  VideoBackgroundSF,
+  VideoTextMask:    VideoTextMaskSF,
   ImageGallery:     ImageGallerySF,
   ContactForm:      ContactFormSF,
   CartWidget:       CartWidgetSF,
