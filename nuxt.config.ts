@@ -11,6 +11,9 @@ export default defineNuxtConfig({
     // in .env before deploy -- accountSession.ts fails closed (500) if empty,
     // deliberately, rather than falling back to a guessable default.
     accountSessionSecret: process.env.ACCOUNT_SESSION_SECRET || '',
+    // Shared secret for HMAC-signed calls to Stratum's public endpoints (b2b_public/*, B2B trade applications).
+    // Must equal the MASTER option stratum_public_hmac_secret. Fails closed when empty (server/utils/stratumSigning.ts).
+    stratumPublicHmacSecret: process.env.STRATUM_PUBLIC_HMAC_SECRET || '',
     // Supplier Network checkout-time stock reservation API (Laravel) — a
     // static shared secret, not per-tenant, since the Laravel endpoint
     // identifies the tenant from the request body (tenant slug), not from a
