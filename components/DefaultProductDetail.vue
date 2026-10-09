@@ -32,6 +32,8 @@ useHead({ title: product.value.name })
 
 const RELATED_COUNT = 4
 
+const { previewTheme: pvTheme } = usePreviewThemeQuery()
+
 // "You may also like" -- no real recommendation engine exists, so this picks
 // products from the current product's own first category (closest thing to
 // a relevance signal WooCommerce gives us for free), then pads with the
@@ -62,7 +64,8 @@ const { data: relatedProducts } = await useAsyncData<WcProduct[]>(
 
     if (picked.length < RELATED_COUNT) {
       const recent = await requestFetch<WcProduct[]>('/api/products', {
-        query: { per_page: RELATED_COUNT + 1, orderby: 'date', order: 'desc' },
+        // previewTheme: theme-ownership spec -- no whole-catalogue padding in a preview.
+        query: { per_page: RELATED_COUNT + 1, orderby: 'date', order: 'desc', previewTheme: pvTheme.value || undefined },
       })
       for (const p of recent) {
         if (seen.has(p.id)) continue

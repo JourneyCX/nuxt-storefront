@@ -68,7 +68,7 @@ const effectiveOrder   = computed(() => (querySort.value?.split('-')[1] as 'asc'
 // Keeps theme-preview context flowing into individual product links clicked
 // from within a previewed page's own ProductGrid -- see
 // composables/usePreviewThemeQuery.ts.
-const { suffix: previewSuffix } = usePreviewThemeQuery()
+const { suffix: previewSuffix, previewTheme } = usePreviewThemeQuery()
 
 // useRequestFetch() (not plain $fetch) so this internal SSR call carries the
 // original request's Host header -- see pages/product/[slug].vue for why.
@@ -82,6 +82,8 @@ const { data: products, pending } = await useAsyncData<WcProduct[]>(
       max_price: effectiveMaxPrice.value,
       orderby:   effectiveOrderby.value,
       order:     effectiveOrder.value,
+      // Theme-preview isolation: see server/api/products/index.get.ts.
+      previewTheme: previewTheme.value || undefined,
     },
   }),
   { default: () => [] as WcProduct[], watch: [effectiveCategory, effectiveMaxPrice, effectiveOrderby, effectiveOrder, perPage] }

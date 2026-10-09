@@ -40,12 +40,13 @@ const requestFetch = useRequestFetch()
 
 // Keeps theme-preview context flowing into individual product links -- see
 // composables/usePreviewThemeQuery.ts.
-const { suffix: previewSuffix } = usePreviewThemeQuery()
+const { suffix: previewSuffix, previewTheme } = usePreviewThemeQuery()
 
 const { data: products, pending } = await useAsyncData<WcProduct[]>(
   `psc-${props.categorySlug}-${perPage.value}`,
   () => requestFetch('/api/products', {
-    query: { category: props.categorySlug || undefined, per_page: perPage.value },
+    // previewTheme: theme-preview isolation, see server/api/products/index.get.ts.
+    query: { category: props.categorySlug || undefined, per_page: perPage.value, previewTheme: previewTheme.value || undefined },
   }),
   { default: () => [] as WcProduct[] }
 )

@@ -198,6 +198,18 @@ function _themeContextQuery(previewTheme?: string): Record<string, string> {
   return /^\d+$/.test(previewTheme) ? { themeId: previewTheme } : { slug: previewTheme }
 }
 
+// Store_builder_api::preview_scope() — the product categories a theme PREVIEW
+// may show (docs/specs/theme-ownership-isolation.md). Returns null when the
+// theme can't be resolved; callers treat null AND an empty list as "show no
+// products", never "show everything".
+export async function fetchPreviewScope(stratumUrl: string, previewTheme: string): Promise<string[] | null> {
+  const data = await $fetch<{ categories: string[] }>(
+    `${stratumUrl}/admin/store_builder_api/preview_scope`,
+    { query: _themeContextQuery(previewTheme) }
+  ).catch(() => null)
+  return data ? (data.categories ?? []) : null
+}
+
 export interface GiftWrapConfig {
   enabled:   boolean
   label:     string
