@@ -1,5 +1,7 @@
 import { createWcClient }   from '~/server/utils/woocommerce'
 import { fetchWooCredentials } from '~/server/utils/stratum'
+import { tradeState } from '~/server/utils/tradeContext'
+import { applyWindow, shapeVariations } from '~/server/utils/tradePricing'
 
 // Keyed by the parent's own WC product id (not slug) -- the product detail
 // page already has product.value.id in hand after loading /api/products/
@@ -20,5 +22,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const wc = createWcClient(creds.url, creds.key, creds.secret)
-  return wc.getVariations(productId)
+  const variations = await wc.getVariations(productId)
+
+  // B2B (Session 4): untouched for a retail visitor; Shop window hides prices; a trade buyer gets Stratum's per-variant
+  // price, tiers, quantity rule and stock, and never a variation Stratum cannot match.
+  const t = tradeState(event)
+  if (!t.enabled || (!t.active && t.mode !== 'shop_window')) return variations
+  if (!t.active) return variations.map(v => applyWindow(event, v))
+  const parent = await wc.getProduct(productId)
+  return shapeVariations(event, String(parent?.sku ?? ''), variations)
 })

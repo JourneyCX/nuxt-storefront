@@ -84,9 +84,7 @@ const { data: relatedProducts } = await useAsyncData<WcProduct[]>(
 )
 
 function relatedPrice(p: WcProduct) {
-  const sym = product.value?.currency_symbol ?? ''
-  const amount = p.sale_price ? p.sale_price : (p.price || '0')
-  return `${sym} ${parseFloat(amount).toFixed(2)}`
+  return listingPrice(p, product.value?.currency_symbol ?? '') // B2B (Session 4): trade / shop-window aware
 }
 </script>
 

@@ -10,6 +10,8 @@
 import type { WcProduct, WcVariation } from '~/server/utils/woocommerce'
 import { matchVariation, variationSelection } from '~/composables/useVariationMatch'
 import GiftWrapOption from './GiftWrapOption.vue'
+import TradeDetails from './TradeDetails.vue'
+import TradeBuyNote from './TradeBuyNote.vue'
 
 const props = withDefaults(defineProps<{
   layout?: 'gallery-left' | 'gallery-right'
@@ -149,6 +151,10 @@ const canAddToCart = computed(() => {
   return effectiveStock.value === 'instock'
 })
 
+// B2B (Session 4): trade facts for what is on screen (the matched variation, else the product) and whether buying is offered.
+const tradeInfo = computed(() => (matchedVariation.value?.trade ?? product.value?.trade))
+const buyOffered = computed(() => !product.value?.trade?.buyDisabled)
+
 const addToCartLabel = computed(() => {
   if (cartLoading.value) return 'Adding...'
   if (isVariable.value && !matchedVariation.value) return 'Select options'
@@ -256,10 +262,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
         </h1>
 
         <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:20px">
-          <span style="font-size:28px;font-weight:700;color:#c53030" v-if="activeSource.on_sale">{{ price }}</span>
-          <span style="font-size:28px;font-weight:700;color:#1a202c" v-else>{{ price }}</span>
-          <span v-if="wasPrice" style="font-size:18px;color:#a0aec0;text-decoration:line-through">{{ wasPrice }}</span>
+          <span v-if="tradeInfo?.priceHidden" style="font-size:18px;font-weight:600;color:#4a5568">Log in for trade prices</span>
+          <template v-else>
+            <span style="font-size:28px;font-weight:700;color:#c53030" v-if="activeSource.on_sale">{{ price }}</span>
+            <span style="font-size:28px;font-weight:700;color:#1a202c" v-else>{{ price }}</span>
+            <span v-if="wasPrice" style="font-size:18px;color:#a0aec0;text-decoration:line-through">{{ wasPrice }}</span>
+            <span v-if="tradeInfo?.retailLabel" style="font-size:13px;color:#718096">Retail price</span>
+            <span v-if="tradeInfo?.vatNote" style="font-size:13px;color:#718096">{{ tradeInfo.vatNote }}</span>
+          </template>
         </div>
+        <TradeDetails :trade="tradeInfo" :symbol="product!.currency_symbol" />
 
         <div
           v-if="product!.short_description"
@@ -302,10 +314,12 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
           </span>
         </div>
 
-        <GiftWrapOption v-model="giftWrapChecked" :config="giftWrapConfig" :currency-symbol="product!.currency_symbol" />
+        <TradeBuyNote v-if="!buyOffered && product!.trade" :trade="product!.trade" />
+
+        <GiftWrapOption v-if="buyOffered" v-model="giftWrapChecked" :config="giftWrapConfig" :currency-symbol="product!.currency_symbol" />
 
         <!-- Quantity + Add to Cart -->
-        <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px">
+        <div v-if="buyOffered" style="display:flex;gap:12px;align-items:center;margin-bottom:24px">
           <div style="display:flex;align-items:center;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
             <button @click="quantity = Math.max(1, quantity - 1)"
                     style="width:40px;height:44px;background:none;border:none;cursor:pointer;font-size:18px;color:#4a5568">−</button>

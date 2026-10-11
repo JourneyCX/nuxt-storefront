@@ -36,8 +36,28 @@ export interface WcProductAttribute {
   variation: boolean
 }
 
+// B2B Session 4: how the storefront shows a price and the buy button when trade rules apply. Absent on a retail
+// tenant and for anonymous visitors in Open / Hybrid. Added server-side by server/utils/tradePricing.ts; the figures
+// come from Stratum's price resolver (never computed here).
+export interface TradeInfo {
+  mode:         'trade' | 'window'     // trade = a signed-in buyer's prices; window = anonymous in Shop window
+  priceHidden?: boolean                // show "Log in for trade prices" instead of a price
+  retailLabel?: boolean               // the price shown is the retail price: label it "Retail price"
+  buyDisabled:  boolean                // never show an add-to-cart button
+  buyNote?:     string                 // why buying is not offered here
+  vatNote?:     string                 // "excl. VAT" only when VAT applies to this price
+  priceFrom?:   string                 // variable product: lowest / highest price the buyer can see
+  priceTo?:     string
+  tiers?:       { min_qty: number; price_excl: string }[]
+  quantityRule?: { min: number; max: number | null; increment: number }
+  stock?:       { available: number | null; status: string }
+  itemId?:      number
+}
+
 export interface WcProduct {
   id:          number
+  sku?:        string
+  trade?:      TradeInfo
   name:        string
   slug:        string
   permalink:   string
@@ -90,6 +110,8 @@ export function getSupplierNetworkMerchantProductId(product: Pick<WcProduct, 'me
 // build a picker and resolve which variation to add to the cart.
 export interface WcVariation {
   id:            number
+  sku?:          string
+  trade?:        TradeInfo
   price:         string
   regular_price: string
   sale_price:    string
@@ -322,6 +344,9 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
       // product, instead of one request per line). WC REST v3's own
       // `include` param, comma-joined.
       include?:   number[]
+      // Batch-by-SKU fetch (B2B trade listings): WC's own `sku` param, comma-joined. Used only when Stratum has no
+      // mapped WooCommerce product id for an item.
+      sku?:       string[]
     } = {}): Promise<WcProduct[]> {
       const q: Record<string, string | number> = {}
       // WooCommerce's REST API `category` filter takes numeric term ID(s), not
@@ -351,6 +376,10 @@ export function createWcClient(baseUrl: string, key: string, secret: string) {
         // worth of ids -- only override when the caller didn't already ask
         // for a specific page size.
         if (!opts.per_page) q.per_page = opts.include.length
+      }
+      if (opts.sku?.length) {
+        q.sku = opts.sku.join(',')
+        if (!opts.per_page) q.per_page = Math.min(100, opts.sku.length)
       }
       const [products, currency_symbol] = await Promise.all([
         get<WcProduct[]>('/products', q),

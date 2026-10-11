@@ -1,6 +1,7 @@
 import { createWcClient }   from '~/server/utils/woocommerce'
 import { fetchWooCredentials, fetchPreviewScope } from '~/server/utils/stratum'
 import { getRawQuery } from '~/server/utils/http-compat'
+import { shapeProducts } from '~/server/utils/tradePricing'
 
 export default defineEventHandler(async (event) => {
   const config   = useRuntimeConfig()
@@ -37,5 +38,8 @@ export default defineEventHandler(async (event) => {
     max_price: q.max_price ? Number(q.max_price) : undefined,
   })
 
-  return products
+  // B2B (Session 4): trade buyer = visibility + Stratum's price; Shop window = no price / no buy; anyone else untouched.
+  const shaped = await shapeProducts(event, products)
+  if (shaped.unmatched.length) event.node.res.setHeader('X-Trade-Unmatched', String(shaped.unmatched.length))
+  return shaped.items
 })

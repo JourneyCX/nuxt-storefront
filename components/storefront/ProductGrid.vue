@@ -98,9 +98,7 @@ function hue(index: number) {
 }
 
 function price(product: WcProduct) {
-  const sym = product.currency_symbol
-  if (product.sale_price) return `${sym} ${parseFloat(product.sale_price).toFixed(2)}`
-  return `${sym} ${parseFloat(product.price || '0').toFixed(2)}`
+  return listingPrice(product) // B2B (Session 4): trade / shop-window aware, identical text for a retail product
 }
 </script>
 

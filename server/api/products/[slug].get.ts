@@ -1,5 +1,6 @@
 import { createWcClient }   from '~/server/utils/woocommerce'
 import { fetchWooCredentials } from '~/server/utils/stratum'
+import { shapeProduct } from '~/server/utils/tradePricing'
 
 export default defineEventHandler(async (event) => {
   const config   = useRuntimeConfig()
@@ -18,5 +19,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: `Product "${slug}" not found.` })
   }
 
-  return product
+  // B2B (Session 4): outside the buyer's catalog (or no Stratum match) = 404, exactly like a product that does not exist.
+  const shaped = await shapeProduct(event, product)
+  if (!shaped) {
+    throw createError({ statusCode: 404, statusMessage: `Product "${slug}" not found.` })
+  }
+
+  return shaped
 })

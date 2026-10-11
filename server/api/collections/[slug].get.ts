@@ -10,6 +10,8 @@ import { getRawQuery } from '~/server/utils/http-compat'
 // the merchant's manual product ordering within the collection.
 // getRawQuery(), NOT h3's own getQuery() -- see index.get.ts's identical
 // comment for why (confirmed live 2026-09-26, ERR_INVALID_URL).
+import { shapeProducts } from '~/server/utils/tradePricing'
+
 export default defineEventHandler(async (event) => {
   const config      = useRuntimeConfig()
   const tenantId    = event.context.tenantId as number
@@ -32,7 +34,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const wc = createWcClient(creds.url, creds.key, creds.secret)
-  const products = await wc.getProducts({ include: collection.productIds, orderby: 'include' })
+  const listed = await wc.getProducts({ include: collection.productIds, orderby: 'include' })
+  // B2B (Session 4): a trade buyer sees only what their catalog admits, at their price; Shop window hides prices.
+  const shaped = await shapeProducts(event, listed)
+  if (shaped.unmatched.length) event.node.res.setHeader('X-Trade-Unmatched', String(shaped.unmatched.length))
 
-  return { collection, products }
+  return { collection, products: shaped.items }
 })

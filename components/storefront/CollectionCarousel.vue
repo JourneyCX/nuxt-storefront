@@ -70,8 +70,7 @@ const isEmpty = computed(() =>
 )
 
 function price(product: WcProduct) {
-  if (product.sale_price) return `${product.currency_symbol} ${parseFloat(product.sale_price).toFixed(2)}`
-  return `${product.currency_symbol} ${parseFloat(product.price || '0').toFixed(2)}`
+  return listingPrice(product) // B2B (Session 4): trade / shop-window aware, identical text for a retail product
 }
 </script>
 

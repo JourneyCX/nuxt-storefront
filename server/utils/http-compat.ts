@@ -30,12 +30,14 @@ export interface RawCookieOptions {
   sameSite?: 'lax' | 'strict' | 'none'
   path?:     string
   maxAge?:   number
+  secure?:   boolean
 }
 
 function serializeCookie(name: string, value: string, opts: RawCookieOptions = {}): string {
   let str = `${name}=${encodeURIComponent(value)}`
   if (opts.path)     str += `; Path=${opts.path}`
   if (opts.httpOnly) str += `; HttpOnly`
+  if (opts.secure)   str += `; Secure`
   if (opts.sameSite) str += `; SameSite=${opts.sameSite[0].toUpperCase()}${opts.sameSite.slice(1)}`
   if (typeof opts.maxAge === 'number') str += `; Max-Age=${opts.maxAge}`
   return str

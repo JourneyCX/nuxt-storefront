@@ -66,8 +66,7 @@ const radius = computed(() => props.cardRadius ?? 12)
 const cs = computed(() => props.cardStyle || 'classic')
 
 function wcPrice(p: WcProduct) {
-  if (p.sale_price) return `${p.currency_symbol} ${parseFloat(p.sale_price).toFixed(2)}`
-  return `${p.currency_symbol} ${parseFloat(p.price || '0').toFixed(2)}`
+  return listingPrice(p) // B2B (Session 4): trade / shop-window aware, identical text for a retail product
 }
 </script>
 

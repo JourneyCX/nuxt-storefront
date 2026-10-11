@@ -1,0 +1,167 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { H3Event } from 'h3'
+import { getRawCookie, setRawCookie, deleteRawCookie } from '~/server/utils/http-compat'
+import { stratumSignedPost } from '~/server/utils/stratumSigning'
+
+// B2B Session 4: trade login state for the merchant's storefront.
+//
+// A trade buyer signs in at /trade/login. Stratum (CI3) verifies the password, owns the session record and re-checks
+// the company on every call; this file only keeps the browser's cookie and asks Stratum, signed, what that cookie
+// currently means. Nothing here is a source of truth for who may see what.
+//
+//   cookie  stratum-trade-{tenantId}   {tid, sid, iat} + HMAC, HttpOnly, Secure, SameSite=Lax, 12 h
+//   sid     a random id; Stratum stores only its SHA-256 (idle 2 h / absolute 12 h / revocable)
+//   mode    open | shop_window | hybrid | closed, per storefront host (Stratum: B2B > Storefront)
+//
+// The cookie's HMAC uses the same app secret as the customer-account cookie but a different prefix, so one cookie can
+// never be replayed as the other, and the tenant id inside it stops a cookie from one tenant working on another.
+
+export type StorefrontMode = 'open' | 'shop_window' | 'hybrid' | 'closed'
+
+export interface TradeBuyer {
+  contact_id:   number
+  company_id:   number
+  company_name: string
+  contact_name: string
+  location_id:  number | null
+}
+
+export interface TradeState {
+  enabled:     boolean                 // B2B is on for this tenant
+  mode:        StorefrontMode | 'off'
+  windowPrice: 'hidden' | 'retail'
+  publicPages: string[]                // closed portal: company-info slugs an anonymous visitor may open
+  buyer:       TradeBuyer | null       // the signed-in contact, whether or not the company is active
+  active:      boolean                 // signed in AND the company is approved and not on hold
+  onHold:      boolean
+}
+
+export const TRADE_OFF: TradeState = { enabled: false, mode: 'off', windowPrice: 'hidden', publicPages: [], buyer: null, active: false, onHold: false }
+
+const MODE_TTL_MS = 30_000
+const modeMemo = new Map<string, { at: number; value: Omit<TradeState, 'buyer' | 'active' | 'onHold'> }>()
+const modeInflight = new Map<string, Promise<Omit<TradeState, 'buyer' | 'active' | 'onHold'>>>()
+
+const COOKIE_TTL_SECONDS = 12 * 60 * 60
+
+function secret(): string {
+  const s = useRuntimeConfig().accountSessionSecret as string
+  if (!s) throw createError({ statusCode: 500, statusMessage: 'Trade session is not configured.' })
+  return s
+}
+
+function mac(body: string): string {
+  return createHmac('sha256', secret()).update('trade|' + body).digest('base64url')
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const x = Buffer.from(a), y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+
+export function tradeCookieName(tenantId: number): string {
+  return `stratum-trade-${tenantId}`
+}
+
+export function setTradeCookie(event: H3Event, tenantId: number, sid: string): void {
+  const body = Buffer.from(JSON.stringify({ tid: tenantId, sid, iat: Math.floor(Date.now() / 1000) })).toString('base64url')
+  setRawCookie(event, tradeCookieName(tenantId), `${body}.${mac(body)}`, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: COOKIE_TTL_SECONDS })
+}
+
+export function clearTradeCookie(event: H3Event, tenantId: number): void {
+  deleteRawCookie(event, tradeCookieName(tenantId), { httpOnly: true, secure: true, sameSite: 'lax', path: '/' })
+}
+
+/** The session id in a valid, tenant-bound, unexpired cookie, or null. */
+export function readTradeSid(event: H3Event, tenantId: number): string | null {
+  const raw = getRawCookie(event, tradeCookieName(tenantId))
+  if (!raw) return null
+  const [body, sig] = raw.split('.')
+  if (!body || !sig || !safeEqual(sig, mac(body))) return null
+  try {
+    const p = JSON.parse(Buffer.from(body, 'base64url').toString('utf-8')) as { tid: number; sid: string; iat: number }
+    if (p.tid !== tenantId || typeof p.sid !== 'string' || !/^[0-9a-f]{64}$/.test(p.sid)) return null
+    if (typeof p.iat !== 'number' || p.iat + COOKIE_TTL_SECONDS < Math.floor(Date.now() / 1000)) return null
+    return p.sid
+  } catch {
+    return null
+  }
+}
+
+/** One signed JSON call to Stratum's b2b_public endpoints. Never throws on a Stratum answer; throws 502 when unreachable. */
+export async function tradeCall<T = any>(event: H3Event, path: string, body: Record<string, unknown> = {}) {
+  return stratumSignedPost<T>(event, path, JSON.stringify(body))
+}
+
+export function requestHost(event: H3Event): string {
+  const h = event.node.req.headers
+  return String((h['x-forwarded-host'] as string) || (h['host'] as string) || '').split(',')[0].trim().toLowerCase()
+}
+
+type ModeValue = Omit<TradeState, 'buyer' | 'active' | 'onHold'>
+
+/** Mode for this storefront host, memoised for 30 s (a change takes effect within about half a minute). */
+async function modeFor(event: H3Event, tenantId: number): Promise<ModeValue> {
+  const host = requestHost(event)
+  const key = `${tenantId}|${host}`
+  const hit = modeMemo.get(key)
+  if (hit && Date.now() - hit.at < MODE_TTL_MS) return hit.value
+  let p = modeInflight.get(key)
+  if (!p) {
+    p = (async () => {
+      const secretSet = String((useRuntimeConfig() as any).stratumPublicHmacSecret || '') !== ''
+      if (!secretSet) return { ...TRADE_OFF } // signing not configured: this deployment cannot offer trade features
+      const res = await tradeCall<any>(event, 'storefront_mode', { host })
+      if (res.status === 404) return { ...TRADE_OFF }  // B2B is not enabled for this tenant
+      if (res.status !== 200 || !res.data?.success) throw createError({ statusCode: 503, statusMessage: 'Store is temporarily unavailable.' })
+      const d = res.data
+      const mode = (['open', 'shop_window', 'hybrid', 'closed'] as const).includes(d.mode) ? d.mode as StorefrontMode : 'hybrid'
+      return {
+        enabled: true, mode, windowPrice: d.window_price === 'retail' ? 'retail' : 'hidden',
+        publicPages: Array.isArray(d.public_pages) ? d.public_pages.map((s: unknown) => String(s).toLowerCase()) : [],
+      } as ModeValue
+    })()
+    modeInflight.set(key, p)
+    p.finally(() => modeInflight.delete(key)).catch(() => {})
+  }
+  try {
+    const value = await p
+    modeMemo.set(key, { at: Date.now(), value })
+    return value
+  } catch (e) {
+    // Stratum unreachable: keep the last known mode rather than guess (a closed portal must stay closed).
+    if (hit) return hit.value
+    throw e
+  }
+}
+
+/** Resolve (once per request) what this visitor is: tenant mode + the signed-in buyer, checked live with Stratum. */
+export async function resolveTrade(event: H3Event): Promise<TradeState> {
+  const tenantId = event.context.tenantId as number | undefined
+  if (!tenantId) return TRADE_OFF
+  const m = await modeFor(event, tenantId)
+  if (!m.enabled) return TRADE_OFF
+  const state: TradeState = { ...m, buyer: null, active: false, onHold: false }
+  const sid = readTradeSid(event, tenantId)
+  if (!sid) return state
+  const res = await tradeCall<any>(event, 'trade_session', { sid }).catch(() => null)
+  if (res && res.status === 200 && res.data?.success) {
+    state.buyer  = res.data.buyer as TradeBuyer
+    state.active = !!res.data.active
+    state.onHold = !res.data.active && res.data.reason === 'on_hold'
+  } else if (res && res.status === 401) {
+    clearTradeCookie(event, tenantId) // revoked, expired, contact deactivated, company declined
+  }
+  // Any other answer: treat this request as anonymous. Never grant trade access on an error.
+  return state
+}
+
+/** The active trade buyer for a request (null for anonymous, on hold, or a retail tenant). */
+export function activeBuyer(event: H3Event): TradeBuyer | null {
+  const t = event.context.trade as TradeState | undefined
+  return t && t.enabled && t.active ? t.buyer : null
+}
+
+export function tradeState(event: H3Event): TradeState {
+  return (event.context.trade as TradeState | undefined) ?? TRADE_OFF
+}

@@ -1,0 +1,75 @@
+import { defineEventHandler, createError, sendRedirect } from 'h3'
+import { resolveTrade, TRADE_OFF, type TradeState } from '~/server/utils/tradeContext'
+
+// B2B Session 4: storefront modes, enforced on the server for every request (hiding UI alone is not enough).
+// Runs after server/middleware/tenant.ts (alphabetical), so event.context.tenantId is already set.
+//
+//   Retail tenant (B2B off): TRADE_OFF, no headers, no gates, nothing changes.
+//   B2B tenant: every page and API response is `private, no-store` + `Vary: Cookie`, because what a visitor sees can
+//   depend on the trade cookie; a price meant for one buyer must never be served to another or to an anonymous visitor.
+//
+//   open / hybrid   anonymous: retail, unchanged.            shop_window  anonymous: no buy button, no cart.
+//   closed          anonymous: only the sign-in, application, password pages and the merchant's listed company-info pages.
+//   signed in       all modes: trade prices; the cart and checkout are refused until the trade checkout exists (Session 5a)
+//                   so a trade buyer can never pay a retail price by accident. Signing out makes them a normal shopper.
+
+const STATIC_PREFIXES = ['/_nuxt/', '/__nuxt', '/_ipx/', '/wc-media/', '/wc-pay/', '/favicon', '/_payload']
+// Data routes that carry the catalogue (blocked for an anonymous visitor of a closed portal).
+const CATALOGUE_API = ['/api/products', '/api/categories', '/api/collections', '/api/category-product-template', '/api/gift-wrap', '/api/cart']
+// Pages that show the catalogue or take an order.
+const CATALOGUE_PAGES = ['/product', '/cart', '/checkout', '/account', '/login', '/register', '/collections', '/shop', '/search', '/order-confirmation']
+
+function startsWithAny(path: string, list: string[]): boolean {
+  return list.some(p => path === p.replace(/\/$/, '') || path.startsWith(p.endsWith('/') ? p : p + '/') || path.startsWith(p + '?'))
+}
+
+function deny(statusCode: number, code: string, message: string): never {
+  throw createError({ statusCode, statusMessage: message, data: { code, message } })
+}
+
+export default defineEventHandler(async (event) => {
+  const path   = (event.path ?? '').split('?')[0]
+  const method = (event.node.req.method ?? 'GET').toUpperCase()
+  const isApi  = path.startsWith('/api/')
+
+  if (!event.context.tenantId) return
+  if (STATIC_PREFIXES.some(p => path.startsWith(p))) return
+  if (path === '/api/invalidate') return // Stratum -> storefront, server to server
+
+  let state: TradeState = TRADE_OFF
+  state = await resolveTrade(event) // throws 503 when the mode cannot be determined and nothing is remembered
+  event.context.trade = state
+  if (!state.enabled) return
+
+  const res = event.node.res
+  res.setHeader('Cache-Control', 'private, no-store')
+  res.setHeader('Vary', 'Cookie')
+  if (state.mode === 'closed') res.setHeader('X-Robots-Tag', 'noindex, nofollow')
+
+  const signedIn = state.active
+  const toLogin = () => sendRedirect(event, '/trade/login', 302)
+
+  // ---- cart and checkout ------------------------------------------------------------------------------------------
+  if (path.startsWith('/api/cart')) {
+    if (signedIn && method !== 'GET' && path !== '/api/cart/clear') {
+      deny(409, 'TRADE_CHECKOUT_PENDING', 'Trade ordering is opening soon. Please contact us to place a trade order, or sign out to buy at retail prices.')
+    }
+    if (!signedIn && state.mode === 'closed') deny(403, 'TRADE_LOGIN_REQUIRED', 'Please sign in to your trade account.')
+    if (!signedIn && state.mode === 'shop_window' && method !== 'GET') deny(403, 'TRADE_LOGIN_REQUIRED', 'Buying is for trade accounts. Please sign in.')
+  }
+  if (!isApi && !signedIn && state.mode === 'shop_window' && (path === '/cart' || path === '/checkout')) return toLogin()
+  if (!isApi && signedIn && (path === '/checkout')) return sendRedirect(event, '/cart', 302)
+
+  // ---- closed portal: an anonymous visitor sees almost nothing -----------------------------------------------------
+  if (state.mode === 'closed' && !signedIn) {
+    if (isApi) {
+      if (startsWithAny(path, CATALOGUE_API)) deny(401, 'TRADE_LOGIN_REQUIRED', 'Please sign in to your trade account.')
+      return
+    }
+    if (path === '/robots.txt' || startsWithAny(path, ['/trade'])) return
+    if (path === '/' || startsWithAny(path, CATALOGUE_PAGES)) return toLogin()
+    // Any other page: only the company-info pages the merchant lists. Everything else goes to the sign-in page.
+    const slug = path.replace(/^\/+|\/+$/g, '').toLowerCase()
+    if (!state.publicPages.includes(slug)) return toLogin()
+  }
+})
