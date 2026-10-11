@@ -14,6 +14,8 @@ export default defineNuxtConfig({
     // Shared secret for HMAC-signed calls to Stratum's public endpoints (b2b_public/*, B2B trade applications).
     // Must equal the MASTER option stratum_public_hmac_secret. Fails closed when empty (server/utils/stratumSigning.ts).
     stratumPublicHmacSecret: process.env.STRATUM_PUBLIC_HMAC_SECRET || '',
+    // Where Store Builder uploads are really served (B2B Session 4 white-label proxy, server/routes/sb-uploads). Empty = the platform default.
+    stratumUploadsBase: process.env.STRATUM_UPLOADS_BASE || '',
     // Supplier Network checkout-time stock reservation API (Laravel) — a
     // static shared secret, not per-tenant, since the Laravel endpoint
     // identifies the tenant from the request body (tenant slug), not from a

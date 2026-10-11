@@ -13,7 +13,7 @@ import { resolveTrade, TRADE_OFF, type TradeState } from '~/server/utils/tradeCo
 //   signed in       all modes: trade prices; the cart and checkout are refused until the trade checkout exists (Session 5a)
 //                   so a trade buyer can never pay a retail price by accident. Signing out makes them a normal shopper.
 
-const STATIC_PREFIXES = ['/_nuxt/', '/__nuxt', '/_ipx/', '/wc-media/', '/wc-pay/', '/favicon', '/_payload']
+const STATIC_PREFIXES = ['/_nuxt/', '/__nuxt', '/_ipx/', '/wc-media/', '/wc-pay/', '/sb-uploads/', '/favicon', '/_payload']
 // Data routes that carry the catalogue (blocked for an anonymous visitor of a closed portal).
 const CATALOGUE_API = ['/api/products', '/api/categories', '/api/collections', '/api/category-product-template', '/api/gift-wrap', '/api/cart']
 // Pages that show the catalogue or take an order.
