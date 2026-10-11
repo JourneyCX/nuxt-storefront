@@ -21,6 +21,9 @@ const available = ref<boolean | null>(null)
 const submitting = ref(false)
 const done      = ref('')
 const errors    = reactive<Record<string, string>>({})
+const summaryEl = ref<HTMLElement | null>(null)
+const hasErrors = computed(() => Object.values(errors).some(Boolean))
+const errorList = computed(() => Object.entries(errors).filter(([, v]) => v).map(([k, v]) => (k === '_' ? v : v)))
 
 const form = reactive({
   legal_name: '', trading_name: '', reg_no: '', tax_id: '',
@@ -87,6 +90,9 @@ async function onSubmit() {
     const data = e?.data?.errors ?? e?.response?._data?.errors
     if (data) Object.assign(errors, data)
     else errors._ = e?.data?.statusMessage || e?.statusMessage || 'We could not submit your application. Please try again.'
+    // Show the problem next to the button and bring it into view: a field message far above the fold looked like "nothing happened".
+    await nextTick()
+    summaryEl.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     // A refused attempt used the fill token; get a fresh one so the visitor can correct and resubmit.
     try { cfg.value = await $fetch<TradeConfig>('/api/trade/config') } catch { /* keep the old one */ }
   } finally {
@@ -213,6 +219,11 @@ const label = 'display:block;font-size:13px;font-weight:600;color:#4a5568;margin
         <input v-model="form.marketing_optin" type="checkbox" style="margin-top:3px" />
         <span>I would also like to receive news and offers from {{ cfg.businessName || 'this business' }} by email. (Optional. You can unsubscribe at any time.)</span>
       </label>
+
+      <div v-if="hasErrors" ref="summaryEl" role="alert" style="background:#fff5f5;border:1px solid #fed7d7;color:#c53030;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:14px">
+        <strong>Your application was not sent.</strong>
+        <ul style="margin:6px 0 0 18px;padding:0"><li v-for="(m, i) in errorList" :key="i">{{ m }}</li></ul>
+      </div>
 
       <button type="submit" :disabled="submitting"
         style="background:#2b6cb0;color:#fff;padding:14px 32px;border:none;border-radius:8px;font-weight:700;font-size:16px;cursor:pointer">
