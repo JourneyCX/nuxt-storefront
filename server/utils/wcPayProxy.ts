@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { getRawQuery } from '~/server/utils/http-compat'
+import { isWcPayAllowed } from '~/server/utils/wcPayAllowlist'
 
 // Shared by server/routes/wc-pay/index.ts AND server/routes/wc-pay/[...slug].ts.
 // Nitro's [...slug] catch-all does NOT match the bare "/wc-pay/" path with
@@ -64,9 +65,14 @@ export async function handleWcPayProxy(event: H3Event) {
   const rawPath = qIndex === -1 ? rawUrl : rawUrl.slice(0, qIndex)
   const slug    = rawPath.replace(/^\/wc-pay\/?/, '')
   const query   = getRawQuery(event)
+  const method  = event.node.req.method ?? 'GET'
+  // Allowlist (see wcPayAllowlist.ts): only what the pay flow needs. Anything else, wp-json above all, is
+  // refused with the same 404 a route that does not exist would give.
+  if (!isWcPayAllowed(slug, method, query as Record<string, unknown>)) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found.' })
+  }
   const qs      = new URLSearchParams(query).toString()
   const target  = `${wcUrl.replace(/\/$/, '')}/${slug}${qs ? '?' + qs : ''}`
-  const method  = event.node.req.method ?? 'GET'
 
   const rawHeaders = event.node.req.headers
   const myHost  = (rawHeaders['x-forwarded-host'] as string) || (rawHeaders['host'] as string) || ''

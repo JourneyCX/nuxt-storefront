@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { isWcMediaAllowed } from '~/server/utils/wcPayAllowlist'
 
 // WHY THIS PROXY EXISTS AT ALL: same root cause as wcPayProxy.ts -- the
 // internal WooCommerce host (tenant-N.wc.stratumengage.com) has no public
@@ -26,6 +27,9 @@ export async function handleWcMediaProxy(event: H3Event) {
   const qIndex  = rawUrl.indexOf('?')
   const rawPath = qIndex === -1 ? rawUrl : rawUrl.slice(0, qIndex)
   const slug    = rawPath.replace(/^\/wc-media\/?/, '')
+  if (!isWcMediaAllowed(slug)) {
+    throw createError({ statusCode: 404, statusMessage: 'Image not found.' })
+  }
   const target  = `${wcUrl.replace(/\/$/, '')}/wp-content/uploads/${slug}`
 
   const upstream = await fetch(target)
