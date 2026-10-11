@@ -12,21 +12,37 @@ export function uploadsBase(): string {
   return (cfg || UPLOADS_BASE_DEFAULT).replace(/\/+$/, '')
 }
 
-let cachedRe: { base: string; re: RegExp } | null = null
-function uploadsRegex(): RegExp {
-  const base = uploadsBase()
-  if (!cachedRe || cachedRe.base !== base) {
-    const esc = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    cachedRe = { base, re: new RegExp(`${esc}/([a-z0-9_-]+)/ps/uploads/`, 'gi') }
-  }
-  cachedRe.re.lastIndex = 0
-  return cachedRe.re
+const SLASH_ESCAPED = '\\u002F' // the 6 characters  /  that Nuxt's page payload writes in place of every "/"
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** Rewrite platform upload URLs inside a string (HTML or JSON text). */
+let cached: { base: string; plain: RegExp; escaped: RegExp } | null = null
+function regexes(): { plain: RegExp; escaped: RegExp } {
+  const base = uploadsBase()
+  if (!cached || cached.base !== base) {
+    const plainBase = escapeRe(base)
+    const escBase = escapeRe(base.split('/').join(SLASH_ESCAPED))
+    const e = escapeRe(SLASH_ESCAPED)
+    cached = {
+      base,
+      plain: new RegExp(`${plainBase}/([a-z0-9_-]+)/ps/uploads/`, 'gi'),
+      escaped: new RegExp(`${escBase}${e}([a-z0-9_-]+)${e}ps${e}uploads${e}`, 'gi'),
+    }
+  }
+  cached.plain.lastIndex = 0
+  cached.escaped.lastIndex = 0
+  return cached
+}
+
+/** Rewrite platform upload URLs inside a string (HTML or JSON text), in both the plain and the /-escaped form. */
 export function rewriteUploadsText(text: string): string {
-  if (!text || !text.includes('/ps/uploads/')) return text
-  return text.replace(uploadsRegex(), '/sb-uploads/$1/')
+  if (!text || (!text.includes('/ps/uploads/') && !text.includes(`${SLASH_ESCAPED}ps${SLASH_ESCAPED}uploads`))) return text
+  const r = regexes()
+  return text
+    .replace(r.plain, '/sb-uploads/$1/')
+    .replace(r.escaped, `${SLASH_ESCAPED}sb-uploads${SLASH_ESCAPED}$1${SLASH_ESCAPED}`)
 }
 
 /** Rewrite inside any JSON-able value (API responses). Returns the same object when nothing needed changing. */
