@@ -111,9 +111,18 @@ async function modeFor(event: H3Event, tenantId: number): Promise<ModeValue> {
     p = (async () => {
       const secretSet = String((useRuntimeConfig() as any).stratumPublicHmacSecret || '') !== ''
       if (!secretSet) return { ...TRADE_OFF } // signing not configured: this deployment cannot offer trade features
-      const res = await tradeCall<any>(event, 'storefront_mode', { host })
-      if (res.status === 404) return { ...TRADE_OFF }  // B2B is not enabled for this tenant
-      if (res.status !== 200 || !res.data?.success) throw createError({ statusCode: 503, statusMessage: 'Store is temporarily unavailable.' })
+      let res = await tradeCall<any>(event, 'storefront_mode', { host }).catch(() => null)
+      if (res && res.status === 404) return { ...TRADE_OFF }  // B2B is not enabled for this tenant
+      if (!res || res.status !== 200 || !res.data?.success) {
+        // One quick retry: a single slow or throttled answer must not take the whole store down.
+        await new Promise(r => setTimeout(r, 400))
+        res = await tradeCall<any>(event, 'storefront_mode', { host }).catch(() => null)
+        if (res && res.status === 404) return { ...TRADE_OFF }
+      }
+      if (!res || res.status !== 200 || !res.data?.success) {
+        console.error('[trade] storefront_mode failed for', host, '- status', res ? res.status : 'no answer')
+        throw createError({ statusCode: 503, statusMessage: 'Store is temporarily unavailable.' })
+      }
       const d = res.data
       const mode = (['open', 'shop_window', 'hybrid', 'closed'] as const).includes(d.mode) ? d.mode as StorefrontMode : 'hybrid'
       return {
