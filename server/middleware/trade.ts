@@ -1,4 +1,4 @@
-import { defineEventHandler, createError, sendRedirect } from 'h3'
+import { defineEventHandler, createError } from 'h3'
 import { resolveTrade, TRADE_OFF, type TradeState } from '~/server/utils/tradeContext'
 
 // B2B Session 4: storefront modes, enforced on the server for every request (hiding UI alone is not enough).
@@ -47,7 +47,14 @@ export default defineEventHandler(async (event) => {
   if (state.mode === 'closed') res.setHeader('X-Robots-Tag', 'noindex, nofollow')
 
   const signedIn = state.active
-  const toLogin = () => sendRedirect(event, '/trade/login', 302)
+  // Manual redirect: h3's sendRedirect did not take effect from this middleware on this runtime (the page rendered with
+  // 200). Setting the status and Location on the Node response and ending it is what h3 itself checks (event.handled).
+  const redirect = (to: string) => {
+    res.statusCode = 302
+    res.setHeader('Location', to)
+    res.end()
+  }
+  const toLogin = () => redirect('/trade/login')
 
   // ---- cart and checkout ------------------------------------------------------------------------------------------
   if (path.startsWith('/api/cart')) {
@@ -58,7 +65,7 @@ export default defineEventHandler(async (event) => {
     if (!signedIn && state.mode === 'shop_window' && method !== 'GET') deny(403, 'TRADE_LOGIN_REQUIRED', 'Buying is for trade accounts. Please sign in.')
   }
   if (!isApi && !signedIn && state.mode === 'shop_window' && (path === '/cart' || path === '/checkout')) return toLogin()
-  if (!isApi && signedIn && (path === '/checkout')) return sendRedirect(event, '/cart', 302)
+  if (!isApi && signedIn && (path === '/checkout')) return redirect('/cart')
 
   // ---- closed portal: an anonymous visitor sees almost nothing -----------------------------------------------------
   if (state.mode === 'closed' && !signedIn) {
