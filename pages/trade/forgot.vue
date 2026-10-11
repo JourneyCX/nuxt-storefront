@@ -3,6 +3,10 @@
 // trade account, so nobody can use this page to find out who has one.
 useHead({ title: 'Reset your trade password', meta: [{ name: 'robots', content: 'noindex' }] })
 
+// A store without B2B has no trade pages at all (same answer as any unknown address).
+const { me: tradeMe } = await useTrade()
+if (!tradeMe.value.enabled) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true })
+
 const email = ref('')
 const busy  = ref(false)
 const sent  = ref(false)

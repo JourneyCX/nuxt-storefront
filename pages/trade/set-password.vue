@@ -4,6 +4,10 @@
 // is still good, then posts the new password with it.
 useHead({ title: 'Choose your trade password', meta: [{ name: 'robots', content: 'noindex' }, { name: 'referrer', content: 'no-referrer' }] })
 
+// A store without B2B has no trade pages at all (same answer as any unknown address).
+const { me: tradeMe } = await useTrade()
+if (!tradeMe.value.enabled) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true })
+
 const route  = useRoute()
 const c      = String(route.query.c ?? '')
 const k      = String(route.query.k ?? '')

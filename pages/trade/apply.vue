@@ -12,6 +12,10 @@ interface TradeConfig {
 
 useHead({ title: 'Apply for a trade account', meta: [{ name: 'robots', content: 'noindex' }] })
 
+// A store without B2B has no trade pages at all (same answer as any unknown address).
+const { me: tradeMe } = await useTrade()
+if (!tradeMe.value.enabled) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true })
+
 const cfg       = ref<TradeConfig | null>(null)
 const available = ref<boolean | null>(null)
 const submitting = ref(false)

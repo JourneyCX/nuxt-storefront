@@ -3,6 +3,10 @@
 // Stratum checks them and the storefront sets a signed HttpOnly cookie. Merchant branding only (the layout's header).
 useHead({ title: 'Trade sign in', meta: [{ name: 'robots', content: 'noindex' }] })
 
+// A store without B2B has no trade pages at all (same answer as any unknown address).
+const { me: tradeMe } = await useTrade()
+if (!tradeMe.value.enabled) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true })
+
 const route    = useRoute()
 const email    = ref('')
 const password = ref('')
