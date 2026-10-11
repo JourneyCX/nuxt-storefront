@@ -135,6 +135,35 @@ async function modeFor(event: H3Event, tenantId: number): Promise<ModeValue> {
   }
 }
 
+// A page load makes several internal API calls (product, related, variations ...), each running this middleware, and
+// each would ask Stratum the same thing within milliseconds. The answer is remembered for 2 seconds per session (and
+// shared while a call is in flight), so a page costs one check, not ten. 2 seconds keeps "a hold or a deactivation
+// takes effect on the next page load" true: a new page load a few seconds later asks Stratum again.
+const SESSION_MEMO_MS = 2000
+const sessionMemo = new Map<string, { at: number; res: { status: number; data: any } | null }>()
+const sessionInflight = new Map<string, Promise<{ status: number; data: any } | null>>()
+
+export function forgetSession(tenantId: number, sid: string): void {
+  sessionMemo.delete(`${tenantId}|${sid}`)
+}
+
+async function checkSession(event: H3Event, tenantId: number, sid: string): Promise<{ status: number; data: any } | null> {
+  const key = `${tenantId}|${sid}`
+  const hit = sessionMemo.get(key)
+  if (hit && Date.now() - hit.at < SESSION_MEMO_MS) return hit.res
+  let p = sessionInflight.get(key)
+  if (!p) {
+    p = tradeCall<any>(event, 'trade_session', { sid }).then(r => ({ status: r.status, data: r.data })).catch(() => null)
+    sessionInflight.set(key, p)
+    p.finally(() => sessionInflight.delete(key)).catch(() => {})
+  }
+  const res = await p
+  // Only definite answers are remembered (an error or a throttle is asked again at once).
+  if (res && (res.status === 200 || res.status === 401)) sessionMemo.set(key, { at: Date.now(), res })
+  if (sessionMemo.size > 2000) { for (const k of sessionMemo.keys()) { sessionMemo.delete(k); if (sessionMemo.size < 1000) break } }
+  return res
+}
+
 /** Resolve (once per request) what this visitor is: tenant mode + the signed-in buyer, checked live with Stratum. */
 export async function resolveTrade(event: H3Event): Promise<TradeState> {
   const tenantId = event.context.tenantId as number | undefined
@@ -144,7 +173,7 @@ export async function resolveTrade(event: H3Event): Promise<TradeState> {
   const state: TradeState = { ...m, buyer: null, active: false, onHold: false }
   const sid = readTradeSid(event, tenantId)
   if (!sid) return state
-  const res = await tradeCall<any>(event, 'trade_session', { sid }).catch(() => null)
+  const res = await checkSession(event, tenantId, sid)
   if (res && res.status === 200 && res.data?.success) {
     state.buyer  = res.data.buyer as TradeBuyer
     state.active = !!res.data.active

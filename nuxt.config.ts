@@ -24,7 +24,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    // SSR for all storefront pages
+    // SSR for all storefront pages (never cached: see the note in nitro.routeRules below)
     '/**': { ssr: true },
     // API routes — no page cache
     '/api/**': { cache: false },
@@ -32,10 +32,10 @@ export default defineNuxtConfig({
 
   nitro: {
     routeRules: {
-      // Storefront pages: stale-while-revalidate 60s
-      '/**':      { isr: 60 },
-      // Product detail pages: slightly longer cache
-      '/product/**': { isr: 120 },
+      // B2B Session 4: the `isr` rules that used to sit here ('/**': 60 s, '/product/**': 120 s) were REMOVED. They did
+      // nothing on this node-server build, but a preset change would have started caching rendered pages, and a page
+      // can now show a trade buyer's prices. Pages are never cached; server/middleware/trade.ts sends
+      // `Cache-Control: private, no-store` + `Vary: Cookie` on every response of a B2B tenant.
       // API routes: no cache
       '/api/**':  { cache: false },
       // Theme "View Demo" preview pages: no cache. Content here is keyed by

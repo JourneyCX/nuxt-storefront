@@ -1,5 +1,5 @@
 import { getRawBody } from '~/server/utils/http-compat'
-import { clearTradeCookie, readTradeSid, tradeCall } from '~/server/utils/tradeContext'
+import { clearTradeCookie, forgetSession, readTradeSid, tradeCall } from '~/server/utils/tradeContext'
 import { requireSameOrigin, requireTradeEnabled } from '~/server/utils/tradeApi'
 
 // POST /api/trade/logout  {everywhere?: boolean}
@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
   const body = await getRawBody<{ everywhere?: boolean }>(event).catch(() => undefined)
   const sid = readTradeSid(event, tenantId)
   if (sid) await tradeCall(event, 'trade_logout', { sid, everywhere: !!body?.everywhere }).catch(() => null)
+  if (sid) forgetSession(tenantId, sid)
   clearTradeCookie(event, tenantId)
   return { ok: true }
 })
