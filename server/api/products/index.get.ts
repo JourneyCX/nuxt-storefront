@@ -1,7 +1,8 @@
 import { createWcClient }   from '~/server/utils/woocommerce'
 import { fetchWooCredentials, fetchPreviewScope } from '~/server/utils/stratum'
 import { getRawQuery } from '~/server/utils/http-compat'
-import { shapeProducts } from '~/server/utils/tradePricing'
+import { shapeProducts, visibleSkus } from '~/server/utils/tradePricing'
+import { activeBuyer } from '~/server/utils/tradeContext'
 
 export default defineEventHandler(async (event) => {
   const config   = useRuntimeConfig()
@@ -27,7 +28,19 @@ export default defineEventHandler(async (event) => {
     category = scope.join(',')
   }
 
+  // B2B (Session 4): ask WooCommerce for exactly the products this buyer's catalog admits. Without this a restricted
+  // catalog (say two chosen products) is applied AFTER WooCommerce has already paged its newest products, so an older
+  // allowed product never reaches the page.
+  let allowedSkus: string[] | undefined
+  const buyer = activeBuyer(event)
+  if (buyer) {
+    const v = await visibleSkus(event, buyer)
+    if (v && v.length === 0) return []
+    if (v && v.length <= 100) allowedSkus = v
+  }
+
   const products = await wc.getProducts({
+    sku:       allowedSkus,
     category,
     search:    q.search    as string | undefined,
     page:      q.page      ? Number(q.page)      : 1,

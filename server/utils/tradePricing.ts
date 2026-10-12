@@ -59,6 +59,23 @@ function tradeInfoFrom(line: Line, extra: Partial<TradeInfo> = {}): TradeInfo {
   }
 }
 
+// The buyer's allowed products as SKUs, remembered for 3 seconds (a page load asks several times). Null when the answer is
+// not a complete list (more than 300 products, or Stratum could not answer): the caller then does not restrict the query.
+const visibleMemo = new Map<string, { at: number; value: string[] | null }>()
+export async function visibleSkus(event: H3Event, buyer: TradeBuyer): Promise<string[] | null> {
+  const key = `${buyer.company_id}|${buyer.location_id ?? 0}`
+  const hit = visibleMemo.get(key)
+  if (hit && Date.now() - hit.at < 3000) return hit.value
+  let value: string[] | null = null
+  try {
+    const res = await tradeCall<any>(event, 'visible_skus', { buyer: { company_id: buyer.company_id, location_id: buyer.location_id } })
+    if (res.status === 200 && res.data?.success && res.data.complete) value = (res.data.skus as string[]) ?? []
+  } catch { value = null }
+  visibleMemo.set(key, { at: Date.now(), value })
+  if (visibleMemo.size > 500) visibleMemo.clear()
+  return value
+}
+
 /** One signed call per chunk of 48 SKUs. Throws 502 when Stratum cannot answer (a trade buyer never gets a retail price instead). */
 async function quoteSkus(event: H3Event, buyer: TradeBuyer, skus: string[]): Promise<Record<string, Line>> {
   const out: Record<string, Line> = {}
