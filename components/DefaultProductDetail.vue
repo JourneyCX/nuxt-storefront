@@ -202,16 +202,34 @@ const addToCartLabel = computed(() => {
   return 'Add to Cart'
 })
 
+// B2B 5a: a trade buyer orders in the steps Stratum's quantity rule allows, starting at its minimum. Retail (no rule): 1, step 1 -- unchanged.
+const qtyMin  = computed(() => Math.max(1, Number(tradeInfo.value?.quantityRule?.min ?? 1)))
+const qtyStep = computed(() => Math.max(1, Number(tradeInfo.value?.quantityRule?.increment ?? 1)))
+const addError = ref('')
+let qtyTouched = false
+watch(qtyMin, (m) => { if (!qtyTouched && quantity.value < m) quantity.value = m }, { immediate: true })
+function qtyDown() { qtyTouched = true; quantity.value = Math.max(qtyMin.value, quantity.value - qtyStep.value) }
+function qtyUp()   { qtyTouched = true; quantity.value += qtyStep.value }
+
 async function handleAdd() {
   if (!canAddToCart.value) return
+  addError.value = ''
   const id = matchedVariation.value?.id ?? product.value!.id
   // The shopper's chosen value for every attribute goes with the add: WC
   // requires it for an "Any" attribute and stores it on the order line.
   const selection = isVariable.value
     ? variationSelection(variationAttributes.value.map(a => a.name), selectedOptions)
     : undefined
-  await addToCart(id, quantity.value, selection)
-  await addGiftWrap(quantity.value)
+  try {
+    const tradeSku = tradeInfo.value?.mode === 'trade' ? String(matchedVariation.value?.sku || product.value!.sku || '') : ''
+    await addToCart(id, quantity.value, selection, tradeSku || undefined)
+  } catch (e: any) {
+    // A trade buyer is told why in plain words (Stratum's quantity rule, stock ...). Retail behaves exactly as before.
+    if (tradeInfo.value?.mode !== 'trade') throw e
+    addError.value = String(e?.data?.statusMessage || e?.statusMessage || 'That could not be added to your cart.')
+    return
+  }
+  if (tradeInfo.value?.mode !== 'trade') await addGiftWrap(quantity.value) // gift wrap is a retail add-on
 }
 
 // Fullscreen image lightbox with prev/next -- opens on the currently
@@ -350,15 +368,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
 
         <TradeBuyNote v-if="!buyOffered && product!.trade" :trade="product!.trade" />
 
-        <GiftWrapOption v-if="buyOffered" v-model="giftWrapChecked" :config="giftWrapConfig" :currency-symbol="product!.currency_symbol" />
+        <GiftWrapOption v-if="buyOffered && tradeInfo?.mode !== 'trade'" v-model="giftWrapChecked" :config="giftWrapConfig" :currency-symbol="product!.currency_symbol" />
 
         <!-- Quantity + Add to Cart -->
         <div v-if="buyOffered" style="display:flex;gap:12px;align-items:center;margin-bottom:24px">
           <div style="display:flex;align-items:center;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
-            <button @click="quantity = Math.max(1, quantity - 1)"
+            <button @click="qtyDown"
                     style="width:40px;height:44px;background:none;border:none;cursor:pointer;font-size:18px;color:#4a5568">−</button>
             <span style="min-width:40px;text-align:center;font-size:16px;font-weight:600;color:#1a202c">{{ quantity }}</span>
-            <button @click="quantity++"
+            <button @click="qtyUp"
                     style="width:40px;height:44px;background:none;border:none;cursor:pointer;font-size:18px;color:#4a5568">+</button>
           </div>
           <button
@@ -374,6 +392,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
             {{ addToCartLabel }}
           </button>
         </div>
+        <p v-if="addError" role="alert" data-testid="add-error" style="margin:-12px 0 20px;color:#c53030;font-size:14px">{{ addError }}</p>
 
         <!-- Full description -->
         <div v-if="product!.description"

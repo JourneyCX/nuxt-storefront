@@ -57,15 +57,24 @@ export default defineEventHandler(async (event) => {
   const toLogin = () => redirect('/trade/login')
 
   // ---- cart and checkout ------------------------------------------------------------------------------------------
+  // Session 5a: with trade ordering on for this tenant, a signed-in buyer's cart is Stratum's trade cart (the /api/cart/*
+  // handlers answer from it and never touch WooCommerce); the retail-only operations (coupons, shipping rates, the
+  // WooCommerce checkout) are refused for them. With it off, the Session 4 block stands.
   if (path.startsWith('/api/cart')) {
-    if (signedIn && method !== 'GET' && path !== '/api/cart/clear') {
+    if (signedIn && state.checkout) {
+      const tradeOk = path === '/api/cart' || path === '/api/cart/items' || path.startsWith('/api/cart/items/') || path === '/api/cart/clear'
+      if (!tradeOk) deny(409, 'TRADE_USE_TRADE_CHECKOUT', 'Please use the trade checkout.')
+    } else if (signedIn && method !== 'GET' && path !== '/api/cart/clear') {
       deny(409, 'TRADE_CHECKOUT_PENDING', 'Trade ordering is opening soon. Please contact us to place a trade order, or sign out to buy at retail prices.')
     }
     if (!signedIn && state.mode === 'closed') deny(403, 'TRADE_LOGIN_REQUIRED', 'Please sign in to your trade account.')
     if (!signedIn && state.mode === 'shop_window' && method !== 'GET') deny(403, 'TRADE_LOGIN_REQUIRED', 'Buying is for trade accounts. Please sign in.')
   }
   if (!isApi && !signedIn && state.mode === 'shop_window' && (path === '/cart' || path === '/checkout')) return toLogin()
+  if (!isApi && signedIn && state.checkout && (path === '/cart' || path === '/checkout')) return redirect(path === '/cart' ? '/trade/cart' : '/trade/checkout')
   if (!isApi && signedIn && (path === '/checkout')) return redirect('/cart')
+  // The trade cart and checkout pages are for a signed-in buyer of a tenant with trade ordering on (anyone else: the sign-in page).
+  if (!isApi && (path === '/trade/cart' || path === '/trade/checkout' || path.startsWith('/trade/order/')) && !(signedIn && state.checkout)) return toLogin()
 
   // ---- closed portal: an anonymous visitor sees almost nothing -----------------------------------------------------
   if (state.mode === 'closed' && !signedIn) {

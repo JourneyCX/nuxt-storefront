@@ -22,12 +22,16 @@ export function useCart() {
 
   // `variation`: the shopper's chosen attribute values for a variable
   // product (required by WC for an "Any …" attribute -- 0b-B11).
-  async function addToCart(productId: number, quantity = 1, variation?: { attribute: string; value: string }[]) {
+  // `sku`: only a signed-in trade buyer's add sends it (the product page knows the chosen variation's SKU); Stratum's trade
+  // cart looks the item up by it. Retail requests are byte-for-byte what they were.
+  async function addToCart(productId: number, quantity = 1, variation?: { attribute: string; value: string }[], sku?: string) {
     cartLoading.value = true
     try {
+      const body: Record<string, unknown> = variation?.length ? { productId, quantity, variation } : { productId, quantity }
+      if (sku) body.sku = sku
       cart.value = await $fetch<WcCart>('/api/cart/items', {
         method: 'POST',
-        body:   variation?.length ? { productId, quantity, variation } : { productId, quantity },
+        body,
       })
       cartOpen.value = true
     } finally {

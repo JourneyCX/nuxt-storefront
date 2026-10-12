@@ -34,13 +34,14 @@ export interface TradeState {
   buyer:       TradeBuyer | null       // the signed-in contact, whether or not the company is active
   active:      boolean                 // signed in AND the company is approved and not on hold
   onHold:      boolean
+  checkout:    boolean                 // Session 5a: trade ordering is switched on for this tenant (Stratum decides; read live with the session)
 }
 
-export const TRADE_OFF: TradeState = { enabled: false, mode: 'off', windowPrice: 'hidden', publicPages: [], buyer: null, active: false, onHold: false }
+export const TRADE_OFF: TradeState = { enabled: false, mode: 'off', windowPrice: 'hidden', publicPages: [], buyer: null, active: false, onHold: false, checkout: false }
 
 const MODE_TTL_MS = 30_000
-const modeMemo = new Map<string, { at: number; value: Omit<TradeState, 'buyer' | 'active' | 'onHold'> }>()
-const modeInflight = new Map<string, Promise<Omit<TradeState, 'buyer' | 'active' | 'onHold'>>>()
+const modeMemo = new Map<string, { at: number; value: Omit<TradeState, 'buyer' | 'active' | 'onHold' | 'checkout'> }>()
+const modeInflight = new Map<string, Promise<Omit<TradeState, 'buyer' | 'active' | 'onHold' | 'checkout'>>>()
 
 const COOKIE_TTL_SECONDS = 12 * 60 * 60
 
@@ -98,7 +99,7 @@ export function requestHost(event: H3Event): string {
   return String((h['x-forwarded-host'] as string) || (h['host'] as string) || '').split(',')[0].trim().toLowerCase()
 }
 
-type ModeValue = Omit<TradeState, 'buyer' | 'active' | 'onHold'>
+type ModeValue = Omit<TradeState, 'buyer' | 'active' | 'onHold' | 'checkout'>
 
 /** Mode for this storefront host, memoised for 30 s (a change takes effect within about half a minute). */
 async function modeFor(event: H3Event, tenantId: number): Promise<ModeValue> {
@@ -179,7 +180,7 @@ export async function resolveTrade(event: H3Event): Promise<TradeState> {
   if (!tenantId) return TRADE_OFF
   const m = await modeFor(event, tenantId)
   if (!m.enabled) return TRADE_OFF
-  const state: TradeState = { ...m, buyer: null, active: false, onHold: false }
+  const state: TradeState = { ...m, buyer: null, active: false, onHold: false, checkout: false }
   const sid = readTradeSid(event, tenantId)
   if (!sid) return state
   const res = await checkSession(event, tenantId, sid)
@@ -187,6 +188,7 @@ export async function resolveTrade(event: H3Event): Promise<TradeState> {
     state.buyer  = res.data.buyer as TradeBuyer
     state.active = !!res.data.active
     state.onHold = !res.data.active && res.data.reason === 'on_hold'
+    state.checkout = res.data.checkout === true
   } else if (res && res.status === 401) {
     clearTradeCookie(event, tenantId) // revoked, expired, contact deactivated, company declined
   }

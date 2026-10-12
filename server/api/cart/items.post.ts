@@ -1,4 +1,5 @@
-import { createWcStoreClient } from '~/server/utils/woocommerce'
+import { createWcStoreClient, createWcClient } from '~/server/utils/woocommerce'
+import { tradeCartOn, cartOrThrow, toWcCart, skuForAdd } from '~/server/utils/tradeCart'
 import { fetchWooCredentials }  from '~/server/utils/stratum'
 import { getRawCookie, setRawCookie, getRawBody } from '~/server/utils/http-compat'
 
@@ -9,6 +10,16 @@ export default defineEventHandler(async (event) => {
 
   if (!body?.productId) {
     throw createError({ statusCode: 400, statusMessage: 'productId is required.' })
+  }
+
+  // B2B 5a: a signed-in trade buyer adds to Stratum's trade cart. Only the product, the chosen options and a quantity
+  // are taken from the browser; the price, the rules and the stock are Stratum's. Retail falls through untouched.
+  if (tradeCartOn(event)) {
+    const variation = Array.isArray(body.variation) ? body.variation : undefined
+    // Stratum joins to its item by the WooCommerce product id it has on record, else by SKU. A product page sends the
+    // SKU of the chosen variation; a quick-add from a card does not, so ask WooCommerce for the (simple) product's SKU.
+    const sku = await skuForAdd(event, Number(body.productId), (body as any).sku)
+    return toWcCart(event, await cartOrThrow(event, 'cart_add', { wc_product_id: Number(body.productId), qty: Number(body.quantity ?? 1), variation, sku }))
   }
 
   // Optional chosen attribute values for a variable product (0b-B11): passed

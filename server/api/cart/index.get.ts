@@ -2,9 +2,15 @@ import { createWcStoreClient } from '~/server/utils/woocommerce'
 import { fetchWooCredentials }  from '~/server/utils/stratum'
 import { getRawCookie, setRawCookie } from '~/server/utils/http-compat'
 
+import { tradeCartOn, cartOrThrow, toWcCart } from '~/server/utils/tradeCart'
+
 export default defineEventHandler(async (event) => {
   const config   = useRuntimeConfig()
   const tenantId = event.context.tenantId as number
+
+  if (tradeCartOn(event)) { // B2B 5a: the mini-cart / header count for a trade buyer come from Stratum's trade cart
+    return toWcCart(event, await cartOrThrow(event, 'cart_get', {}))
+  }
 
   const creds = await fetchWooCredentials(config.stratumInternalUrl, tenantId)
   if (!creds) {

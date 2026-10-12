@@ -170,8 +170,9 @@ async function handleAdd() {
   const selection = isVariable.value
     ? variationSelection(variationAttributes.value.map(a => a.name), selectedOptions)
     : undefined
-  await addToCart(id, quantity.value, selection)
-  await addGiftWrap(quantity.value)
+  const tradeSku = tradeInfo.value?.mode === 'trade' ? String(matchedVariation.value?.sku || product.value!.sku || '') : ''
+  await addToCart(id, quantity.value, selection, tradeSku || undefined)
+  if (tradeInfo.value?.mode !== 'trade') await addGiftWrap(quantity.value) // gift wrap is a retail add-on
 }
 
 // Fullscreen image lightbox with prev/next -- opens on the currently

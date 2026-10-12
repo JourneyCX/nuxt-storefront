@@ -42,12 +42,12 @@ export function applyWindow<T extends WcProduct | WcVariation>(event: H3Event, i
   return out
 }
 
-function tradeInfoFrom(line: Line, extra: Partial<TradeInfo> = {}): TradeInfo {
+function tradeInfoFrom(line: Line, extra: Partial<TradeInfo> = {}, checkout = false): TradeInfo {
   const qr = line.quantity_rule
   return {
     mode: 'trade',
-    buyDisabled: true,                // until Session 5a (trade cart / checkout)
-    buyNote: NOTE_PENDING,
+    buyDisabled: !checkout,           // Session 5a: a buy button for a trade buyer only where Stratum has trade ordering on
+    buyNote: checkout ? undefined : NOTE_PENDING,
     vatNote: line.vat_applies ? 'excl. VAT' : undefined,
     tiers: Array.isArray(line.tiers) ? line.tiers.map((t: Line) => ({ min_qty: Number(t.min_qty), price_excl: money(t.price_excl) })) : [],
     quantityRule: qr && (qr.min || qr.max || (qr.increment && qr.increment > 1))
@@ -117,7 +117,7 @@ export async function shapeProducts(event: H3Event, products: WcProduct[]): Prom
       ...p,
       price, regular_price: '', sale_price: '', on_sale: false,
       stock_status: q.stock?.status === 'out_of_stock' ? 'outofstock' : p.stock_status,
-      trade: tradeInfoFrom(q, from !== null && from !== undefined ? { priceFrom: money(q.price_from), priceTo: money(q.price_to ?? q.price_from) } : {}),
+      trade: tradeInfoFrom(q, from !== null && from !== undefined ? { priceFrom: money(q.price_from), priceTo: money(q.price_to ?? q.price_from) } : {}, tradeState(event).checkout),
     })
   }
   return { items, hidden, unmatched }
@@ -147,7 +147,7 @@ export async function shapeVariations(event: H3Event, parentSku: string, variati
       ...v,
       price, regular_price: '', sale_price: '', on_sale: false,
       stock_status: line.stock?.status === 'out_of_stock' ? 'outofstock' : v.stock_status,
-      trade: tradeInfoFrom(line),
+      trade: tradeInfoFrom(line, {}, tradeState(event).checkout),
     })
   }
   return out

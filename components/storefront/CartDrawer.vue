@@ -92,12 +92,12 @@ const productsSubtotal = computed(() => {
       <!-- Footer with total + checkout -->
       <div v-if="cart && cart.items.length > 0" :style="{ padding:'20px 24px', borderTop:'1px solid #e2e8f0' }">
         <div :style="{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }">
-          <span :style="{ fontWeight:600, fontSize:'16px', color:'#1a202c' }">Subtotal</span>
+          <span :style="{ fontWeight:600, fontSize:'16px', color:'#1a202c' }">Subtotal{{ (cart as any)?.trade?.vatApplies ? ' excl. VAT' : '' }}</span>
           <span :style="{ fontWeight:700, fontSize:'18px', color:'#1a202c' }">
             {{ formatPrice(String(productsSubtotal), cart.totals.currency_symbol, cart.totals.currency_minor_unit) }}
           </span>
         </div>
-        <p :style="{ margin:'0 0 16px', fontSize:'12px', color:'#a0aec0' }">Discount codes and delivery options are on the cart page</p>
+        <p :style="{ margin:'0 0 16px', fontSize:'12px', color:'#a0aec0' }">{{ (cart as any)?.trade ? 'Delivery and your payment terms are on the cart page' : 'Discount codes and delivery options are on the cart page' }}</p>
         <a
           href="/cart"
           :style="{ display:'block', width:'100%', background:'#2b6cb0', color:'#fff', textAlign:'center', padding:'14px', borderRadius:'6px', fontWeight:700, fontSize:'16px', textDecoration:'none' }"

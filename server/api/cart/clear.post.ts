@@ -13,9 +13,15 @@ import { getRawCookie, setRawCookie } from '~/server/utils/http-compat'
 // already does for the shopper-initiated case, threading the
 // Cart-Token/Nonce session through each call. Called by order-confirmation.vue
 // once a redirect-gateway order is confirmed genuinely paid.
+import { tradeCartOn, cartOrThrow, toWcCart } from '~/server/utils/tradeCart'
+
 export default defineEventHandler(async (event) => {
   const config   = useRuntimeConfig()
   const tenantId = event.context.tenantId as number
+
+  if (tradeCartOn(event)) { // B2B 5a: a trade buyer's cart is emptied by ordering, not by this call
+    return toWcCart(event, await cartOrThrow(event, 'cart_get', {}))
+  }
 
   const creds = await fetchWooCredentials(config.stratumInternalUrl, tenantId)
   if (!creds) {

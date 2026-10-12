@@ -58,6 +58,6 @@ export function rewriteUploadsValue<T>(value: T): T {
 export function isAllowedUploadPath(slug: string, rest: string): boolean {
   if (!/^[a-z0-9_-]{1,64}$/i.test(slug)) return false
   if (!rest || rest.includes('%') || rest.includes('..') || rest.includes('\\') || rest.includes('//') || rest.includes('\0')) return false
-  if (!/^(?:store_builder|store_blog)\//.test(rest)) return false
+  if (!/^(?:store_builder|store_blog|company)\//.test(rest)) return false // company/: the logo used in trade emails (B2B 5a)
   return /\.(?:png|jpe?g|gif|webp|avif|svg|ico|mp4|webm)$/i.test(rest)
 }

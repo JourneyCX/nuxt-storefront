@@ -9,6 +9,7 @@ export interface TradeMe {
   windowPrice?: 'hidden' | 'retail'
   signedIn?:    boolean
   onHold?:      boolean
+  checkout?:    boolean   // Session 5a: this buyer can order (cart and checkout are open)
   company?:     string | null
   name?:        string | null
 }
