@@ -56,6 +56,20 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
 </script>
 
 <template>
+  <!-- Trade login state (B2B Session 4): its own slim bar ABOVE the header, so it can never crowd or overlap the menu.
+       Merchant colours only; nothing renders on a retail tenant. -->
+  <div v-if="trade.enabled" :style="{ backgroundColor: settings.headerBackgroundColor || '#fff', color: settings.headerTextColor || '#1a202c', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '13px' }">
+    <div style="max-width:1200px;margin:0 auto;padding:6px 24px;display:flex;justify-content:flex-end;align-items:center;gap:14px;flex-wrap:wrap">
+      <template v-if="trade.signedIn || trade.onHold">
+        <span>{{ trade.onHold ? 'Account on hold: ' : 'Signed in as ' }}<strong>{{ trade.company }}</strong></span>
+        <button type="button" @click="tradeSignOut" :style="{ background:'none', border:'1px solid currentColor', borderRadius:'4px', padding:'2px 8px', fontSize:'12px', cursor:'pointer', color:'inherit' }">Sign out</button>
+      </template>
+      <template v-else>
+        <a href="/trade/login" style="color:inherit;text-decoration:underline">Trade login</a>
+        <a v-if="trade.mode === 'shop_window'" href="/trade/apply" style="color:inherit;text-decoration:underline">Apply for a trade account</a>
+      </template>
+    </div>
+  </div>
   <header :style="{ backgroundColor: settings.headerBackgroundColor || '#fff', color: settings.headerTextColor || '#1a202c', position: settings.headerSticky ? 'sticky' : 'relative', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }">
     <!-- Not CSS Grid with minmax(0,1fr) flanking columns — tried that, but
          capping the nav column's minimum at 0 meant a nav too wide for its
@@ -111,17 +125,6 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
           :href="settings.headerCtaUrl || '#'"
           :style="{ backgroundColor: settings.headerAccentColor || settings.headerTextColor || '#1a202c', color:'#ffffff', padding:'8px 16px', borderRadius:'4px', fontSize:'14px', fontWeight:600, textDecoration:'none' }"
         >{{ settings.headerCtaText }}</a>
-        <!-- Trade login state (B2B Session 4). Merchant colours only; no platform name anywhere. -->
-        <template v-if="trade.enabled">
-          <span v-if="trade.signedIn || trade.onHold" class="sb-nav-desktop-only" :style="{ fontSize:'13px', color: settings.headerTextColor || '#1a202c', display:'flex', alignItems:'center', gap:'8px' }">
-            <span>{{ trade.onHold ? 'Account on hold: ' : 'Signed in as ' }}<strong>{{ trade.company }}</strong></span>
-            <button type="button" @click="tradeSignOut" :style="{ background:'none', border:'1px solid currentColor', borderRadius:'4px', padding:'3px 8px', fontSize:'12px', cursor:'pointer', color: settings.headerTextColor || '#1a202c' }">Sign out</button>
-          </span>
-          <span v-else class="sb-nav-desktop-only" :style="{ fontSize:'13px', display:'flex', gap:'12px' }">
-            <a href="/trade/login" :style="{ color: settings.headerTextColor || '#1a202c', textDecoration:'underline' }">Trade login</a>
-            <a v-if="trade.mode === 'shop_window'" href="/trade/apply" :style="{ color: settings.headerTextColor || '#1a202c', textDecoration:'underline' }">Apply for a trade account</a>
-          </span>
-        </template>
         <a
           :href="account ? '/account' : '/login'"
           :style="{ display:'inline-flex', background:'none', border:'none', cursor:'pointer', padding:'4px', lineHeight:1, textDecoration:'none', color: settings.headerTextColor || '#1a202c' }"
@@ -201,16 +204,6 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
             :style="{ display:'block', padding:'10px 24px 10px 40px', color:settings.headerTextColor||'#1a202c', opacity:0.85, textDecoration:'none', fontSize:navChildFontSize+'px', fontFamily:navFontFamily }"
           >{{ child.label }}</a>
         </div>
-      </div>
-      <div v-if="trade.enabled" :style="{ padding:'14px 24px', fontSize:'14px', color:settings.headerTextColor||'#1a202c' }">
-        <template v-if="trade.signedIn || trade.onHold">
-          {{ trade.onHold ? 'Account on hold: ' : 'Signed in as ' }}<strong>{{ trade.company }}</strong>
-          <button type="button" @click="tradeSignOut" :style="{ marginLeft:'10px', background:'none', border:'1px solid currentColor', borderRadius:'4px', padding:'3px 8px', fontSize:'12px', cursor:'pointer', color:settings.headerTextColor||'#1a202c' }">Sign out</button>
-        </template>
-        <template v-else>
-          <a href="/trade/login" :style="{ color:settings.headerTextColor||'#1a202c', textDecoration:'underline' }">Trade login</a>
-          <a v-if="trade.mode === 'shop_window'" href="/trade/apply" :style="{ marginLeft:'16px', color:settings.headerTextColor||'#1a202c', textDecoration:'underline' }">Apply for a trade account</a>
-        </template>
       </div>
     </nav>
   </header>
