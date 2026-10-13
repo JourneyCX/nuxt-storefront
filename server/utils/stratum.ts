@@ -127,7 +127,19 @@ export async function fetchSiteSettings(
   return $fetch<{ settings: SiteSettings | null }>(
     `${stratumUrl}/admin/store_builder_api/site_settings`,
     { query: { tenantId } }
-  ).then(r => r.settings).catch(() => null)
+  ).then(r => r.settings ? withoutAssistantSecrets(r.settings) : r.settings).catch(() => null)
+}
+
+// The Shop Assistant key and the merchant's private prompt stay on the server (2026-10-13): the bubble talks to
+// /api/shop-assistant, which signs the call itself and lets Stratum look up the key and the prompt. The endpoint field
+// is kept (set to the same-origin path) only because the bubble treats "no endpoint" as "not configured".
+export function withoutAssistantSecrets(s: SiteSettings): SiteSettings {
+  return {
+    ...s,
+    aiBubbleApiKey: null,
+    aiBubbleSystemPrompt: null,
+    aiBubbleProxyEndpoint: s.aiBubbleProxyEndpoint ? '/api/shop-assistant' : null,
+  }
 }
 
 export async function fetchPublishedPage(

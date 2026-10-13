@@ -33,6 +33,8 @@ export function readTextLimited(event: H3Event, maxBytes: number): Promise<strin
   })
 }
 
+// `route` is the path under the Stratum base: 'b2b_public/<path>' by default; pass an absolute-looking route
+// (starting with '/') to sign a call to another bare endpoint, e.g. '/api/ai/storefront_chat'.
 export async function stratumSignedPost<T = any>(event: H3Event, path: string, rawBody: string): Promise<{ status: number; data: T | null; retryAfter?: string }> {
   const config = useRuntimeConfig()
   const secret = String((config as any).stratumPublicHmacSecret || '')
@@ -45,7 +47,7 @@ export async function stratumSignedPost<T = any>(event: H3Event, path: string, r
     .update([tenantId, timestamp, nonce, createHash('sha256').update(rawBody).digest('hex'), ip].join('\n'))
     .digest('hex')
 
-  const res = await $fetch.raw<T>(`${config.stratumInternalUrl}/b2b_public/${path}`, {
+  const res = await $fetch.raw<T>(path.startsWith('/') ? `${config.stratumInternalUrl}${path}` : `${config.stratumInternalUrl}/b2b_public/${path}`, {
     method: 'POST',
     body: rawBody, // the exact bytes that were signed
     headers: {

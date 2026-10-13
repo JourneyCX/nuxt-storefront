@@ -76,25 +76,22 @@ async function send(text: string) {
   }
 
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (props.settings.aiBubbleApiKey) headers['X-AI-Key'] = props.settings.aiBubbleApiKey
-
-    const res = await fetch(props.settings.aiBubbleProxyEndpoint, {
+    // Same-origin proxy (server/api/shop-assistant.post.ts): no key and no system prompt ever reach the browser.
+    const res = await fetch('/api/shop-assistant', {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         mode: 'assistant',
-        systemPrompt: props.settings.aiBubbleSystemPrompt || undefined,
         messages: messages.value.map(m => ({ role: m.role, content: m.content })),
       }),
     })
 
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
 
-    if (data?.error === 'insufficient_credits') {
+    if (data?.error === 'insufficient_credits' || data?.error === 'daily_limit' || data?.error === 'rate_limited') {
       messages.value = [...messages.value, {
         role: 'assistant',
-        content: '⚠️ ' + (data.message ?? 'AI credit balance is empty. Please top up in the Stratum admin panel.'),
+        content: (data.error === 'insufficient_credits' ? '⚠️ ' : '') + (data.message ?? 'The assistant is not available right now. Please try again later.'),
       }]
       return
     }
