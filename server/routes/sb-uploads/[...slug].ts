@@ -12,7 +12,9 @@ export default defineEventHandler(async (event) => {
   if ((event.node.req.method ?? 'GET') !== 'GET' || !isAllowedUploadPath(slug, rest)) {
     throw createError({ statusCode: 404, statusMessage: 'Not found.' })
   }
-  const upstream = await fetch(`${uploadsBase()}/${slug}/ps/uploads/${rest}`, { redirect: 'manual' }).catch(() => null)
+  // slug "_" = a legacy address with no tenant in it (https://{platform}/uploads/store_builder/tenant_N/...): same folder, read directly
+  const target = slug === '_' ? `${uploadsBase()}/uploads/${rest}` : `${uploadsBase()}/${slug}/ps/uploads/${rest}`
+  const upstream = await fetch(target, { redirect: 'manual' }).catch(() => null)
   if (!upstream || !upstream.ok || !upstream.body) {
     throw createError({ statusCode: upstream?.status === 404 ? 404 : 502, statusMessage: 'Not found.' })
   }

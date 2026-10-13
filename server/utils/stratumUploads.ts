@@ -18,8 +18,11 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-let cached: { base: string; plain: RegExp; escaped: RegExp } | null = null
-function regexes(): { plain: RegExp; escaped: RegExp } {
+// Legacy form (B2B 5b): older page content points at https://{platform}/uploads/store_builder/tenant_N/... with NO
+// "/{slug}/ps/" in the path (images that were uploaded before per-tenant URLs, and theme sample images). For a B2B tenant
+// these go through /sb-uploads/_/ (the "_" marks "no tenant slug"; the route then reads the shared uploads folder).
+let cached: { base: string; plain: RegExp; escaped: RegExp; legacy: RegExp; legacyEscaped: RegExp } | null = null
+function regexes(): { plain: RegExp; escaped: RegExp; legacy: RegExp; legacyEscaped: RegExp } {
   const base = uploadsBase()
   if (!cached || cached.base !== base) {
     const plainBase = escapeRe(base)
@@ -29,20 +32,26 @@ function regexes(): { plain: RegExp; escaped: RegExp } {
       base,
       plain: new RegExp(`${plainBase}/([a-z0-9_-]+)/ps/uploads/`, 'gi'),
       escaped: new RegExp(`${escBase}${e}([a-z0-9_-]+)${e}ps${e}uploads${e}`, 'gi'),
+      legacy: new RegExp(`${plainBase}/uploads/(?=(?:store_builder|store_blog)/)`, 'gi'),
+      legacyEscaped: new RegExp(`${escBase}${e}uploads${e}(?=(?:store_builder|store_blog)${e})`, 'gi'),
     }
   }
   cached.plain.lastIndex = 0
   cached.escaped.lastIndex = 0
+  cached.legacy.lastIndex = 0
+  cached.legacyEscaped.lastIndex = 0
   return cached
 }
 
 /** Rewrite platform upload URLs inside a string (HTML or JSON text), in both the plain and the /-escaped form. */
 export function rewriteUploadsText(text: string): string {
-  if (!text || (!text.includes('/ps/uploads/') && !text.includes(`${SLASH_ESCAPED}ps${SLASH_ESCAPED}uploads`))) return text
+  if (!text || (!text.includes('/ps/uploads/') && !text.includes(`${SLASH_ESCAPED}ps${SLASH_ESCAPED}uploads`) && !text.includes('/uploads/store_') && !text.includes(`${SLASH_ESCAPED}uploads${SLASH_ESCAPED}store_`))) return text
   const r = regexes()
   return text
     .replace(r.plain, '/sb-uploads/$1/')
     .replace(r.escaped, `${SLASH_ESCAPED}sb-uploads${SLASH_ESCAPED}$1${SLASH_ESCAPED}`)
+    .replace(r.legacy, '/sb-uploads/_/')
+    .replace(r.legacyEscaped, `${SLASH_ESCAPED}sb-uploads${SLASH_ESCAPED}_${SLASH_ESCAPED}`)
 }
 
 /** Rewrite inside any JSON-able value (API responses). Returns the same object when nothing needed changing. */
@@ -50,7 +59,7 @@ export function rewriteUploadsValue<T>(value: T): T {
   if (value === null || typeof value !== 'object') return value
   let json: string
   try { json = JSON.stringify(value) } catch { return value }
-  if (!json.includes('/ps/uploads/')) return value
+  if (!json.includes('/ps/uploads/') && !json.includes('/uploads/store_')) return value
   try { return JSON.parse(rewriteUploadsText(json)) as T } catch { return value }
 }
 
