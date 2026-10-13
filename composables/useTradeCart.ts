@@ -14,7 +14,7 @@ export function useTradeCart() {
   }
   function money(v: string | number | null | undefined): string {
     const n = Number(v)
-    return `${symbol()} ${Number.isFinite(n) ? n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/ /g, ' ') : '0.00'}`
+    return `${symbol()} ${Number.isFinite(n) ? n.toFixed(2) : '0.00'}`
   }
 
   async function load(remember = false) {

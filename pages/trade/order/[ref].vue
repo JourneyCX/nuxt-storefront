@@ -13,7 +13,7 @@ const { data: o, error } = await useAsyncData(`trade-order-${ref_}`, () => reque
 const sym = computed(() => (o.value?.currency === 'ZAR' ? 'R' : o.value?.currency || ''))
 function money(v: string | number) {
   const n = Number(v)
-  return `${sym.value} ${(Number.isFinite(n) ? n : 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/ /g, ' ')}`
+  return `${sym.value} ${(Number.isFinite(n) ? n : 0).toFixed(2)}`
 }
 const cell = 'padding:10px 8px;border-bottom:1px solid #e2e8f0;font-size:14px'
 const right = cell + ';text-align:right;white-space:nowrap'
@@ -23,9 +23,15 @@ const right = cell + ';text-align:right;white-space:nowrap'
   <div style="max-width:900px;margin:32px auto;padding:0 16px" data-testid="trade-order">
     <p v-if="!o" role="alert" style="background:#fff5f5;border:1px solid #fed7d7;color:#c53030;border-radius:6px;padding:10px 12px">We could not find that order.</p>
     <template v-else>
-      <h1 style="font-size:28px;margin:0 0 8px">Thank you for your order</h1>
+      <h1 style="font-size:28px;margin:0 0 8px">{{ o.status === 'held' ? 'We have received your order' : (o.status === 'cancelled' || o.status === 'expired') ? 'This order was cancelled' : 'Thank you for your order' }}</h1>
+      <p v-if="o.status === 'held'" role="status" data-testid="order-held" style="background:#fffaf0;border:1px solid #fbd38d;color:#7b341e;border-radius:6px;padding:10px 12px;margin:0 0 16px">
+        Before we can process this order our accounts team needs to review it. There is nothing you need to do: we will email you as soon as it has been approved.
+      </p>
+      <p v-else-if="o.status === 'cancelled' || o.status === 'expired'" role="status" data-testid="order-cancelled" style="background:#f7fafc;border:1px solid #cbd5e0;color:#2d3748;border-radius:6px;padding:10px 12px;margin:0 0 16px">
+        This order has been cancelled<template v-if="o.status === 'expired'"> because it was not paid in time</template>. Please contact us if you would like to order again.
+      </p>
       <p style="color:#4a5568;margin:0 0 20px" data-testid="order-ref">
-        Order <strong>{{ o.order_number }}</strong>. We have issued {{ o.document_title }} <strong>{{ o.invoice_number }}</strong>.
+        Order <strong>{{ o.order_number }}</strong>.<template v-if="o.invoice_number"> We have issued {{ o.document_title }} <strong>{{ o.invoice_number }}</strong>.</template>
         <template v-if="o.po_number"> Your purchase order: <strong>{{ o.po_number }}</strong>.</template>
       </p>
 
@@ -50,8 +56,8 @@ const right = cell + ';text-align:right;white-space:nowrap'
         <tr style="font-weight:700;font-size:18px"><td style="padding:10px 12px 0 0;border-top:1px solid #e2e8f0">Total{{ o.vat_applies ? ' incl. VAT' : '' }}</td><td style="text-align:right;border-top:1px solid #e2e8f0">{{ money(o.totals.gross) }}</td></tr>
       </table>
 
-      <div style="background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:24px;font-size:14px" data-testid="order-payment">
-        <template v-if="o.payment.basis === 'terms'"><strong>Payment: on account</strong>, {{ o.payment.terms_name }}. Due {{ o.payment.due_date }}.</template>
+      <div v-if="o.status !== 'cancelled' && o.status !== 'expired'" style="background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:24px;font-size:14px" data-testid="order-payment">
+        <template v-if="o.payment.basis === 'terms'"><strong>Payment: on account</strong>, {{ o.payment.terms_name }}.<template v-if="o.invoice_number"> Due {{ o.payment.due_date }}.</template><template v-else> Your invoice is issued when the order is approved.</template></template>
         <template v-else>
           <strong>Payment: prepayment (EFT).</strong> Your order is awaiting payment.
           <div v-if="o.payment.bank_details" style="margin-top:8px;white-space:pre-line">{{ o.payment.bank_details }}</div>

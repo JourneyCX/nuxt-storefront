@@ -11,6 +11,7 @@ export default defineEventHandler((event) => {
     windowPrice: t.windowPrice,
     signedIn:    t.active,
     onHold:      t.onHold,
+    creditHold:  t.active && t.creditHold,
     checkout:    t.active && t.checkout,
     company:     t.buyer ? t.buyer.company_name : null,
     name:        t.buyer ? t.buyer.contact_name : null,

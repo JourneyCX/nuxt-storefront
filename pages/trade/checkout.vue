@@ -92,6 +92,9 @@ const input = 'width:100%;padding:12px;border:1px solid #cbd5e0;border-radius:6p
 <template>
   <div style="max-width:1000px;margin:32px auto;padding:0 16px" data-testid="trade-checkout">
     <h1 style="font-size:28px;margin:0 0 16px">Checkout</h1>
+    <p v-if="me.creditHold" role="status" data-testid="credit-hold-notice" style="background:#fffaf0;border:1px solid #fbd38d;color:#7b341e;border-radius:6px;padding:10px 12px;margin:0 0 16px">
+      Your account is being reviewed by our accounts team. You can still place orders, but each one will be checked before it is processed.
+    </p>
     <p v-if="loadError" role="alert" style="background:#fff5f5;border:1px solid #fed7d7;color:#c53030;border-radius:6px;padding:10px 12px">{{ loadError }}</p>
 
     <template v-else-if="view">
