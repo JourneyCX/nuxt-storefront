@@ -32,9 +32,10 @@ export default defineEventHandler(async (event) => {
   // only these two fields leave this server; anything else the browser sent (systemPrompt, key, endpoint) is dropped
   const out = JSON.stringify({ mode: MODES.has(body?.mode) ? body.mode : 'assistant', messages: clean })
   const res = await stratumSignedPost<any>(event, '/api/ai/storefront_chat', out)
-  setResponseStatus(event, res.status || 502)
-  if (res.retryAfter) setResponseHeader(event, 'Retry-After', res.retryAfter)
-  setResponseHeader(event, 'Cache-Control', 'no-store')
+  // h3's setResponseStatus/setResponseHeader assume a Fetch-API event and throw on this Node runtime (see http-compat.ts)
+  event.node.res.statusCode = res.status || 502
+  if (res.retryAfter) event.node.res.setHeader('Retry-After', res.retryAfter)
+  event.node.res.setHeader('Cache-Control', 'no-store')
   const d = res.data
   if (!d || typeof d !== 'object') return { success: false, error: 'unavailable', message: 'The assistant is not available right now.' }
   // pass on only what the widgets read
