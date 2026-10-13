@@ -120,7 +120,7 @@ const right = cell + ';text-align:right;white-space:nowrap'
             </table>
             <p v-if="blockers.includes('MINIMUM')" data-testid="minimum-hint" style="color:#975a16;font-size:13px">Minimum order {{ money(view.minimum.amount) }}{{ view.vat_applies ? ' excl. VAT' : '' }}: add {{ money(view.minimum.shortfall) }} more.</p>
             <p v-for="b in showable.filter(x => x !== 'MINIMUM')" :key="b" style="color:#c53030;font-size:13px;margin:6px 0">{{ reasons[b] }}</p>
-            <NuxtLink v-if="blockers.length === 0 || (blockers.length === 1 && blockers[0] === 'PO_REQUIRED')" to="/trade/checkout" data-testid="to-checkout"
+            <NuxtLink v-if="blockers.length === 0 || (blockers.length === 1 && blockers[0] === 'PO_REQUIRED')" to="/trade/checkout" external data-testid="to-checkout"
               style="display:block;background:#2b6cb0;color:#fff;text-align:center;padding:14px;border-radius:8px;font-weight:700;font-size:16px;text-decoration:none;margin-top:12px">Proceed to checkout</NuxtLink>
             <span v-else aria-disabled="true" style="display:block;background:#cbd5e0;color:#fff;text-align:center;padding:14px;border-radius:8px;font-weight:700;font-size:16px;margin-top:12px">Proceed to checkout</span>
           </div>

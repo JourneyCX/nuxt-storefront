@@ -34,18 +34,42 @@ async function setLocation(e: Event) {
 
 const lineName = (refId: string) => view.value?.lines?.find((l: any) => String(l.line_id) === refId)?.name ?? 'An item'
 
+// What the buyer is looking at, so a change behind their back is caught: the revision of the cart as last shown (never the
+// revision at the moment of the click) and each line's price then. Stratum compares the revision again under the lock.
+const lastKnown = (v: any) => ({ revision: String(v?.cart?.revision ?? ''), prices: Object.fromEntries((v?.lines ?? []).map((l: any) => [String(l.line_id), l.unit_excl ?? null])) })
+function diffFrom(shown: { revision: string; prices: Record<string, string | null> }, now: any) {
+  const out: { ref: string; type: string; was: string | null; now: string | null }[] = []
+  const seen = new Set<string>()
+  for (const l of now?.lines ?? []) {
+    const id = String(l.line_id); seen.add(id)
+    if (!(id in shown.prices)) out.push({ ref: id, type: 'new', was: null, now: l.unit_excl ?? null })
+    else if (shown.prices[id] !== (l.unit_excl ?? null)) out.push({ ref: id, type: 'price', was: shown.prices[id], now: l.unit_excl ?? null })
+  }
+  for (const id of Object.keys(shown.prices)) if (!seen.has(id)) out.push({ ref: id, type: 'gone', was: shown.prices[id], now: null })
+  return out
+}
+
 async function place() {
   if (placing.value || busy.value) return
   errorText.value = ''
   changes.value = []
   placing.value = true
   try {
-    // The PO number typed last is saved first (it resets the token), then the order is placed with the fresh token.
-    await act({ action: 'details', po: po.value, note: note.value })
+    const shown = lastKnown(view.value)
+    // A PO number or note typed since the last save is saved first (it resets the token). If that answer shows the cart is no
+    // longer what the buyer was looking at, stop and show what changed instead of ordering.
+    if (po.value !== (view.value?.cart?.po_number ?? '') || note.value !== (view.value?.cart?.note ?? '')) {
+      await act({ action: 'details', po: po.value, note: note.value })
+    }
     const p = await act({ action: 'prepare' })
     if (!(p.status === 200 && p.data?.success)) { errorText.value = notice.value; return }
     token.value = p.data.token
-    const r = await act({ action: 'place', token: token.value, revision: p.data.cart.revision })
+    if (p.data.cart.revision !== shown.revision) {
+      changes.value = diffFrom(shown, p.data)
+      errorText.value = 'Some prices or quantities changed since you last looked. Nothing was ordered. Please check the cart and order again.'
+      return
+    }
+    const r = await act({ action: 'place', token: token.value, revision: shown.revision })
     if (r.status === 200 && r.data?.success) {
       await navigateTo(`/trade/order/${encodeURIComponent(r.data.order.order_number)}`, { external: true })
       return
@@ -138,14 +162,14 @@ const input = 'width:100%;padding:12px;border:1px solid #cbd5e0;border-radius:6p
               <template v-if="b === 'MINIMUM'">Minimum order {{ money(view.minimum.amount) }}: add {{ money(view.minimum.shortfall) }} more.</template>
               <template v-else-if="b === 'ON_HOLD' || b === 'COMPANY_STATUS'">Your account cannot order right now. Please contact us.</template>
               <template v-else-if="b === 'NO_LOCATION'">Choose where to deliver.</template>
-              <template v-else>Some items need attention. <NuxtLink to="/trade/cart" style="color:#c53030;text-decoration:underline">Go back to the cart</NuxtLink>.</template>
+              <template v-else>Some items need attention. <NuxtLink to="/trade/cart" external style="color:#c53030;text-decoration:underline">Go back to the cart</NuxtLink>.</template>
             </p>
             <button type="button" data-testid="place-order" :disabled="placing || busy || blockers.length > 0"
               style="width:100%;background:#2b6cb0;color:#fff;padding:14px;border:none;border-radius:8px;font-weight:700;font-size:16px;cursor:pointer;margin-top:12px"
               :style="{ opacity: (placing || busy || blockers.length > 0) ? 0.6 : 1 }" @click="place">
               {{ placing ? 'Placing your order…' : 'Place order' }}
             </button>
-            <p style="font-size:12px;color:#718096;margin:8px 0 0"><NuxtLink to="/trade/cart" style="color:#718096">Back to the cart</NuxtLink></p>
+            <p style="font-size:12px;color:#718096;margin:8px 0 0"><NuxtLink to="/trade/cart" external style="color:#718096">Back to the cart</NuxtLink></p>
           </div>
         </div>
       </template>
