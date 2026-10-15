@@ -513,9 +513,10 @@ export function createWcStoreClient(baseUrl: string) {
     method: string,
     path: string,
     body: unknown,
-    state: SessionState
+    state: SessionState,
+    extraHeaders?: Record<string, string>
   ): Promise<{ data: T; state: SessionState }> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(extraHeaders ?? {}) }
     if (state.token) headers['Cart-Token'] = state.token
     if (state.nonce) headers['Nonce']      = state.nonce
 
@@ -537,7 +538,8 @@ export function createWcStoreClient(baseUrl: string) {
     path: string,
     body: unknown,
     wcSession: string | undefined,
-    isMutating: boolean
+    isMutating: boolean,
+    extraHeaders?: Record<string, string>
   ): Promise<{ data: T; session: string | null }> {
     let state = parseSession(wcSession)
 
@@ -550,7 +552,7 @@ export function createWcStoreClient(baseUrl: string) {
       state = boot.state
     }
 
-    const result = await rawRequest<T>(method, path, body, state)
+    const result = await rawRequest<T>(method, path, body, state, extraHeaders)
     return { data: result.data, session: JSON.stringify(result.state) }
   }
 
@@ -624,8 +626,10 @@ export function createWcStoreClient(baseUrl: string) {
     async selectShippingRate(packageId: number, rateId: string, wcSession?: string) {
       return storeRequestCart('POST', '/cart/select-shipping-rate', { package_id: packageId, rate_id: rateId }, wcSession, true)
     },
-    async checkout(payload: WcCheckoutPayload, wcSession?: string) {
-      return storeRequest<WcOrder>('POST', '/checkout', payload, wcSession, true)
+    // extraHeaders: F12 -- the storefront server sends X-Stratum-Shipping-Pending: 1 when an external shipping rate is
+    // still to be attached, so the stratum-headless plugin holds the order event until the final total is on the order.
+    async checkout(payload: WcCheckoutPayload, wcSession?: string, extraHeaders?: Record<string, string>) {
+      return storeRequest<WcOrder>('POST', '/checkout', payload, wcSession, true, extraHeaders)
     },
   }
 }
@@ -716,6 +720,33 @@ export interface WcOrder {
 // deliberately NOT the Automattic\WooCommerce\Client OAuth path, which was
 // root-caused (project_store_sync_broken_broadly) to corrupt any
 // nested-array payload.
+export interface AttachedShipping {
+  id: number
+  total: string
+  shipping_total?: string
+  shipping_lines?: { method_id: string; total: string }[]
+}
+
+// F12: an order whose external shipping could not be attached is cancelled (and its event hold released in the same
+// save) so it is never paid at a total the shopper was not shown. Stratum never imports a cancelled order it does not hold.
+export async function cancelOrderAndReleaseHold(
+  baseUrl: string,
+  key:     string,
+  secret:  string,
+  orderId: number
+): Promise<void> {
+  const auth = 'Basic ' + Buffer.from(`${key}:${secret}`).toString('base64')
+  const root = baseUrl.replace(/\/$/, '')
+  await $fetch(`${root}/wp-json/wc/v3/orders/${orderId}`, {
+    method:  'PUT',
+    headers: { Authorization: auth, 'Content-Type': 'application/json' },
+    body: { status: 'cancelled', meta_data: [{ key: 'stratum_hold_until', value: '0' }, { key: 'stratum_hold_note', value: 'cancelled: shipping not attached' }] },
+  })
+}
+
+// F12: extraMeta is written in the SAME save as the shipping line. The storefront uses it to release the plugin's event hold
+// (stratum_hold_until = 0) and to stamp the total the shopper was shown (stratum_expected_total), so the order event Stratum
+// receives always carries the final shipping.
 export async function attachOrderShippingLine(
   baseUrl:      string,
   key:          string,
@@ -723,8 +754,9 @@ export async function attachOrderShippingLine(
   orderId:      number,
   methodId:     string,
   methodTitle:  string,
-  total:        number
-): Promise<{ id: number; total: string }> {
+  total:        number,
+  extraMeta:    { key: string; value: string }[] = []
+): Promise<AttachedShipping> {
   const auth = 'Basic ' + Buffer.from(`${key}:${secret}`).toString('base64')
   const root = baseUrl.replace(/\/$/, '')
 
@@ -741,12 +773,15 @@ export async function attachOrderShippingLine(
       ]
     : [{ method_id: methodId, method_title: methodTitle, total: total.toFixed(2) }]
 
-  return $fetch<{ id: number; total: string }>(
+  const payload: Record<string, unknown> = { shipping_lines: shippingLines }
+  if (extraMeta.length) payload.meta_data = extraMeta
+
+  return $fetch<AttachedShipping>(
     `${root}/wp-json/wc/v3/orders/${orderId}`,
     {
       method:  'PUT',
       headers: { Authorization: auth, 'Content-Type': 'application/json' },
-      body: { shipping_lines: shippingLines },
+      body: payload,
     }
   )
 }

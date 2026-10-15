@@ -1,5 +1,5 @@
-import { createWcClient, createWcStoreClient, attachOrderCustomer, attachOrderLineItemsMeta, getSupplierNetworkMerchantProductId } from '~/server/utils/woocommerce'
-import { fetchWooCredentials }  from '~/server/utils/stratum'
+import { createWcClient, createWcStoreClient, attachOrderCustomer, attachOrderLineItemsMeta, attachOrderShippingLine, cancelOrderAndReleaseHold, getSupplierNetworkMerchantProductId } from '~/server/utils/woocommerce'
+import { fetchWooCredentials, fetchSelectedShippingCheckoutRate }  from '~/server/utils/stratum'
 import type { WcCheckoutPayload } from '~/server/utils/woocommerce'
 import { getRawCookie, setRawCookie, deleteRawCookie, getRawBody } from '~/server/utils/http-compat'
 import { getAccountSession } from '~/server/utils/accountSession'
@@ -128,9 +128,35 @@ export default defineEventHandler(async (event) => {
   // Nitro's error response across the real browser->server HTTP boundary
   // (only statusCode/statusMessage/message/url do), so statusMessage is the
   // only field this can rely on; placeOrder()'s catch reads it accordingly.
+  // F12 (2026-10-15): an EXTERNAL shipping rate (Bob Go / Courier Guy) is not a WooCommerce rate, so WooCommerce creates the
+  // order with its own native rate and the real courier price has to be written onto the order afterwards. Stratum imports an
+  // order from the plugin's first event, so that event must not fire until the final shipping is on the order. We therefore
+  // (1) look up the persisted selection BEFORE checkout and tell the plugin to hold the order event
+  // (X-Stratum-Shipping-Pending), (2) attach the rate on the server, in this request, and verify it, writing the hold release
+  // in the same save, and (3) only then return -- so PayFast is opened (redirect_url) only after the attach succeeded.
+  // If the attach fails the order is cancelled and the shopper is told; nothing is charged at a total they were not shown.
+  const wooStoreId      = event.context.wooStoreId as number | null
+  const shippingSession = getRawCookie(event, `shipping-session-${tenantId}`)
+  let externalRate: { provider: string; courier_name?: string | null; service_name: string; price: number } | null = null
+  let expectedTotal: string | null = null
+  if (wooStoreId && shippingSession) {
+    const sel = await fetchSelectedShippingCheckoutRate(config.stratumInternalUrl, wooStoreId, shippingSession, tenantId).catch(() => ({ rate: null }))
+    if (sel.rate && sel.rate.provider !== 'woocommerce_native') externalRate = sel.rate as typeof externalRate
+  }
+  if (externalRate) {
+    // The total the shopper was shown: cart total with WooCommerce's native shipping swapped for the courier price.
+    try {
+      const { data: c } = await store.getCart(wcSession)
+      const t     = c.totals as unknown as Record<string, string | number>
+      const minor = Number(t.currency_minor_unit ?? 2)
+      const sum   = parseInt(String(t.total_price), 10) - parseInt(String(t.total_shipping ?? 0), 10) - parseInt(String(t.total_shipping_tax ?? 0), 10) + Math.round(externalRate.price * 10 ** minor)
+      expectedTotal = (sum / 10 ** minor).toFixed(minor)
+    } catch { /* the expected total is only a cross-check; its absence never blocks an order */ }
+  }
+
   let checkoutResult: Awaited<ReturnType<typeof store.checkout>>
   try {
-    checkoutResult = await store.checkout(body, wcSession)
+    checkoutResult = await store.checkout(body, wcSession, externalRate ? { 'X-Stratum-Shipping-Pending': '1' } : undefined)
   } catch (err: unknown) {
     const e = err as { statusCode?: number; data?: { message?: string } }
     const message = e?.data?.message ?? 'Checkout failed. Please check your details and try again.'
@@ -141,6 +167,30 @@ export default defineEventHandler(async (event) => {
   // Clear the cart session cookie on successful order
   deleteRawCookie(event, `wc-session-${tenantId}`)
   if (session) setRawCookie(event, `wc-session-${tenantId}`, session, { httpOnly: true, sameSite: 'lax', path: '/' })
+
+  if (externalRate && data?.order_id) {
+    const methodId = `external_${externalRate.provider}`
+    const title    = `${externalRate.courier_name ?? externalRate.provider} - ${externalRate.service_name}`
+    // The release (stratum_hold_until = 0) rides in the SAME save as the shipping line, so the plugin posts one event with the
+    // final total. stratum_expected_total is the figure the shopper saw; Stratum cross-checks it at import.
+    const meta = [{ key: 'stratum_hold_until', value: '0' }, ...(expectedTotal ? [{ key: 'stratum_expected_total', value: expectedTotal }] : [])]
+    let attached = false
+    for (let attempt = 0; attempt < 2 && !attached; attempt++) {
+      try {
+        const upd  = await attachOrderShippingLine(creds.url, creds.key, creds.secret, data.order_id, methodId, title, externalRate.price, meta)
+        const line = (upd.shipping_lines ?? []).find(l => l.method_id === methodId)
+        attached   = !!line && Math.abs(parseFloat(line.total) - externalRate.price) < 0.005
+      } catch (e) {
+        console.error('[checkout] shipping attach attempt', attempt + 1, 'failed for order', data.order_id, e)
+      }
+    }
+    if (!attached) {
+      console.error('[checkout] F12: external shipping could not be attached to order', data.order_id, '-- cancelling it')
+      await cancelOrderAndReleaseHold(creds.url, creds.key, creds.secret, data.order_id)
+        .catch(e => console.error('[checkout] F12: cancel failed for order', data.order_id, '(the plugin hold expires by itself)', e))
+      throw createError({ statusCode: 502, statusMessage: 'We could not confirm the delivery cost for your order, so it was not placed and nothing was charged. Your basket was cleared; please add your items again and try once more.' })
+    }
+  }
 
   // The Store API checkout call above has no idea about this app's own
   // account-session cookie -- it only knows its own anonymous cart-token

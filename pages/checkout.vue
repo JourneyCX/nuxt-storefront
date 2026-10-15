@@ -19,6 +19,9 @@ const cartNeedsShipping = computed(() => itemCount.value > 0)
 
 const { account, fetchAccount } = useAccount()
 
+// "VAT Included" is shown only for a merchant that is VAT-registered today (Stratum decides). Not registered: no VAT wording.
+const { data: vatInfo } = useFetch<{ vatApplies: boolean }>('/api/vat-info', { lazy: true, server: false })
+
 onMounted(async () => {
   await fetchCart()
   // Landed here directly (no /cart visit this session, or a hard refresh
@@ -220,20 +223,11 @@ async function placeOrder() {
       body:   payload,
     })
 
-    // Only an external-provider rate (Courier Guy/Bob Go) needs this -- a
-    // woocommerce_native selection was already applied to the real cart on
-    // /cart's onSelectRate(), so WC's own order creation already carries
-    // it. Best-effort and non-blocking: the order already exists either way,
-    // and the price attached comes from the server-persisted selection, not
-    // anything resubmitted here (see shipping-attach.post.ts). The
-    // confirmation fetch below picks up the post-attach total regardless of
-    // whether this succeeds.
-    if (selectedRate.value && selectedRate.value.provider !== 'woocommerce_native') {
-      await $fetch('/api/cart/shipping-attach', {
-        method: 'POST',
-        body:   { order_id: result.order_id },
-      }).catch(() => {})
-    }
+    // F12 (2026-10-15): an external shipping rate (Courier Guy/Bob Go) is now attached ON THE SERVER inside
+    // /api/cart/checkout itself (and verified), before this response is returned -- it used to be a browser call here, which
+    // a closed tab or a failed request silently dropped, leaving the order at WooCommerce's native rate. If the attach
+    // fails the server cancels the order and answers with an error, so this code only ever sees a correctly priced order,
+    // and the PayFast redirect below can only happen after the attach succeeded.
 
     // Off-site gateways (anything but COD) need the shopper's browser sent
     // to redirect_url (WooCommerce's "pay for order" page, which itself
@@ -476,7 +470,7 @@ useHead({ title: 'Checkout' })
           </div>
 
           <div style="display:flex;justify-content:space-between;padding-top:16px">
-            <span style="font-size:16px;font-weight:600;color:#1a202c">Total <span style="font-weight:400;font-size:12px;color:#a0aec0">(VAT Included)</span></span>
+            <span style="font-size:16px;font-weight:600;color:#1a202c">Total <span v-if="vatInfo?.vatApplies" style="font-weight:400;font-size:12px;color:#a0aec0">(VAT Included)</span></span>
             <strong style="font-size:18px;color:#1a202c">
               {{ formatPrice(displayTotal, cart.totals.currency_symbol) }}
             </strong>
