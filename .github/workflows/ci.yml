@@ -24,7 +24,7 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Build (no secrets: every runtime value falls back to an empty default)
+      - name: "Build (no secrets needed; every runtime value falls back to an empty default)"
         run: npm run build
       - name: Unit tests (only the files that exist; none is not a failure, a failing one is)
         run: |
