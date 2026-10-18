@@ -24,6 +24,7 @@ import ColumnsSF         from './storefront/Columns.vue'
 import ParallaxSectionSF from './storefront/ParallaxSection.vue'
 import TextBlockSF       from './storefront/TextBlock.vue'
 import ImageBlockSF      from './storefront/ImageBlock.vue'
+import ButtonBlockSF     from './storefront/ButtonBlock.vue'
 import IconBoxSF         from './storefront/IconBox.vue'
 import SpacerSF          from './storefront/Spacer.vue'
 import DividerSF         from './storefront/Divider.vue'
@@ -94,6 +95,7 @@ const componentMap: Record<string, unknown> = {
   ParallaxSection:  ParallaxSectionSF,
   TextBlock:        TextBlockSF,
   ImageBlock:       ImageBlockSF,
+  ButtonBlock:      ButtonBlockSF,
   IconBox:          IconBoxSF,
   Spacer:           SpacerSF,
   Divider:          DividerSF,
