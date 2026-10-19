@@ -137,16 +137,7 @@ useHead(() => ({
   <div v-if="page">
     <AnnouncementBar :settings="s" />
     <SiteHeader :settings="s" />
-    <ThemePreviewBar
-      :theme-id="isNumeric ? Number(rawTheme) : 0"
-      :theme-slug="page.themeSlug"
-      :theme-name="page.themeName"
-      :slots="page.slots"
-      :current-page-type="pageType"
-      :demo-product-slug="demoProductSlug"
-      :demo-blog-slug="demoBlogSlug"
-      :product-blog-preview-live="true"
-    />
+    <!-- Theme preview bar removed (Dana, 2026-10-19): a theme preview now looks like the real store, with only its own menu. components/ThemePreviewBar.vue is kept, unused. -->
     <StorefrontRenderer v-if="page.success" :puck-json="page.puckJson" />
     <div v-else class="sb-preview-empty">
       <p>No page has been assigned to the "{{ pageType }}" slot for this theme yet.</p>

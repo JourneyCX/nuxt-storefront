@@ -65,15 +65,7 @@ const puckJson = computed(() => {
 
 <template>
   <div>
-    <ThemePreviewBar
-      v-if="previewThemeIsOn && previewData"
-      :theme-id="previewThemeId"
-      :theme-slug="previewData.themeSlug"
-      :theme-name="previewData.themeName"
-      :slots="previewData.slots"
-      current-page-type="blog_post"
-      :demo-blog-slug="(route.params.slug as string)"
-    />
+    <!-- Theme preview bar removed (Dana, 2026-10-19): a theme preview now looks like the real store, with only its own menu. components/ThemePreviewBar.vue is kept, unused. -->
     <StorefrontRenderer v-if="puckJson" :puck-json="puckJson" />
     <DefaultBlogPostDetail v-else-if="!previewThemeIsOn" />
     <div v-else class="sb-preview-empty">
