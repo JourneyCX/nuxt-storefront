@@ -1,5 +1,6 @@
 import { fetchWooCredentials } from '~/server/utils/stratum'
-import { stratumSignedPost } from '~/server/utils/stratumSigning'
+import { clientIp, stratumSignedPost } from '~/server/utils/stratumSigning'
+import { cacheGet, cacheSet, overLimit, type Entry, type Window } from '~/server/utils/memoryGuard'
 import { decideTaxInvoiceReply, taxInvoicePageHtml, validTaxInvoiceParams } from '~/server/utils/taxInvoice'
 
 // GET /tax-invoice/{wcOrderId}/{orderKey}
@@ -8,6 +9,12 @@ import { decideTaxInvoiceReply, taxInvoicePageHtml, validTaxInvoiceParams } from
 // credentials, as /api/orders/{id} does; a wrong key and an unknown order are the same 404); 2. Stratum is asked, over a signed call, for
 // the PDF of the tax invoice issued for that order; 3. it is streamed under the merchant's own domain. Never cached, never indexed.
 // Headers go on event.node.res (h3's setHeader is not usable on this runtime, see http-compat.ts).
+// Abuse guard (a guessable order id is enough to reach the two upstream calls): 20 requests per address per 10 minutes, and the store
+// credentials are remembered for 60 s so a burst does not ask Stratum for them every time. A failed lookup is not remembered.
+const hits = new Map<string, Window>()
+const credsCache = new Map<string, Entry<NonNullable<Awaited<ReturnType<typeof fetchWooCredentials>>>>>()
+const WOO_TIMEOUT_MS = 8000
+
 function safeEquals(a: string, b: string): boolean {
   if (a.length !== b.length) return false
   let mismatch = 0
@@ -31,11 +38,21 @@ export default defineEventHandler(async (event) => {
     return taxInvoicePageHtml('No tax invoice for this order', 'We could not find a tax invoice for this order.')
   }
   if (!validTaxInvoiceParams(orderId, key)) return notFound()
+  if (overLimit(hits, `${tenantId}|${clientIp(event)}`, Date.now(), 20, 10 * 60 * 1000)) {
+    res.statusCode = 429
+    res.setHeader('Retry-After', '600')
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    return taxInvoicePageHtml('Please try again later', 'Too many requests. Please try again in a few minutes.')
+  }
 
-  const creds = await fetchWooCredentials(config.stratumInternalUrl, tenantId)
-  if (!creds) return notFound()
+  let creds = cacheGet(credsCache, String(tenantId), Date.now())
+  if (!creds) {
+    creds = (await fetchWooCredentials(config.stratumInternalUrl, tenantId)) ?? undefined
+    if (!creds) return notFound()
+    cacheSet(credsCache, String(tenantId), creds, Date.now(), 60_000)
+  }
   const auth  = 'Basic ' + Buffer.from(`${creds.key}:${creds.secret}`).toString('base64')
-  const order = await $fetch<{ order_key?: string }>(`${creds.url.replace(/\/$/, '')}/wp-json/wc/v3/orders/${orderId}`, { headers: { Authorization: auth } }).catch(() => null)
+  const order = await $fetch<{ order_key?: string }>(`${creds.url.replace(/\/$/, '')}/wp-json/wc/v3/orders/${orderId}`, { headers: { Authorization: auth }, timeout: WOO_TIMEOUT_MS }).catch(() => null)
   if (!order || !safeEquals(String(order.order_key ?? ''), key)) return notFound()
 
   const call  = await stratumSignedPost(event, '/api/storefront/tax_invoice', JSON.stringify({ wc_order_id: Number(orderId) }))
