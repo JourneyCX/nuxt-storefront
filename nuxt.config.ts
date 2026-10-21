@@ -66,6 +66,8 @@ export default defineNuxtConfig({
         // Display fonts + 700–900 weights for the Scrolling Text Banner (ScrollingText.vue; list lives
         // in studio-app's Media/ScrollingText.tsx DISPLAY_FONT_OPTIONS). Faces only download when used.
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Archivo+Black&family=Unbounded:wght@400;600;700;800;900&family=Syncopate:wght@400;700&family=Jost:wght@400;600;700;800;900&family=Montserrat:wght@700;800;900&family=Poppins:wght@700;800;900&family=Inter:wght@700;800;900&family=Roboto:wght@700;900&family=Nunito:wght@700;800;900&family=Oswald:wght@700&family=Playfair+Display:wght@700;800;900&family=Lora:wght@700&display=swap' },
+        // Extra font choices (second batch added to FONT_OPTIONS in studio-app's FontsSection.tsx). Faces only download when used.
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Raleway:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Work+Sans:wght@400;500;700&family=Manrope:wght@400;600;800&family=Outfit:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&family=Rubik:wght@400;500;700&family=Quicksand:wght@400;500;700&family=Merriweather:wght@400;700&family=Cormorant+Garamond:wght@400;500;700&family=DM+Serif+Display&family=Libre+Baskerville:wght@400;700&family=Cinzel:wght@400;600;700&family=Abril+Fatface&family=Righteous&family=Dancing+Script:wght@400;700&family=Pacifico&family=Lobster&family=Great+Vibes&family=Caveat:wght@400;700&family=Permanent+Marker&family=Space+Mono:wght@400;700&display=swap' },
       ],
     },
   },
