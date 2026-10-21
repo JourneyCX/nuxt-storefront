@@ -21,7 +21,15 @@ const props = defineProps<{
   paddingVertical?: number
   grayscale?: boolean
   justify?: string
+  scroll?: boolean
+  scrollDirection?: string
+  scrollDuration?: number
+  scrollPauseOnHover?: boolean
 }>()
+
+// Scrolling mode: two identical halves, track slides one half (-50%) for a seamless loop.
+const repeats = computed(() => Math.max(1, Math.ceil(10 / Math.max(1, props.logos?.length || 1))))
+const scrolling = computed(() => !!props.scroll && (props.logos?.length || 0) > 0)
 
 const justifyMap: Record<string, string> = {
   start: 'flex-start',
@@ -35,7 +43,64 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
 </script>
 
 <template>
-  <section :style="{
+  <section v-if="scrolling" :style="{
+    backgroundColor: backgroundColor || '#ffffff',
+    padding: `${paddingVertical || 32}px 0`,
+    borderTop:    borderTop    !== false ? `1px solid ${bc}` : 'none',
+    borderBottom: borderBottom !== false ? `1px solid ${bc}` : 'none',
+  }">
+    <p
+      v-if="headline"
+      :style="{ textAlign: headlineAlign || 'center', fontFamily: headlineFont || undefined, fontSize:`${headlineSize || 13}px`, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color: headlineColor || '#94a3b8', margin:'0 24px 24px' }"
+    >{{ headline }}</p>
+    <div
+      class="sb-logo-scroll"
+      :data-dir="scrollDirection === 'right' ? 'right' : 'left'"
+      :data-pause="scrollPauseOnHover !== false ? '1' : '0'"
+      style="overflow:hidden"
+    >
+      <div class="sb-logo-track" :style="{ '--sb-logo-duration': `${scrollDuration || 30}s` }">
+        <div v-for="h in ['a','b']" :key="h" :aria-hidden="h === 'b' ? 'true' : undefined" style="display:flex;align-items:center;flex-shrink:0">
+          <template v-for="r in repeats" :key="`${h}${r}`">
+            <template v-for="(logo, i) in logos" :key="`${h}${r}-${i}`">
+              <div
+                v-if="!logo.imageUrl"
+                :style="{
+                  height:`${logoHeight || 120}px`, width:`${(logoHeight || 120) * 2}px`,
+                  backgroundColor:'#e2e8f0', borderRadius:'4px', flexShrink:0,
+                  marginRight:`${logoSpacing || 32}px`,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }"
+              >
+                <span style="font-size:11px;color:#94a3b8;font-weight:600">{{ logo.altText }}</span>
+              </div>
+              <component
+                :is="logo.linkUrl ? 'a' : 'div'"
+                v-else
+                :href="logo.linkUrl || undefined"
+                :style="{ display:'block', lineHeight:0, flexShrink:0, marginRight:`${logoSpacing || 32}px` }"
+              >
+                <img
+                  :src="logo.imageUrl"
+                  :alt="logo.altText || ''"
+                  :style="{
+                    height:`${logoHeight || 120}px`, width:'auto',
+                    objectFit:'contain', display:'block',
+                    filter: grayscale !== false ? 'grayscale(100%) opacity(0.6)' : 'none',
+                    transition:'filter 0.2s ease',
+                  }"
+                  @mouseenter="(e) => { if (grayscale !== false) (e.target as HTMLImageElement).style.filter = 'none' }"
+                  @mouseleave="(e) => { if (grayscale !== false) (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.6)' }"
+                />
+              </component>
+            </template>
+          </template>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section v-else :style="{
     backgroundColor: backgroundColor || '#ffffff',
     padding: `${paddingVertical || 32}px 24px`,
     borderTop:    borderTop    !== false ? `1px solid ${bc}` : 'none',
@@ -104,3 +169,11 @@ const bc = computed(() => props.borderColor || '#e2e8f0')
     </div>
   </section>
 </template>
+
+<style>
+@keyframes sb-logo-scroll { from { transform: translate3d(0,0,0) } to { transform: translate3d(-50%,0,0) } }
+.sb-logo-track { display: flex; width: max-content; will-change: transform; animation: sb-logo-scroll var(--sb-logo-duration, 30s) linear infinite; }
+.sb-logo-scroll[data-dir="right"] .sb-logo-track { animation-direction: reverse; }
+.sb-logo-scroll[data-pause="1"]:hover .sb-logo-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .sb-logo-track { animation: none; } }
+</style>
