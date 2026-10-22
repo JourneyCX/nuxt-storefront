@@ -24,17 +24,6 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      # The lockfile was made on Windows and lacks the Linux native binding for the oxc-parser nuxt nests
-      # (0.131.0), so the build dies with 'Cannot find module ./parser.linux-x64-gnu.node'. Add it, without
-      # touching package.json or the lockfile (unpacked by hand: npm's resolver rejects an --no-save install here).
-      - name: Add the Linux oxc-parser binding the lockfile is missing
-        run: |
-          set -e
-          d=node_modules/nuxt/node_modules/@oxc-parser/binding-linux-x64-gnu
-          mkdir -p "$d"
-          npm pack @oxc-parser/binding-linux-x64-gnu@0.131.0 --silent --pack-destination /tmp
-          tar -xzf /tmp/oxc-parser-binding-linux-x64-gnu-0.131.0.tgz -C "$d" --strip-components=1
-          ls "$d"
       - name: "Build (no secrets needed; every runtime value falls back to an empty default)"
         run: npm run build
       - name: Unit tests (only the files that exist; none is not a failure, a failing one is)
