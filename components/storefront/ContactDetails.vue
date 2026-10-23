@@ -23,6 +23,11 @@ const props = withDefaults(defineProps<{
   iconBackground?: string
   dividerColor?: string
   cardRadius?: number
+  fontFamily?: string
+  headingFontSize?: number
+  introFontSize?: number
+  labelFontSize?: number
+  valueFontSize?: number
 }>(), {
   showAddress: true,
   showPhone: true,
@@ -49,6 +54,7 @@ const mailHref = computed(() => `mailto:${email.value.replace(/\s/g, '')}`)
 const text = computed(() => props.textColor || '#1a1a1a')
 const iconBg = computed(() => props.iconBackground || '#f1f2f5')
 const line = computed(() => props.dividerColor || '#e5e7eb')
+const valueSize = computed(() => props.valueFontSize ? `${props.valueFontSize}px` : 'clamp(17px,1.7vw,22px)')
 
 const rows = computed(() => {
   const r: Array<{ key: string; icon: string; label: string; value: string; href?: string }> = []
@@ -61,9 +67,9 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <div :style="{ background: backgroundColor || '#ffffff', color: text, borderRadius: `${cardRadius ?? 20}px`, padding: 'clamp(24px, 4vw, 56px)' }">
-    <h2 v-if="heading" style="margin:0 0 18px;font-size:clamp(28px,4vw,48px);font-weight:600;line-height:1.15;">{{ heading }}</h2>
-    <p v-if="intro" style="margin:0 0 12px;font-size:clamp(16px,1.5vw,19px);line-height:1.6;white-space:pre-line;">{{ intro }}</p>
+  <div :style="{ background: backgroundColor || '#ffffff', color: text, borderRadius: `${cardRadius ?? 20}px`, padding: 'clamp(24px, 4vw, 56px)', ...(fontFamily ? { fontFamily } : {}) }">
+    <h2 v-if="heading" style="margin:0 0 18px;font-weight:600;line-height:1.15;" :style="{ fontSize: headingFontSize ? `${headingFontSize}px` : 'clamp(28px,4vw,48px)' }">{{ heading }}</h2>
+    <p v-if="intro" style="margin:0 0 12px;line-height:1.6;white-space:pre-line;" :style="{ fontSize: introFontSize ? `${introFontSize}px` : 'clamp(16px,1.5vw,19px)' }">{{ intro }}</p>
     <div v-if="rows.length" style="margin-top:24px;">
       <div
         v-for="(row, i) in rows"
@@ -79,9 +85,9 @@ const rows = computed(() => {
           </svg>
         </div>
         <div style="min-width:0;">
-          <div style="font-size:16px;margin-bottom:8px;">{{ row.label }}</div>
-          <a v-if="row.href" :href="row.href" style="font-size:clamp(17px,1.7vw,22px);line-height:1.5;color:inherit;text-decoration:none;word-break:break-word;">{{ row.value }}</a>
-          <div v-else style="font-size:clamp(17px,1.7vw,22px);line-height:1.5;white-space:pre-line;word-break:break-word;">{{ row.value }}</div>
+          <div style="margin-bottom:8px;" :style="{ fontSize: `${labelFontSize || 16}px` }">{{ row.label }}</div>
+          <a v-if="row.href" :href="row.href" style="line-height:1.5;color:inherit;text-decoration:none;word-break:break-word;" :style="{ fontSize: valueSize }">{{ row.value }}</a>
+          <div v-else style="line-height:1.5;white-space:pre-line;word-break:break-word;" :style="{ fontSize: valueSize }">{{ row.value }}</div>
         </div>
       </div>
     </div>
