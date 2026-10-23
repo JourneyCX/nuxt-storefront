@@ -8,6 +8,12 @@ type Post = { title: string; excerpt: string; imageUrl: string; date: string; ca
 const props = withDefaults(defineProps<{
   headline?: string
   subheadline?: string
+  // Empty/absent = theme font; else a literal CSS font-family string (matches studio-app).
+  headlineFont?: string
+  subheadlineFont?: string
+  // px; 0/absent = automatic (matches studio-app).
+  headlineFontSize?: number
+  subheadlineFontSize?: number
   columns?: 2 | 3
   // layout/showAuthor/showDate/showCategory/showExcerpt/readMoreText/cardColor/borderRadius
   // were already implemented in studio-app's BlogPostList.tsx but never ported here —
@@ -125,8 +131,8 @@ const isFeatured = computed(() => props.layout === 'featured')
         <div>
           <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
                mobile and desktop instead of staying fixed at 32px -->
-          <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#1e293b', fontWeight: 800, margin: '0 0 12px' }">{{ headline }}</h2>
-          <p v-if="subheadline" :style="{ color: textColor || '#1e293b', opacity: 0.65, fontSize: '17px', margin: 0 }">{{ subheadline }}</p>
+          <h2 v-if="headline" class="sb-text-fluid-md" :style="{ color: textColor || '#1e293b', fontWeight: 800, margin: '0 0 12px', ...(headlineFont ? { fontFamily: headlineFont } : {}), ...(headlineFontSize ? { fontSize: `${headlineFontSize}px` } : {}) }">{{ headline }}</h2>
+          <p v-if="subheadline" :style="{ color: textColor || '#1e293b', opacity: 0.65, fontSize: `${subheadlineFontSize || 17}px`, margin: 0, ...(subheadlineFont ? { fontFamily: subheadlineFont } : {}) }">{{ subheadline }}</p>
         </div>
         <a v-if="ctaText" :href="ctaUrl || '#'" :style="{ color: accentColor || '#2563eb', fontSize: '14px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }">{{ ctaText }} →</a>
       </div>

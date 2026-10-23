@@ -112,6 +112,11 @@ const buttonWrapStyle = computed(() => ({
 const outerStyle = computed(() => ({
   position: 'relative' as const,
   overflow: 'hidden',
+  // Mirrors ScrollingText.tsx: inline-size containment so the max-content track cannot widen
+  // its container (a banner in a Columns column used to grow forever).
+  width: '100%',
+  maxWidth: '100%',
+  contain: 'inline-size',
   minHeight: props.minHeight > 0 ? `${props.minHeight}px` : undefined,
   padding: `${props.paddingY ?? 24}px 0`,
   display: 'flex',
@@ -145,10 +150,12 @@ function measure() {
   const seq = seqEls.value[0]
   if (!outer || !seq) return
   const w = seq.getBoundingClientRect().width
-  const vw = outer.getBoundingClientRect().width
+  // Mirrors ScrollingText.tsx: never measure wider than the window (prevents the runaway
+  // growth when the track could widen its own container), and cap the copies.
+  const vw = Math.min(outer.getBoundingClientRect().width, window.innerWidth || Infinity)
   if (w > 0) {
     seqWidth.value = w
-    copies.value = Math.max(2, Math.ceil(vw / w) + 1)
+    copies.value = Math.min(60, Math.max(2, Math.ceil(vw / w) + 1))
   }
 }
 

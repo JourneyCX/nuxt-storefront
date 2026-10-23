@@ -17,6 +17,12 @@ const props = defineProps<{
   // 'grid' matches the existing (default) CSS-grid rendering; 'strip' is a new
   // horizontally-scrolling row, matching studio-app's CollectionList.tsx.
   layout?: 'grid' | 'strip'
+  // Live mode only, matching studio-app's CollectionList.tsx. Ids of the
+  // collections to show, in the order picked (empty/absent = every collection,
+  // what a page saved before this field existed did), then capped by maxItems
+  // (0/absent = no cap).
+  collectionIds?: number[]
+  maxItems?: number
 }>()
 
 function hue(index: number) {
@@ -43,6 +49,18 @@ const { data: liveCollections, pending, error } = await useAsyncData<PublishedCo
   () => isLive.value ? requestFetch('/api/collections', { query: { previewTheme: previewTheme.value ?? undefined } }) : Promise.resolve([]),
   { default: () => [], watch: [isLive] }
 )
+
+// Same rule as studio-app's pickLive(): picked ids in picked order (a picked
+// collection that is no longer published is skipped), else all; then the cap.
+const shownCollections = computed<PublishedCollectionSummary[]>(() => {
+  const all = liveCollections.value ?? []
+  const picked = Array.isArray(props.collectionIds) ? props.collectionIds : []
+  let list = picked.length === 0
+    ? all
+    : picked.map(id => all.find(c => c.id === id)).filter((c): c is PublishedCollectionSummary => !!c)
+  const max = Number(props.maxItems) || 0
+  return max > 0 ? list.slice(0, max) : list
+})
 </script>
 <template>
   <section :style="{ backgroundColor: backgroundColor || '#ffffff', padding: '48px 24px' }">
@@ -79,7 +97,7 @@ const { data: liveCollections, pending, error } = await useAsyncData<PublishedCo
         <template v-else-if="!pending && !error">
           <component
             :is="c.pageSlug ? 'a' : 'div'"
-            v-for="(c, i) in liveCollections"
+            v-for="(c, i) in shownCollections"
             :key="c.id"
             :href="c.pageSlug ? `/${c.pageSlug}` : undefined"
             :style="{ textDecoration: 'none', cursor: c.pageSlug ? 'pointer' : 'default', ...(layout === 'strip' ? { flex: '0 0 220px' } : {}) }"
@@ -96,7 +114,7 @@ const { data: liveCollections, pending, error } = await useAsyncData<PublishedCo
           </component>
         </template>
       </div>
-      <p v-if="isLive && !pending && liveCollections.length === 0" :style="{ color: '#a0aec0', fontSize: '14px', padding: '32px', textAlign: 'center' }">
+      <p v-if="isLive && !pending && shownCollections.length === 0" :style="{ color: '#a0aec0', fontSize: '14px', padding: '32px', textAlign: 'center' }">
         No collections published yet.
       </p>
     </div>

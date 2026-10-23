@@ -28,7 +28,10 @@ const props = defineProps<{
   // Not ParallaxSection fields (defaults keep its behaviour identical) — set
   // by ParallaxCountdown.vue. See ParallaxSection.tsx LayerOptions.
   contentHorizontalAlign?: 'left' | 'center' | 'right' | 'split'
-  backgroundFit?: 'cover' | 'contain'
+  // 'whole' (ParallaxSection's own "Whole image" option, mirrors the studio):
+  // the entire image fitted inside the section, with no drift bleed and no
+  // background drift, so a tall cutout is never clipped.
+  backgroundFit?: 'cover' | 'contain' | 'whole'
   sectionBackgroundColor?: string
 }>()
 
@@ -36,6 +39,8 @@ const MAX_SHIFT_PX = 80
 const MIDGROUND_MAX_SHIFT_PX = 150
 
 const isSticky = computed(() => props.scrollMode === 'sticky')
+const wholeImage = computed(() => props.backgroundFit === 'whole')
+const bleed = computed(() => wholeImage.value ? 0 : MAX_SHIFT_PX)
 const hasMidground = computed(() => !!props.midgroundImage)
 
 const containerEl = ref<HTMLElement | null>(null)
@@ -54,7 +59,7 @@ function backgroundFillStyle(image?: string) {
   return {
     backgroundColor: color || undefined,
     backgroundImage: image ? `url(${image})` : color ? undefined : 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)',
-    backgroundSize: props.backgroundFit || 'cover',
+    backgroundSize: props.backgroundFit === 'whole' ? 'contain' : (props.backgroundFit || 'cover'),
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center',
   }
@@ -123,7 +128,7 @@ onMounted(() => {
     const rect = container.getBoundingClientRect()
 
     const bg = bgLayerEl.value
-    if (bg) {
+    if (bg && !wholeImage.value) {
       const factor = (props.backgroundSpeed ?? 30) / 100 * 0.5
       const clamped = Math.max(-MAX_SHIFT_PX, Math.min(MAX_SHIFT_PX, rect.top * factor))
       bg.style.transform = `translate3d(0, ${clamped}px, 0)`
@@ -200,7 +205,7 @@ onUnmounted(() => {
       justifyContent: 'center',
     }"
   >
-    <div ref="bgLayerEl" :style="{ position: 'absolute', top: `-${MAX_SHIFT_PX}px`, bottom: `-${MAX_SHIFT_PX}px`, left: 0, right: 0, willChange: 'transform', ...backgroundFillStyle(backgroundImage) }" />
+    <div ref="bgLayerEl" :style="{ position: 'absolute', top: `-${bleed}px`, bottom: `-${bleed}px`, left: 0, right: 0, willChange: 'transform', ...backgroundFillStyle(backgroundImage) }" />
     <img v-if="hasMidground" ref="midLayerEl" :src="midgroundImage" alt="" :style="midgroundAnchorStyle(midgroundPosition ?? 'center', midgroundWidth ?? 300)" />
     <div :style="{ position: 'absolute', inset: 0, backgroundColor: `rgba(${hexToRgb(overlayColor)},${(overlayOpacity ?? 30) / 100})` }" />
     <div :style="contentBoxStyle">

@@ -2,7 +2,7 @@
 defineProps<{
   headline?: string
   subheadline?: string
-  columns?: 2 | 3
+  columns?: 1 | 2 | 3
   backgroundColor?: string
   cardColor?: string
   textColor?: string

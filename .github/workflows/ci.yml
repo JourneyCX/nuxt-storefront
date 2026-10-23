@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: "Build (no secrets needed; every runtime value falls back to an empty default)"
+        run: npm run build
+      - name: Unit tests (only the files that exist; none is not a failure, a failing one is)
+        run: |
+          shopt -s nullglob
+          files=(tests/*.test.ts)
+          if [ ${#files[@]} -eq 0 ]; then echo "no tests/*.test.ts in this branch"; exit 0; fi
+          node --experimental-strip-types --test "${files[@]}"

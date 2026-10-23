@@ -24,6 +24,8 @@ import ColumnsSF         from './storefront/Columns.vue'
 import ParallaxSectionSF from './storefront/ParallaxSection.vue'
 import TextBlockSF       from './storefront/TextBlock.vue'
 import ImageBlockSF      from './storefront/ImageBlock.vue'
+import ButtonBlockSF     from './storefront/ButtonBlock.vue'
+import ContactDetailsSF  from './storefront/ContactDetails.vue'
 import IconBoxSF         from './storefront/IconBox.vue'
 import SpacerSF          from './storefront/Spacer.vue'
 import DividerSF         from './storefront/Divider.vue'
@@ -40,6 +42,8 @@ import ProductTabsSF     from './storefront/ProductTabs.vue'
 import ProductAccordionSF from './storefront/ProductAccordion.vue'
 import RelatedProductsSF from './storefront/RelatedProducts.vue'
 import ProductCarouselSF from './storefront/ProductCarousel.vue'
+import ProductMarqueeSF  from './storefront/ProductMarquee.vue'
+import ScrollShowcaseSF  from './storefront/ScrollShowcase.vue'
 import CollectionCarouselSF from './storefront/CollectionCarousel.vue'
 import CollectionsCarouselSF from './storefront/CollectionsCarousel.vue'
 import CollectionListSF  from './storefront/CollectionList.vue'
@@ -93,6 +97,8 @@ const componentMap: Record<string, unknown> = {
   ParallaxSection:  ParallaxSectionSF,
   TextBlock:        TextBlockSF,
   ImageBlock:       ImageBlockSF,
+  ButtonBlock:      ButtonBlockSF,
+  ContactDetails:   ContactDetailsSF,
   IconBox:          IconBoxSF,
   Spacer:           SpacerSF,
   Divider:          DividerSF,
@@ -109,6 +115,8 @@ const componentMap: Record<string, unknown> = {
   ProductAccordion: ProductAccordionSF,
   RelatedProducts:  RelatedProductsSF,
   ProductCarousel:  ProductCarouselSF,
+  ProductMarquee:   ProductMarqueeSF,
+  ScrollShowcase:   ScrollShowcaseSF,
   CollectionCarousel: CollectionCarouselSF,
   CollectionsCarousel: CollectionsCarouselSF,
   CollectionList:   CollectionListSF,

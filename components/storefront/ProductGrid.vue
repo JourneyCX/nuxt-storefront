@@ -18,6 +18,8 @@ const props = withDefaults(defineProps<{
   // the previously-unconditional behaviour, so existing pages render unchanged).
   showAddToCart?:  boolean
   showPrices?:     boolean
+  // Absent (grids saved before this field existed) = shown, as the card always did.
+  showDescription?: boolean
   categorySlug?:   string
   showPlaceholder?: boolean
   backgroundColor?: string
@@ -25,6 +27,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   showAddToCart: true,
   showPrices: true,
+  showDescription: true,
 })
 
 const perPage = computed(() => props.productCount ?? ((props.columns || 3) * (props.rows || 2)))
@@ -160,7 +163,7 @@ function price(product: WcProduct) {
                  disappear after hydration on every category/grid listing.
                  The single-product page's equivalent block already used a
                  div for this exact reason; this one didn't. -->
-            <div v-if="product.short_description" :style="{ margin:'0 0 12px', color:'#718096', fontSize:'13px', lineHeight:1.5, flex:1 }" v-html="product.short_description" />
+            <div v-if="showDescription && product.short_description" :style="{ margin:'0 0 12px', color:'#718096', fontSize:'13px', lineHeight:1.5, flex:1 }" v-html="product.short_description" />
             <div :style="{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'auto' }">
               <span v-if="showPrices" :style="{ fontWeight:700, fontSize:'16px', color: product.on_sale ? '#c53030' : '#2d3748' }">
                 {{ price(product) }}
@@ -189,7 +192,7 @@ function price(product: WcProduct) {
             </div>
             <div :style="{ padding:'16px' }">
               <p :style="{ margin:'0 0 6px', fontWeight:600, fontSize:'15px', color:'#2d3748' }">Product {{ i }}</p>
-              <p :style="{ margin:'0 0 12px', color:'#718096', fontSize:'13px' }">Short product description</p>
+              <p v-if="showDescription" :style="{ margin:'0 0 12px', color:'#718096', fontSize:'13px' }">Short product description</p>
               <div :style="{ display:'flex', justifyContent:'space-between', alignItems:'center' }">
                 <span v-if="showPrices" :style="{ fontWeight:700, fontSize:'16px', color:'#2d3748' }">R 299.00</span>
                 <button v-if="showAddToCart" :style="{ background:'#3182ce', color:'#fff', border:'none', padding:'8px 16px', borderRadius:'4px', cursor:'pointer', fontSize:'13px', fontWeight:600 }">
