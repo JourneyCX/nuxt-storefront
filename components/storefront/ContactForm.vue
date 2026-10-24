@@ -16,6 +16,9 @@ const props = defineProps<{
   textColor?: string
   borderColor?: string
   borderRadius?: number
+  backgroundImage?: string
+  overlayColor?: string
+  overlayOpacity?: number
 }>()
 
 const form = reactive({ name: '', email: '', phone: '', company: '', subject: '', message: '' })
@@ -49,12 +52,24 @@ const isCard   = computed(() => props.layout === 'card')
 const accent   = computed(() => props.accentColor || '#2563eb')
 const border   = computed(() => props.borderColor || '#e2e8f0')
 const text     = computed(() => props.textColor   || '#1e293b')
+const overlayRgb = computed(() => {
+  const h = (props.overlayColor || '#000000').replace('#', '')
+  const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.padEnd(6, '0')
+  return `${parseInt(f.slice(0, 2), 16) || 0},${parseInt(f.slice(2, 4), 16) || 0},${parseInt(f.slice(4, 6), 16) || 0}`
+})
+const sectionStyle = computed(() => ({
+  backgroundColor: props.backgroundColor || '#fff',
+  padding: '64px 24px',
+  position: 'relative' as const,
+  ...(props.backgroundImage ? { backgroundImage: `url(${props.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}),
+}))
 const br       = computed(() => `${(props.borderRadius ?? 12) / 2}px`)
 </script>
 
 <template>
-  <section :style="{ backgroundColor: backgroundColor || '#fff', padding: '64px 24px' }">
-    <div :style="{ maxWidth: isCard ? '680px' : '900px', margin: '0 auto' }">
+  <section :style="sectionStyle">
+    <div v-if="backgroundImage && (overlayOpacity ?? 0) > 0" :style="{ position: 'absolute', inset: 0, backgroundColor: `rgba(${overlayRgb},${(overlayOpacity ?? 0) / 100})`, pointerEvents: 'none' }" />
+    <div :style="{ maxWidth: isCard ? '680px' : '900px', margin: '0 auto', position: 'relative' }">
       <div v-if="headline || subheadline" :style="{ marginBottom: '40px', textAlign: isCard ? 'center' : 'left' }">
         <!-- sb-text-fluid-md (assets/css/responsive.css) scales this headline between
              mobile and desktop instead of staying fixed at 32px -->

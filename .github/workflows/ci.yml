@@ -26,9 +26,18 @@ jobs:
         run: npm ci
       - name: "Build (no secrets needed; every runtime value falls back to an empty default)"
         run: npm run build
-      - name: Unit tests (only the files that exist; none is not a failure, a failing one is)
+      - name: "Unit tests (at least one file must exist; more than 0 tests must run, none failing, not all skipped)"
         run: |
           shopt -s nullglob
           files=(tests/*.test.ts)
-          if [ ${#files[@]} -eq 0 ]; then echo "no tests/*.test.ts in this branch"; exit 0; fi
-          node --experimental-strip-types --test "${files[@]}"
+          if [ ${#files[@]} -eq 0 ]; then echo "::error::no tests/*.test.ts found: a pipeline with no tests proves nothing"; exit 1; fi
+          status=0
+          node --experimental-strip-types --test --test-reporter=tap "${files[@]}" > "$RUNNER_TEMP/tap.txt" || status=$?
+          cat "$RUNNER_TEMP/tap.txt"
+          if [ "$status" -ne 0 ]; then echo "::error::node --test exited $status"; exit 1; fi
+          count() { grep -E "^# $1 [0-9]+" "$RUNNER_TEMP/tap.txt" | tail -1 | awk '{print $3}'; }
+          tests=$(count tests); passed=$(count pass); skipped=$(count skipped); failed=$(count fail)
+          if [ -z "$tests" ] || [ "$tests" -eq 0 ]; then echo "::error::the test run reported 0 tests"; exit 1; fi
+          if [ "${failed:-0}" -ne 0 ]; then echo "::error::$failed test(s) failed"; exit 1; fi
+          if [ "${passed:-0}" -eq 0 ]; then echo "::error::no test passed ($skipped skipped)"; exit 1; fi
+          if [ "${skipped:-0}" -gt 0 ]; then echo "::warning::$skipped test(s) skipped"; fi
