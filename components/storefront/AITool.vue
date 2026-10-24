@@ -232,7 +232,7 @@ function onKeydown(e: KeyboardEvent) {
       </div>
 
       <p v-if="!proxyEndpoint" :style="{ color: textColor, opacity: 0.4, fontSize: '12px', textAlign: 'center', marginTop: '12px' }">
-        ℹ️ This block configures itself automatically — if this message persists, check <strong>AI Settings → Storefront AI Block</strong> in your Stratum admin, or set the Proxy Endpoint/API Key fields manually.
+        ℹ️ This assistant is not available right now. Please try again later.
       </p>
     </div>
   </section>
