@@ -19,9 +19,12 @@ const props = withDefaults(defineProps<{
   // (original behaviour), a vertical strip to the right of it, or large
   // 2-per-row tiles under it.
   thumbnailPosition?: 'below' | 'beside' | 'grid'
+  // Off when the description is shown elsewhere (e.g. a Product Info Accordion section).
+  showDescription?: boolean
 }>(), {
   layout: 'gallery-left',
   thumbnailPosition: 'below',
+  showDescription: true,
 })
 
 // 'grid' tiles show every image except the one already in the main frame;
@@ -371,7 +374,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
         </div>
 
         <!-- Full description -->
-        <div v-if="product!.description"
+        <div v-if="props.showDescription && product!.description"
              style="border-top:1px solid #e2e8f0;padding-top:24px;margin-top:8px;font-size:15px;color:#4a5568;line-height:1.7"
              v-html="product!.description"
         />
