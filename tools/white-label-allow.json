@@ -1,0 +1,9 @@
+{
+  "allow": [
+    {
+      "file": "server/utils/stratumUploads.ts",
+      "contains": "UPLOADS_BASE_DEFAULT = 'https://shop.stratumengage.com'",
+      "reason": "the platform's own upload address, used server-side to find and REWRITE platform upload links to the merchant's /sb-uploads/ path; it is never sent to a buyer"
+    }
+  ]
+}
