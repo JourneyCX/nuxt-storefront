@@ -15,9 +15,20 @@ import TradeBuyNote from './TradeBuyNote.vue'
 
 const props = withDefaults(defineProps<{
   layout?: 'gallery-left' | 'gallery-right'
+  // Where the non-selected images sit: small row under the main image
+  // (original behaviour), a vertical strip to the right of it, or large
+  // 2-per-row tiles under it.
+  thumbnailPosition?: 'below' | 'beside' | 'grid'
 }>(), {
   layout: 'gallery-left',
+  thumbnailPosition: 'below',
 })
+
+// 'grid' tiles show every image except the one already in the main frame;
+// clicking a tile swaps it into the main frame.
+const gridImages = computed(() =>
+  galleryImages.value.map((img, i) => ({ img, i })).filter(x => x.i !== selectedImage.value)
+)
 
 const route = useRoute()
 const slug  = route.params.slug as string | undefined
@@ -222,7 +233,12 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
     >
       <!-- Image gallery -->
       <div :style="{ order: props.layout === 'gallery-right' ? 2 : 1 }">
-        <div style="position:relative;border-radius:12px;overflow:hidden;background:#f7f8fa;aspect-ratio:1;margin-bottom:12px">
+        <div :style="props.thumbnailPosition === 'beside' ? 'display:flex;gap:12px;align-items:flex-start' : ''">
+        <div :style="{
+          position:'relative', borderRadius:'12px', overflow:'hidden', background:'#f7f8fa', aspectRatio:'1',
+          marginBottom: props.thumbnailPosition === 'beside' ? '0' : '12px',
+          ...(props.thumbnailPosition === 'beside' ? { flex:'1', minWidth:'0' } : {}),
+        }">
           <img v-if="mainImage" :src="mainImage" :alt="product!.name"
                style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in"
                @click="openLightbox" />
@@ -241,7 +257,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
             </svg>
           </button>
         </div>
-        <div v-if="galleryImages.length > 1" style="display:flex;gap:8px;flex-wrap:wrap">
+        <div v-if="galleryImages.length > 1 && props.thumbnailPosition !== 'grid'"
+             :style="props.thumbnailPosition === 'beside' ? 'display:flex;flex-direction:column;gap:8px' : 'display:flex;gap:8px;flex-wrap:wrap'">
           <button
             v-for="(img, i) in galleryImages"
             :key="i"
@@ -252,6 +269,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleLightboxKeydown))
             }"
           >
             <img :src="img.src" :alt="img.alt" style="width:100%;height:100%;object-fit:cover;display:block" />
+          </button>
+        </div>
+        </div>
+        <div v-if="props.thumbnailPosition === 'grid' && gridImages.length" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <button
+            v-for="g in gridImages"
+            :key="g.i"
+            @click="selectedImage = g.i"
+            style="padding:0;border:none;border-radius:12px;overflow:hidden;cursor:pointer;background:#f7f8fa;aspect-ratio:1"
+          >
+            <img :src="g.img.src" :alt="g.img.alt" style="width:100%;height:100%;object-fit:cover;display:block" />
           </button>
         </div>
       </div>
