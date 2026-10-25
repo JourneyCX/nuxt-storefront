@@ -17,6 +17,42 @@ function money(v: string | number) {
 }
 const cell = 'padding:10px 8px;border-bottom:1px solid #e2e8f0;font-size:14px'
 const right = cell + ';text-align:right;white-space:nowrap'
+
+// Proof of payment (Session 6c): only for an order that is waiting for its EFT. The page sends file names and contents; the platform decides.
+const awaiting = computed(() => o.value?.status === 'awaiting_payment' && o.value?.payment?.basis === 'prepay')
+const pop = ref<{ eft: boolean; proofs: Array<{ name: string; uploaded_at: string; status: string; decline_reason: string }> }>({ eft: false, proofs: [] })
+const popMessage = ref('')
+const popOk = ref(true)
+const popBusy = ref(false)
+const POP_MAX_FILES = 3
+const POP_MAX_BYTES = 5 * 1024 * 1024
+async function loadPop() {
+  try { pop.value = await $fetch<any>(`/api/trade/order/${encodeURIComponent(ref_)}/pop`) } catch { /* the block simply stays hidden */ }
+}
+if (awaiting.value) await loadPop()
+function toBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onerror = () => reject(new Error('read'))
+    r.onload = () => resolve(String(r.result).split(',')[1] ?? '')
+    r.readAsDataURL(file)
+  })
+}
+async function uploadPop(e: Event) {
+  const input = (e.target as HTMLFormElement).elements.namedItem('files') as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  popMessage.value = ''
+  if (!files.length || files.length > POP_MAX_FILES) { popOk.value = false; popMessage.value = `Choose between 1 and ${POP_MAX_FILES} files.`; return }
+  if (files.some(f => f.size > POP_MAX_BYTES)) { popOk.value = false; popMessage.value = 'A file is larger than the 5 MB limit.'; return }
+  popBusy.value = true
+  try {
+    const body = { files: await Promise.all(files.map(async f => ({ name: f.name, data: await toBase64(f) }))) }
+    const r = await $fetch<any>(`/api/trade/order/${encodeURIComponent(ref_)}/pop`, { method: 'POST', body }).catch((err: any) => err?.data ?? { ok: false, message: 'The upload could not be completed. Please try again.' })
+    popOk.value = Boolean(r?.ok)
+    popMessage.value = String(r?.message || r?.statusMessage || (r?.ok ? 'Uploaded.' : 'The upload was not accepted.'))
+    if (r?.ok) { input.value = ''; await loadPop() }
+  } catch { popOk.value = false; popMessage.value = 'The file could not be read. Please try again.' } finally { popBusy.value = false }
+}
 </script>
 
 <template>
@@ -63,6 +99,22 @@ const right = cell + ';text-align:right;white-space:nowrap'
           <div v-if="o.payment.bank_details" style="margin-top:8px;white-space:pre-line">{{ o.payment.bank_details }}</div>
           <div v-else style="margin-top:8px">We will send you our bank details shortly.</div>
           <div style="margin-top:8px">Please use <strong>{{ o.invoice_number }}</strong> as your payment reference.</div>
+          <div v-if="awaiting && pop.eft" style="margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0" data-testid="order-pop">
+            <strong>Paid already? Upload your proof of payment.</strong>
+            <ul v-if="pop.proofs.length" style="margin:8px 0;padding-left:18px" data-testid="order-pop-list">
+              <li v-for="(p, i) in pop.proofs" :key="i">
+                {{ p.name }} <span style="color:#718096">({{ p.uploaded_at }})</span>:
+                <strong>{{ p.status === 'pending' ? 'waiting to be checked' : p.status === 'confirmed' ? 'received, thank you' : 'not accepted' }}</strong>
+                <span v-if="p.status === 'declined' && p.decline_reason"> &mdash; {{ p.decline_reason }}</span>
+              </li>
+            </ul>
+            <form style="margin-top:8px" @submit.prevent="uploadPop">
+              <input name="files" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-label="Proof of payment (PDF, JPEG or PNG, up to 3 files of 5 MB)">
+              <button type="submit" :disabled="popBusy" style="margin-left:8px;padding:6px 14px;border:0;border-radius:6px;background:#2b6cb0;color:#fff;cursor:pointer">{{ popBusy ? 'Uploading…' : 'Upload' }}</button>
+            </form>
+            <p style="margin:6px 0 0;color:#718096;font-size:13px">PDF, JPEG or PNG; up to 3 files of 5 MB each. We check the payment against our bank account and email you.</p>
+            <p v-if="popMessage" :role="popOk ? 'status' : 'alert'" data-testid="order-pop-message" :style="{ margin: '8px 0 0', color: popOk ? '#276749' : '#c53030' }">{{ popMessage }}</p>
+          </div>
         </template>
         <div style="margin-top:10px"><strong>Deliver to:</strong> {{ o.delivery.location }}<template v-if="o.delivery.lead_time">. Lead time: {{ o.delivery.lead_time }}.</template></div>
       </div>
