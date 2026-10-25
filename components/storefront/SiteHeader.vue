@@ -62,6 +62,7 @@ const navItemSpacing = computed(() => props.settings.headerNavItemSpacing || 28)
     <div style="max-width:1200px;margin:0 auto;padding:6px 24px;display:flex;justify-content:flex-end;align-items:center;gap:14px;flex-wrap:wrap">
       <template v-if="trade.signedIn || trade.onHold">
         <span>{{ trade.onHold ? 'Account on hold: ' : 'Signed in as ' }}<strong>{{ trade.company }}</strong></span>
+        <a v-if="trade.signedIn" href="/trade/account" style="color:inherit;text-decoration:underline">My account</a>
         <button type="button" @click="tradeSignOut" :style="{ background:'none', border:'1px solid currentColor', borderRadius:'4px', padding:'2px 8px', fontSize:'12px', cursor:'pointer', color:'inherit' }">Sign out</button>
       </template>
       <template v-else>

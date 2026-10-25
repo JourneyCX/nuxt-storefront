@@ -75,6 +75,8 @@ export default defineEventHandler(async (event) => {
   if (!isApi && signedIn && (path === '/checkout')) return redirect('/cart')
   // The trade cart and checkout pages are for a signed-in buyer of a tenant with trade ordering on (anyone else: the sign-in page).
   if (!isApi && (path === '/trade/cart' || path === '/trade/checkout' || path.startsWith('/trade/order/')) && !(signedIn && state.checkout)) return toLogin()
+  // The account area (Session 8c) is for any signed-in trade contact; whether this contact may see balances is decided by the back office.
+  if (!isApi && (path === '/trade/account' || path.startsWith('/trade/account/')) && !signedIn) return toLogin()
 
   // ---- closed portal: an anonymous visitor sees almost nothing -----------------------------------------------------
   if (state.mode === 'closed' && !signedIn) {
