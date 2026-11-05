@@ -51,7 +51,7 @@ const right = cell + ';text-align:right;white-space:nowrap'
                 <NuxtLink v-if="r.order_number && r.source === 'trade_order'" :to="'/trade/order/' + r.order_number" style="color:#2b6cb0">{{ r.order_number }}</NuxtLink>
                 <template v-else>{{ SOURCE_LABELS[r.source] || 'Other' }}<span v-if="r.order_number" style="color:#718096"> {{ r.order_number }}</span></template>
               </td>
-              <td :style="cell"><a v-if="r.kind === 'invoice' && r.state !== 'cancelled'" :href="'/api/trade/account/invoice/' + r.id" style="color:#2b6cb0" :aria-label="'Download ' + r.number">PDF</a></td>
+              <td :style="cell"><a v-if="r.kind === 'invoice' && r.state !== 'cancelled'" :href="'/api/trade/account/invoice/' + r.id" style="color:#2b6cb0" :aria-label="'Download ' + r.number">PDF</a><a v-else-if="r.kind === 'credit_note'" :href="'/api/trade/account/credit-note/' + r.id" style="color:#2b6cb0" :aria-label="'Download credit note ' + r.number" data-credit-note-pdf>PDF</a></td>
             </tr>
           </tbody>
         </table>
