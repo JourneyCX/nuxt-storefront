@@ -101,10 +101,24 @@ const shippingResolved = computed(() => !cartNeedsShipping.value || !!selectedRa
 // Native rates already land in cart.totals.total_shipping (mutated on
 // /cart's onSelectRate()); external providers never touch that cart, so
 // their price is shown from the selection carried over from /cart instead.
+//
+// A quoted native rate can still show 0 in cart.totals.total_shipping (the
+// WooCommerce cart had no rate selected when this page loaded), so a quoted
+// price above 0 is shown instead of R0.00. The order itself is priced by the
+// server, so this only fixes what the shopper sees.
+const shippingMinor = computed(() => {
+  const rate = selectedRate.value
+  if (!rate) return 0
+  const minorUnit = cart.value?.totals.currency_minor_unit ?? 2
+  const quoted = Math.round((Number(rate.price) || 0) * 10 ** minorUnit)
+  if (rate.provider !== 'woocommerce_native') return quoted
+  const inCart = parseFloat(cart.value?.totals.total_shipping ?? '0') || 0
+  return inCart > 0 ? inCart : quoted
+})
+
 const shippingDisplayPrice = computed(() => {
   if (!selectedRate.value) return null
-  if (selectedRate.value.provider === 'woocommerce_native') return cart.value?.totals.total_shipping ?? null
-  return (selectedRate.value.price * 100).toFixed(0) // match the minor-unit string formatPrice() expects
+  return String(shippingMinor.value) // minor-unit string, as formatPrice() expects
 })
 
 // cart.totals.total_price is NOT a safe "products only" base -- WooCommerce
@@ -123,11 +137,7 @@ const cartSubtotal = computed(() => {
 const displayTotal = computed(() => {
   const base = cartSubtotal.value - discountMinor.value
   if (!cartNeedsShipping.value || !selectedRate.value) return String(base)
-  const minorUnit = cart.value?.totals.currency_minor_unit ?? 2
-  const shippingMinor = selectedRate.value.provider === 'woocommerce_native'
-    ? parseFloat(cart.value?.totals.total_shipping ?? '0')
-    : Math.round(selectedRate.value.price * 10 ** minorUnit)
-  return String(base + shippingMinor)
+  return String(base + shippingMinor.value)
 })
 
 // ── Payment method ────────────────────────────────────────────────────────
