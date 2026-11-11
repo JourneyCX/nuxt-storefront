@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// The three tabs of the trade account area.
-defineProps<{ current: 'summary' | 'invoices' | 'statement' }>()
+// The tabs of the trade account area.
+defineProps<{ current: 'summary' | 'invoices' | 'statement' | 'pay' }>()
 const tabs = [
   { key: 'summary', label: 'Overview', to: '/trade/account' },
   { key: 'invoices', label: 'Invoices and credit notes', to: '/trade/account/invoices' },
   { key: 'statement', label: 'Statement', to: '/trade/account/statement' },
+  { key: 'pay', label: 'Pay invoices', to: '/trade/account/pay' },
 ]
 </script>
 
