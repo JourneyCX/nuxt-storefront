@@ -52,12 +52,34 @@ function appendSetCookieHeader(event: H3Event, cookieStr: string): void {
   res.setHeader('Set-Cookie', next)
 }
 
+// (2026-11-18, register A18) Every cookie this storefront sets lacked the Secure flag, so a browser would also
+// send it over plain http. The storefront sits behind nginx, which terminates TLS and tells the app with
+// `X-Forwarded-Proto: https`. When the request came in over HTTPS, cookies are now marked Secure automatically.
+// Plain http (local development, the internal http://localhost server-side calls) is left alone, so nothing
+// there breaks. An explicit `secure` option still wins.
+export function isHttpsRequest(
+  headers: Record<string, string | string[] | undefined>,
+  encrypted: boolean = false,
+): boolean {
+  if (encrypted) return true
+  const raw = headers['x-forwarded-proto']
+  const value = Array.isArray(raw) ? raw[0] : raw
+  // A proxy chain can send "https, http": the first entry is the client-facing one.
+  return (value ?? '').split(',')[0].trim().toLowerCase() === 'https'
+}
+
+function withSecure(event: H3Event, opts: RawCookieOptions): RawCookieOptions {
+  if (opts.secure !== undefined) return opts
+  const req = event.node.req as unknown as { headers: Record<string, string | string[] | undefined>; socket?: { encrypted?: boolean } }
+  return isHttpsRequest(req.headers ?? {}, Boolean(req.socket?.encrypted)) ? { ...opts, secure: true } : opts
+}
+
 export function setRawCookie(event: H3Event, name: string, value: string, opts: RawCookieOptions = {}): void {
-  appendSetCookieHeader(event, serializeCookie(name, value, opts))
+  appendSetCookieHeader(event, serializeCookie(name, value, withSecure(event, opts)))
 }
 
 export function deleteRawCookie(event: H3Event, name: string, opts: RawCookieOptions = {}): void {
-  appendSetCookieHeader(event, serializeCookie(name, '', { ...opts, maxAge: 0 }))
+  appendSetCookieHeader(event, serializeCookie(name, '', { ...withSecure(event, opts), maxAge: 0 }))
 }
 
 // Parses the query string straight off event.node.req.url via URLSearchParams
