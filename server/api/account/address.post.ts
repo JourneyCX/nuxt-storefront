@@ -2,6 +2,7 @@ import { createWcClient, type WcAddress } from '~/server/utils/woocommerce'
 import { fetchWooCredentials }            from '~/server/utils/stratum'
 import { getRawBody }                     from '~/server/utils/http-compat'
 import { requireAccountSession }          from '~/server/utils/accountSession'
+import { cleanBilling }                   from '~/server/utils/accountAddress'
 
 interface AddressBody {
   billing?:  WcAddress
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
 
   const client   = createWcClient(creds.url, creds.key, creds.secret)
   const customer = await client.updateCustomerAddress(session.customerId, {
-    billing:  body.billing,
+    billing:  cleanBilling(body.billing),
     shipping: body.shipping,
   }).catch((e: unknown) => {
     // e.data is the real WooCommerce response body ({code, message, data})
